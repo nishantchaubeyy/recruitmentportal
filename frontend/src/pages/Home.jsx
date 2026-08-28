@@ -39,7 +39,7 @@ function Home() {
             onClick={() => navigate('/teaching')}
             className="hero-image-card"
           >
-            <img src="/teaching.jpg" alt="Teaching Positions" className="hero-card-img" />
+            <img src="/imageblocks.png" alt="Teaching Positions" className="hero-card-img" />
             <div className="hero-card-overlay" />
             <div className="hero-card-content">
               <h3 className="hero-card-title">Teaching Positions</h3>
@@ -58,7 +58,7 @@ function Home() {
             onClick={() => navigate('/non-teaching')}
             className="hero-image-card"
           >
-            <img src="/non-teaching.jpg" alt="Non-Teaching Positions" className="hero-card-img" />
+            <img src="/imageblocks.png" alt="Non-Teaching Positions" className="hero-card-img" />
             <div className="hero-card-overlay" />
             <div className="hero-card-content">
               <h3 className="hero-card-title">Non-Teaching Positions</h3>
