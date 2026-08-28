@@ -88,7 +88,7 @@ function InterestModal({ isOpen, onClose, defaultCategory = 'TEACHING', defaultS
       <div className="modal-card" style={cardStyle} onClick={(e) => e.stopPropagation()}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
           <h3 style={{ margin: 0, color: '#0f3b46', fontSize: '1.25rem', fontWeight: 800 }}>
-            🔔 Notify Me When Open
+            Notify Me When Open
           </h3>
           <button onClick={onClose} style={closeBtnStyle}>&times;</button>
         </div>

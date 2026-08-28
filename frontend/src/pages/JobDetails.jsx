@@ -102,7 +102,7 @@ function JobDetails() {
               {job.position}
             </h1>
             <p style={{ margin: '6px 0 0 0', color: '#475569', fontSize: '1rem', fontWeight: 600 }}>
-              🏛️ {job.department} {job.school?.name ? `(${job.school.name})` : ''}
+              Department: {job.department} {job.school?.name ? `(${job.school.name})` : ''}
             </p>
           </div>
 
@@ -117,7 +117,7 @@ function JobDetails() {
                 fontWeight: 800,
                 fontSize: '0.85rem'
               }}>
-                🔒 Application Closed
+                Application Closed
               </span>
             ) : (
               <span style={{
@@ -128,7 +128,7 @@ function JobDetails() {
                 fontWeight: 800,
                 fontSize: '0.85rem'
               }}>
-                ✓ Accepting Applications
+                Accepting Applications
               </span>
             )}
           </div>
@@ -167,7 +167,7 @@ function JobDetails() {
       }}>
         {/* Job Description */}
         <div>
-          <h3 style={sectionHeadingStyle}>📌 Job Description</h3>
+          <h3 style={sectionHeadingStyle}>Job Description</h3>
           <p style={{ color: '#334155', lineHeight: '1.7', whiteSpace: 'pre-line', margin: 0 }}>
             {job.description}
           </p>
@@ -262,7 +262,7 @@ function JobDetails() {
                   cursor: 'pointer'
                 }}
               >
-                🔔 Notify Me When Open
+                Notify Me When Open
               </button>
             ) : (
               <button

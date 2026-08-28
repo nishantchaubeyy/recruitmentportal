@@ -86,7 +86,7 @@ function Home() {
           padding: '28px 32px', 
           boxShadow: '0 4px 14px rgba(15,23,42,0.04)'
         }}>
-          <h4 style={{ margin: '0 0 12px 0', color: '#0f3b46', fontWeight: 800, fontSize: '1.1rem' }}>📌 Candidate Guidelines:</h4>
+          <h4 style={{ margin: '0 0 12px 0', color: '#0f3b46', fontWeight: 800, fontSize: '1.1rem' }}>Candidate Guidelines:</h4>
           <ul style={{ paddingLeft: '22px', color: '#475569', fontSize: '0.94rem', lineHeight: '1.8' }}>
             <li>Select <strong>Teaching Positions</strong> or <strong>Non-Teaching Positions</strong> above to view available department vacancies.</li>
             <li>Selecting a specific department or faculty will open the official DYPIU application form.</li>

@@ -71,7 +71,7 @@ function VacancySlider() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '20px' }}>
           <div>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', backgroundColor: '#dcfce7', color: '#166534', padding: '4px 12px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 800, marginBottom: '8px' }}>
-              <span>🔥</span> CURRENTLY OPEN VACANCIES
+              CURRENTLY OPEN VACANCIES
             </div>
             <h2 style={{ margin: 0, color: '#0f3b46', fontSize: '1.75rem', fontWeight: 800, letterSpacing: '-0.3px' }}>
               Explore Active Opportunities
@@ -213,14 +213,14 @@ function VacancySlider() {
 
                   {/* Department */}
                   <div style={{ fontSize: '0.85rem', color: '#475569', fontWeight: 600, marginBottom: '14px' }}>
-                    🏛️ {job.department}
+                    Department: {job.department}
                   </div>
 
                   {/* Quick details */}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.82rem', color: '#64748b', marginBottom: '18px' }}>
-                    <div>📍 <strong>Location:</strong> {job.location || 'Pune'}</div>
-                    <div>⏱️ <strong>Type:</strong> {job.employmentType || 'Full Time'} ({job.numPositions} Opening{job.numPositions > 1 ? 's' : ''})</div>
-                    <div>📅 <strong>Deadline:</strong> {new Date(job.deadline).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
+                    <div><strong>Location:</strong> {job.location || 'Pune'}</div>
+                    <div><strong>Type:</strong> {job.employmentType || 'Full Time'} ({job.numPositions} Opening{job.numPositions > 1 ? 's' : ''})</div>
+                    <div><strong>Deadline:</strong> {new Date(job.deadline).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
                   </div>
                 </div>
 

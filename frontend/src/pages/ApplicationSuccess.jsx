@@ -18,7 +18,6 @@ function ApplicationSuccess() {
         
         {isInterest ? (
           <>
-            <div style={{ fontSize: '3rem', marginBottom: '12px' }}>🔔</div>
             <h2 style={{ color: '#0f766e', margin: '0 0 12px 0', fontSize: '1.75rem', fontWeight: 800 }}>
               Form Submitted — Details Registered
             </h2>
@@ -28,7 +27,6 @@ function ApplicationSuccess() {
           </>
         ) : (
           <>
-            <div style={{ fontSize: '3rem', marginBottom: '12px' }}>✔️</div>
             <h2 style={{ color: '#0f766e', margin: '0 0 12px 0', fontSize: '1.75rem', fontWeight: 800 }}>
               Application Submitted Successfully
             </h2>
