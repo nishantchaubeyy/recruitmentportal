@@ -488,53 +488,36 @@ function ApplicationForm() {
               </div>
             </div>
 
-            {/* Gender & Marital Status segmented pills */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px', alignItems: 'center' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                <label style={{ fontWeight: 600, fontSize: '13px', margin: 0 }}>Gender <span className="required">*</span> :</label>
-                <div className="segmented-pill-group">
-                  <button
-                    type="button"
-                    className={`segmented-pill-btn ${gender === 'Male' ? 'active' : ''}`}
-                    onClick={() => setGender('Male')}
-                  >
-                    Male
-                  </button>
-                  <button
-                    type="button"
-                    className={`segmented-pill-btn ${gender === 'Female' ? 'active' : ''}`}
-                    onClick={() => setGender('Female')}
-                  >
-                    Female
-                  </button>
-                  <button
-                    type="button"
-                    className={`segmented-pill-btn ${gender === 'Other' ? 'active' : ''}`}
-                    onClick={() => setGender('Other')}
-                  >
-                    Other
-                  </button>
-                </div>
+            {/* Gender & Marital Status Dropdowns */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
+              <div className="form-group">
+                <label>Gender <span className="required">*</span></label>
+                <select
+                  value={gender}
+                  onChange={(e) => setGender(e.target.value)}
+                  required
+                >
+                  <option value="">-- Select Gender --</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Other">Other</option>
+                </select>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                <label style={{ fontWeight: 600, fontSize: '13px', margin: 0 }}>Marital Status <span className="required">*</span> :</label>
-                <div className="segmented-pill-group">
-                  <button
-                    type="button"
-                    className={`segmented-pill-btn ${maritalStatus === 'Married' ? 'active' : ''}`}
-                    onClick={() => setMaritalStatus('Married')}
-                  >
-                    Married
-                  </button>
-                  <button
-                    type="button"
-                    className={`segmented-pill-btn ${maritalStatus === 'Unmarried' ? 'active' : ''}`}
-                    onClick={() => setMaritalStatus('Unmarried')}
-                  >
-                    Unmarried
-                  </button>
-                </div>
+              <div className="form-group">
+                <label>Marital Status <span className="required">*</span></label>
+                <select
+                  value={maritalStatus}
+                  onChange={(e) => setMaritalStatus(e.target.value)}
+                  required
+                >
+                  <option value="">-- Select Marital Status --</option>
+                  <option value="Married">Married</option>
+                  <option value="Unmarried">Unmarried</option>
+                  <option value="Single">Single</option>
+                  <option value="Divorced">Divorced</option>
+                  <option value="Widowed">Widowed</option>
+                </select>
               </div>
             </div>
 

@@ -1822,94 +1822,129 @@ footer.footer-dypiu {
   font-size: 1.3rem;
 }
 
-/* HERO IMAGE CATEGORY CARDS */
-.hero-image-card-grid {
+/* PURE WHITE HERO BACKGROUND */
+.hero-conic-gradient-bg {
+  width: 100%;
+  padding: 45px 24px 15px 24px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #ffffff;
+  background-image: none;
+  border-bottom: none;
+}
+
+/* CENTERED PASTEL GEOMETRIC CARDS (NO BUTTONS, PLAYFAIR SERIF) */
+.centered-card-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  gap: 24px;
+  gap: 32px;
   margin-bottom: 35px;
 }
 
-.hero-image-card {
+.centered-category-card {
   position: relative;
-  border-radius: 16px;
+  border-radius: 20px;
   overflow: hidden;
-  height: 290px;
+  min-height: 210px;
   cursor: pointer;
-  box-shadow: 0 12px 28px -5px rgba(15, 23, 42, 0.2);
-  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-  background-color: #0f172a;
+  border: 1px solid #cbd5e1;
+  box-shadow: 0 4px 24px rgba(15, 23, 42, 0.05);
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s ease;
+  background-color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
 }
 
-.hero-image-card:hover {
+.centered-category-card:hover {
   transform: translateY(-6px);
-  box-shadow: 0 22px 35px -8px rgba(15, 23, 42, 0.3);
+  box-shadow: 0 20px 40px -6px rgba(15, 23, 42, 0.12);
+  border-color: #4338ca;
 }
 
-.hero-card-img {
+.centered-card-img {
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
-  transition: transform 0.5s ease;
-  filter: brightness(0.9);
+  opacity: 0.85;
+  transition: transform 0.6s ease, opacity 0.3s ease;
 }
 
-.hero-image-card:hover .hero-card-img {
-  transform: scale(1.06);
-  filter: brightness(0.95);
+.centered-category-card:hover .centered-card-img {
+  transform: scale(1.05);
+  opacity: 0.95;
 }
 
-.hero-card-overlay {
+/* Translucent Soft Readability Overlay */
+.centered-card-overlay {
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(180deg, rgba(15, 23, 42, 0.55) 0%, rgba(15, 23, 42, 0.94) 100%);
-  transition: background 0.3s ease;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.88) 0%, rgba(255, 255, 255, 0.96) 100%);
+  z-index: 1;
 }
 
-.hero-card-content {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  padding: 28px;
-  color: #ffffff;
+.centered-card-content {
+  position: relative;
   z-index: 2;
-}
-
-.hero-card-title {
-  font-size: 1.65rem;
-  font-weight: 900;
-  margin: 0 0 8px 0;
-  color: #ffffff;
-  letter-spacing: -0.4px;
-  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.9);
-}
-
-.hero-card-subtitle {
-  font-size: 0.94rem;
-  font-weight: 700;
-  color: #f1f5f9;
-  margin: 0 0 16px 0;
-  line-height: 1.5;
-  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9);
-}
-
-.hero-card-action {
-  display: inline-flex;
+  width: 100%;
+  padding: 44px 36px;
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 8px;
-  font-size: 0.9rem;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+/* Outline Style Minimalist Badges */
+.centered-card-badge-outline {
+  display: inline-block;
+  padding: 5px 16px;
+  border-radius: 20px;
+  font-size: 0.75rem;
   font-weight: 800;
-  color: #ffffff;
-  background-color: rgba(15, 23, 42, 0.8);
-  padding: 8px 16px;
-  border-radius: 8px;
-  border: 1.5px solid rgba(255, 255, 255, 0.4);
-  backdrop-filter: blur(4px);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  background: transparent;
+  margin-bottom: 18px;
+}
+
+.badge-outline-teal {
+  color: #0f766e;
+  border: 1.5px solid #0f766e;
+}
+
+.badge-outline-orange {
+  color: #c2410c;
+  border: 1.5px solid #c2410c;
+}
+
+/* High-Contrast Playfair Display Serif Heading */
+.centered-card-serif-heading {
+  font-family: 'Playfair Display', Georgia, 'Times New Roman', serif;
+  font-size: 2.1rem;
+  font-weight: 800;
+  color: #1e1b4b; /* Deep Rich Indigo */
+  margin: 0 0 12px 0;
+  line-height: 1.25;
+  letter-spacing: -0.4px;
+}
+
+/* Cool Slate Blue Sans-Serif Subtext */
+.centered-card-slate-subtext {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 0.98rem;
+  font-weight: 500;
+  color: #334155; /* Cool Slate Blue */
+  line-height: 1.65;
 }
 
 /* Hide scrollbars for vacancy slider */

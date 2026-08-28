@@ -8,76 +8,79 @@ function Home() {
   return (
     <div className="home-page-wrapper">
       {/* 1. HERO SECTION */}
-      <section className="hero-section-clean" style={{ padding: '50px 24px 40px 24px' }}>
-        {/* Subtle Decorative Shapes */}
-        <div className="hero-shape shape-teal"></div>
-        <div className="hero-shape shape-yellow"></div>
-        <div className="hero-shape shape-orange"></div>
-
-        <div className="hero-content-inner">
-          {/* Main Heading */}
-          <h1 className="hero-title-main" style={{ marginBottom: '14px' }}>Join DYPIU</h1>
-
-          {/* Paragraph */}
-          <p className="hero-description-text" style={{ marginBottom: '0' }}>
-            Explore current teaching and non-teaching opportunities at DY Patil International University. 
-            Empowering future educators, researchers, and academic administrative leaders.
-          </p>
-        </div>
+      <section className="hero-conic-gradient-bg">
+        <h1 style={{
+          fontSize: '4.2rem',
+          fontWeight: 900,
+          color: '#0f2b5c',
+          margin: 0,
+          letterSpacing: '-1px',
+          textAlign: 'center',
+          lineHeight: '1.1'
+        }}>
+          Join DYPIU!
+        </h1>
       </section>
 
-      {/* 2. CATEGORY BLOCKS SECTION (TEACHING & NON-TEACHING CARDS) */}
-      <div className="container" id="categories" style={{ maxWidth: '980px', padding: '40px 24px 25px 24px' }}>
-        <div className="section-header-center" style={{ marginBottom: '28px' }}>
-          <h2 style={{ fontSize: '1.75rem', color: '#0f3b46', fontWeight: 800 }}>Explore Recruitment Categories</h2>
-          <p style={{ color: '#64748b', fontSize: '0.95rem' }}>Select a position type below to view available departments</p>
-        </div>
-
-        <div className="hero-image-card-grid">
-          {/* BLOCK 1: TEACHING POSITIONS */}
+      {/* 2. RECRUITMENT CATEGORIES SECTION */}
+      <div className="container" id="categories" style={{ maxWidth: '980px', padding: '20px 24px 35px 24px' }}>
+        <div className="centered-card-grid">
+          {/* CARD 1: TEACHING POSITIONS */}
           <div 
             onClick={() => navigate('/teaching')}
-            className="hero-image-card"
+            className="centered-category-card"
           >
-            <img src="/imageblocks.png" alt="Teaching Positions" className="hero-card-img" />
-            <div className="hero-card-overlay" />
-            <div className="hero-card-content">
-              <h3 className="hero-card-title">Teaching Positions</h3>
-              <p className="hero-card-subtitle">
-                Professors, Associate Professors, Assistant Professors & Research Staff
-              </p>
-              <div className="hero-card-action">
-                <span>Explore Teaching Faculties</span>
-                <span className="action-arrow">&rarr;</span>
+            {/* Soft Abstract Pastel Geometric Background */}
+            <img src="/imageblocks.png" alt="DYPIU Teaching Positions" className="centered-card-img" />
+
+            {/* Translucent Soft Readability Overlay */}
+            <div className="centered-card-overlay" />
+
+            {/* Card Content (Centered Stack) */}
+            <div className="centered-card-content">
+              {/* Minimalist Outline Badge */}
+              <div className="centered-card-badge-outline badge-outline-teal">
+                ACADEMIC POSITIONS
               </div>
+
+              {/* Bold Playfair Display Serif Heading */}
+              <h3 className="centered-card-serif-heading">
+                Teaching Positions
+              </h3>
             </div>
           </div>
 
-          {/* BLOCK 2: NON-TEACHING POSITIONS */}
+          {/* CARD 2: NON-TEACHING POSITIONS */}
           <div 
             onClick={() => navigate('/non-teaching')}
-            className="hero-image-card"
+            className="centered-category-card"
           >
-            <img src="/imageblocks.png" alt="Non-Teaching Positions" className="hero-card-img" />
-            <div className="hero-card-overlay" />
-            <div className="hero-card-content">
-              <h3 className="hero-card-title">Non-Teaching Positions</h3>
-              <p className="hero-card-subtitle">
-                Administrative Officers, Registrars, IT Support, Lab & Library Staff
-              </p>
-              <div className="hero-card-action">
-                <span>Explore Non-Teaching Divisions</span>
-                <span className="action-arrow">&rarr;</span>
+            {/* Soft Abstract Pastel Geometric Background */}
+            <img src="/imageblocks.png" alt="DYPIU Non-Teaching Positions" className="centered-card-img" />
+
+            {/* Translucent Soft Readability Overlay */}
+            <div className="centered-card-overlay" />
+
+            {/* Card Content (Centered Stack) */}
+            <div className="centered-card-content">
+              {/* Minimalist Outline Badge */}
+              <div className="centered-card-badge-outline badge-outline-orange">
+                ADMINISTRATIVE & STAFF
               </div>
+
+              {/* Bold Playfair Display Serif Heading */}
+              <h3 className="centered-card-serif-heading">
+                Non-Teaching Positions
+              </h3>
             </div>
           </div>
         </div>
       </div>
 
-      {/* 3. DYNAMIC VACANCY SLIDER CAROUSEL (PLACED BELOW TEACHING & NON-TEACHING BLOCKS) */}
+      {/* 3. DYNAMIC VACANCY SLIDER CAROUSEL */}
       <VacancySlider />
 
-      {/* 4. GUIDELINES CARD */}
+      {/* 4. CANDIDATE GUIDELINES CARD */}
       <div className="container" style={{ maxWidth: '980px', padding: '30px 24px 40px 24px' }}>
         <div style={{ 
           backgroundColor: '#ffffff', 
@@ -86,7 +89,7 @@ function Home() {
           padding: '28px 32px', 
           boxShadow: '0 4px 14px rgba(15,23,42,0.04)'
         }}>
-          <h4 style={{ margin: '0 0 12px 0', color: '#0f3b46', fontWeight: 800, fontSize: '1.1rem' }}>Candidate Guidelines:</h4>
+          <h4 style={{ margin: '0 0 12px 0', color: '#0f2b5c', fontWeight: 800, fontSize: '1.1rem' }}>Candidate Guidelines:</h4>
           <ul style={{ paddingLeft: '22px', color: '#475569', fontSize: '0.94rem', lineHeight: '1.8' }}>
             <li>Select <strong>Teaching Positions</strong> or <strong>Non-Teaching Positions</strong> above to view available department vacancies.</li>
             <li>Selecting a specific department or faculty will open the official DYPIU application form.</li>
