@@ -1,12 +1,13 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import VacancySlider from '../components/VacancySlider';
 
 function Home() {
   const navigate = useNavigate();
 
   return (
     <div className="home-page-wrapper">
-      {/* 1. HERO SECTION (CLEAN - NO PILL BADGE, NO EXTRA BUTTONS) */}
+      {/* 1. HERO SECTION */}
       <section className="hero-section-clean" style={{ padding: '50px 24px 40px 24px' }}>
         {/* Subtle Decorative Shapes */}
         <div className="hero-shape shape-teal"></div>
@@ -25,8 +26,11 @@ function Home() {
         </div>
       </section>
 
-      {/* 2. CATEGORY BLOCKS SECTION */}
-      <div className="container" id="categories" style={{ maxWidth: '980px', padding: '35px 24px' }}>
+      {/* 2. DYNAMIC VACANCY SLIDER CAROUSEL (BACKEND DRIVEN) */}
+      <VacancySlider />
+
+      {/* 3. CATEGORY BLOCKS SECTION */}
+      <div className="container" id="categories" style={{ maxWidth: '980px', padding: '45px 24px' }}>
         <div className="section-header-center" style={{ marginBottom: '28px' }}>
           <h2 style={{ fontSize: '1.75rem', color: '#0f3b46', fontWeight: 800 }}>Explore Recruitment Categories</h2>
           <p style={{ color: '#64748b', fontSize: '0.95rem' }}>Select a position type below to view available departments</p>
