@@ -272,7 +272,7 @@ function ApplicationForm() {
     try {
       const payload = {
         faculty: selectedFaculty,
-        postAppliedFor,
+        postAppliedFor: postAppliedFor || 'Faculty Position',
         subjectAppliedFor,
         personalInfo: { title, firstName, middleName, lastName, dob, age, gender, maritalStatus, email, alternateEmail },
         contactDetails: { state, city, mobile, alternateMobile, instituteAppliedTo },
@@ -282,21 +282,59 @@ function ApplicationForm() {
         declaration: true
       };
 
-      const response = await apiRequest('/applications', {
-        method: 'POST',
-        body: JSON.stringify({ jobId: activeJobId || 'job-general', ...payload })
-      });
+      const fullName = `${title !== 'Select' ? title : ''} ${firstName} ${lastName}`.trim();
+      const catType = urlType || (isNonTeaching ? 'NON_TEACHING' : 'TEACHING');
 
-      const targetId = response.applicationId || response.id || 'app-new';
+      // If active open vacancy exists
+      if (activeJobId && loadedVacancy && loadedVacancy.isApplicationOpen) {
+        const response = await apiRequest('/applications', {
+          method: 'POST',
+          body: JSON.stringify({ jobId: activeJobId, ...payload })
+        });
 
-      await apiRequest(`/applications/${targetId}/submit`, {
-        method: 'POST',
-        body: JSON.stringify(payload)
-      });
+        const targetId = response.applicationId || response.id || 'app-new';
 
-      navigate(`/applicant/applications/${targetId}/success`);
+        const submitRes = await apiRequest(`/applications/${targetId}/submit`, {
+          method: 'POST',
+          body: JSON.stringify(payload)
+        });
+
+        navigate(`/applicant/applications/${targetId}/success`, {
+          state: {
+            appNumber: submitRes.applicationNumber || 'APP-2026-000001',
+            position: postAppliedFor || selectedFaculty,
+            status: 'SUBMITTED'
+          }
+        });
+      } else {
+        // No active open vacancy for this specific submission -> Save Interest Request
+        await fetch(`${API_BASE_URL}/public/vacancy-interest`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: fullName,
+            email,
+            mobile,
+            interestedPosition: postAppliedFor || selectedFaculty,
+            category: catType,
+            message: `Applied via form for ${selectedFaculty}. Qualification: ${qualifications[0]?.qualificationDegree || ''}`
+          })
+        });
+
+        const randomRef = `INT-${new Date().getFullYear()}-${Math.floor(100000 + Math.random() * 900000)}`;
+
+        navigate(`/applicant/applications/success`, {
+          state: {
+            isInterest: true,
+            appNumber: randomRef,
+            position: postAppliedFor || selectedFaculty,
+            status: 'WILL NOTIFY WHEN OPEN',
+            message: 'Thank you for submitting your form! Applications for this position are currently closed. We have registered your details in our system and will automatically notify you as soon as a relevant vacancy opens at D Y Patil International University.'
+          }
+        });
+      }
     } catch (err) {
-      setError(err.message || 'Error submitting application. Please check all fields.');
+      setError(err.message || 'Error submitting application. Please check all required fields.');
     } finally {
       setSubmitting(false);
     }

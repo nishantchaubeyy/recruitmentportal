@@ -1,7 +1,5 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { API_BASE_URL } from '../utils/api';
-import InterestModal from '../components/InterestModal';
 
 const NON_TEACHING_DIVISIONS = [
   { id: 'admin-registrar', name: 'ADMINISTRATIVE & REGISTRAR OFFICE' },
@@ -15,34 +13,8 @@ const NON_TEACHING_DIVISIONS = [
 function NonTeachingPositions() {
   const navigate = useNavigate();
 
-  // Interest Modal state
-  const [interestModalOpen, setInterestModalOpen] = useState(false);
-  const [selectedDivisionName, setSelectedDivisionName] = useState('');
-  const [checking, setChecking] = useState(false);
-
-  const handleSelectDivision = async (divisionName) => {
-    setChecking(true);
-    try {
-      // Check if there is an active open vacancy for this division
-      const res = await fetch(`${API_BASE_URL}/public/vacancies?category=NON_TEACHING&school=${encodeURIComponent(divisionName)}`);
-      const vacancies = await res.json();
-
-      if (Array.isArray(vacancies) && vacancies.length > 0) {
-        // Open vacancy exists -> Proceed to Apply
-        const openJob = vacancies[0];
-        navigate(`/apply?faculty=${encodeURIComponent(divisionName)}&type=NON_TEACHING&jobId=${openJob.id}`);
-      } else {
-        // No open vacancy -> Show interest registration modal ("We will reach you when vacancies open")
-        setSelectedDivisionName(divisionName);
-        setInterestModalOpen(true);
-      }
-    } catch (err) {
-      console.error('Error checking division vacancy:', err);
-      // Fallback navigate
-      navigate(`/apply?faculty=${encodeURIComponent(divisionName)}&type=NON_TEACHING`);
-    } finally {
-      setChecking(false);
-    }
+  const handleSelectDivision = (divisionName) => {
+    navigate(`/apply?faculty=${encodeURIComponent(divisionName)}&type=NON_TEACHING`);
   };
 
   return (
@@ -65,7 +37,7 @@ function NonTeachingPositions() {
       {/* Vertical Form Blocks - Deep Blue Theme for Non-Teaching */}
       <div className="vertical-card-container container-non-teaching">
         <div className="vertical-prompt-text">
-          {checking ? 'Checking active vacancies...' : 'Please select a Division below to apply:'}
+          Please select a Division below to apply:
         </div>
 
         <div className="vertical-blocks-list">
@@ -81,14 +53,6 @@ function NonTeachingPositions() {
           ))}
         </div>
       </div>
-
-      {/* Interest Registration Modal */}
-      <InterestModal
-        isOpen={interestModalOpen}
-        onClose={() => setInterestModalOpen(false)}
-        defaultCategory="NON_TEACHING"
-        defaultPosition={`Non-Teaching Position – ${selectedDivisionName}`}
-      />
     </div>
   );
 }

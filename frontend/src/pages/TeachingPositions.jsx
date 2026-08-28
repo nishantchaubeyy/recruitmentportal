@@ -1,7 +1,5 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { API_BASE_URL } from '../utils/api';
-import InterestModal from '../components/InterestModal';
 
 const TEACHING_FACULTIES = [
   { id: 'cs-engg', name: 'FACULTY OF COMPUTER SCIENCE & ENGINEERING' },
@@ -17,34 +15,8 @@ const TEACHING_FACULTIES = [
 function TeachingPositions() {
   const navigate = useNavigate();
 
-  // Interest Modal state
-  const [interestModalOpen, setInterestModalOpen] = useState(false);
-  const [selectedFacultyName, setSelectedFacultyName] = useState('');
-  const [checking, setChecking] = useState(false);
-
-  const handleSelectFaculty = async (facultyName) => {
-    setChecking(true);
-    try {
-      // Check if there is an active open vacancy for this faculty
-      const res = await fetch(`${API_BASE_URL}/public/vacancies?category=TEACHING&school=${encodeURIComponent(facultyName)}`);
-      const vacancies = await res.json();
-
-      if (Array.isArray(vacancies) && vacancies.length > 0) {
-        // Open vacancy exists -> Proceed to Apply
-        const openJob = vacancies[0];
-        navigate(`/apply?faculty=${encodeURIComponent(facultyName)}&type=TEACHING&jobId=${openJob.id}`);
-      } else {
-        // No open vacancy -> Show interest registration modal ("We will reach you when vacancies open")
-        setSelectedFacultyName(facultyName);
-        setInterestModalOpen(true);
-      }
-    } catch (err) {
-      console.error('Error checking faculty vacancy:', err);
-      // Fallback navigate
-      navigate(`/apply?faculty=${encodeURIComponent(facultyName)}&type=TEACHING`);
-    } finally {
-      setChecking(false);
-    }
+  const handleSelectFaculty = (facultyName) => {
+    navigate(`/apply?faculty=${encodeURIComponent(facultyName)}&type=TEACHING`);
   };
 
   return (
@@ -67,7 +39,7 @@ function TeachingPositions() {
       {/* Vertical Form Blocks - Teal Green Theme for Teaching */}
       <div className="vertical-card-container container-teaching">
         <div className="vertical-prompt-text">
-          {checking ? 'Checking active vacancies...' : 'Please select a Faculty below to apply:'}
+          Please select a Faculty below to apply:
         </div>
 
         <div className="vertical-blocks-list">
@@ -83,14 +55,6 @@ function TeachingPositions() {
           ))}
         </div>
       </div>
-
-      {/* Interest Registration Modal */}
-      <InterestModal
-        isOpen={interestModalOpen}
-        onClose={() => setInterestModalOpen(false)}
-        defaultCategory="TEACHING"
-        defaultPosition={`Faculty Position – ${selectedFacultyName}`}
-      />
     </div>
   );
 }

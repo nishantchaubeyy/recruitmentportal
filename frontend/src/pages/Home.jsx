@@ -26,11 +26,8 @@ function Home() {
         </div>
       </section>
 
-      {/* 2. DYNAMIC VACANCY SLIDER CAROUSEL (BACKEND DRIVEN) */}
-      <VacancySlider />
-
-      {/* 3. CATEGORY BLOCKS SECTION */}
-      <div className="container" id="categories" style={{ maxWidth: '980px', padding: '45px 24px' }}>
+      {/* 2. CATEGORY BLOCKS SECTION (TEACHING & NON-TEACHING CARDS) */}
+      <div className="container" id="categories" style={{ maxWidth: '980px', padding: '40px 24px 25px 24px' }}>
         <div className="section-header-center" style={{ marginBottom: '28px' }}>
           <h2 style={{ fontSize: '1.75rem', color: '#0f3b46', fontWeight: 800 }}>Explore Recruitment Categories</h2>
           <p style={{ color: '#64748b', fontSize: '0.95rem' }}>Select a position type below to view available departments</p>
@@ -75,15 +72,19 @@ function Home() {
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Guidelines Card */}
+      {/* 3. DYNAMIC VACANCY SLIDER CAROUSEL (PLACED BELOW TEACHING & NON-TEACHING BLOCKS) */}
+      <VacancySlider />
+
+      {/* 4. GUIDELINES CARD */}
+      <div className="container" style={{ maxWidth: '980px', padding: '30px 24px 40px 24px' }}>
         <div style={{ 
           backgroundColor: '#ffffff', 
           border: '1px solid #e2e8f0', 
           borderRadius: '16px', 
           padding: '28px 32px', 
-          boxShadow: '0 4px 14px rgba(15,23,42,0.04)', 
-          marginTop: '35px' 
+          boxShadow: '0 4px 14px rgba(15,23,42,0.04)'
         }}>
           <h4 style={{ margin: '0 0 12px 0', color: '#0f3b46', fontWeight: 800, fontSize: '1.1rem' }}>📌 Candidate Guidelines:</h4>
           <ul style={{ paddingLeft: '22px', color: '#475569', fontSize: '0.94rem', lineHeight: '1.8' }}>
