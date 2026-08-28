@@ -1,0 +1,309 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  role      String   @default("APPLICANT") // SUPER_ADMIN, HR_ADMIN, HR_USER, COMMITTEE_MEMBER, APPLICANT, ADMIN
+  status    String   @default("ACTIVE") // ACTIVE, INACTIVE, SUSPENDED
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  applicant         Applicant?
+  admin             Admin?
+  notifications     Notification[]
+  auditLogs         AuditLog[]
+  interviewPanels   InterviewPanel[]
+  evaluations       Evaluation[]
+  vacanciesCreated  Job[]            @relation("CreatedVacancies")
+
+  @@index([email])
+  @@index([role])
+}
+
+model Applicant {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  mobile    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  applications Application[]
+  interviews   Interview[]
+}
+
+model Admin {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model School {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  type      String   // TEACHING, NON_TEACHING
+  code      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  departments       Department[]
+  jobs              Job[]
+  vacancyInterests  VacancyInterest[]
+}
+
+model Department {
+  id        String   @id @default(uuid())
+  name      String
+  schoolId  String
+  school    School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  positions        Position[]
+  jobs             Job[]
+  vacancyInterests VacancyInterest[]
+
+  @@unique([name, schoolId])
+}
+
+model Position {
+  id           String     @id @default(uuid())
+  title        String
+  category     String     // TEACHING, NON_TEACHING
+  departmentId String
+  department   Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  jobs             Job[]
+  vacancyInterests VacancyInterest[]
+}
+
+model Job {
+  id                  String      @id @default(uuid())
+  vacancyNumber       String      @unique // e.g. VAC-2026-001 format
+  position            String
+  type                String      // TEACHING, NON_TEACHING
+  department          String      // Department / School / Institute text display
+  schoolId            String?
+  school              School?     @relation(fields: [schoolId], references: [id], onDelete: SetNull)
+  departmentId        String?
+  departmentRef       Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  positionId          String?
+  positionRef         Position?   @relation(fields: [positionId], references: [id], onDelete: SetNull)
+  employmentType      String      @default("Full Time")
+  numPositions        Int         @default(1)
+  qualification       String
+  experience          String
+  skills              String
+  description         String
+  salaryScale         String
+  location            String      @default("Pune")
+  openingDate         DateTime    @default(now())
+  deadline            DateTime
+  requiredDocuments   String
+  eligibilityCriteria String
+  status              String      @default("DRAFT") // DRAFT, PUBLISHED, CLOSED, ARCHIVED
+  createdBy           String?
+  createdByUser       User?       @relation("CreatedVacancies", fields: [createdBy], references: [id], onDelete: SetNull)
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+
+  applications        Application[]
+  interviews          Interview[]
+
+  @@index([type])
+  @@index([department])
+  @@index([status])
+  @@index([deadline])
+  @@index([createdAt])
+}
+
+model VacancyInterest {
+  id                 String      @id @default(uuid())
+  name               String
+  email              String
+  mobile             String
+  schoolId           String?
+  school             School?     @relation(fields: [schoolId], references: [id], onDelete: SetNull)
+  departmentId       String?
+  department         Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  interestedPosition String
+  positionId         String?
+  position           Position?   @relation(fields: [positionId], references: [id], onDelete: SetNull)
+  category           String      // TEACHING, NON_TEACHING
+  message            String?
+  status             String      @default("PENDING") // PENDING, NOTIFIED
+  notifiedAt         DateTime?
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+
+  @@index([email])
+  @@index([category])
+  @@index([status])
+}
+
+model Application {
+  id                String        @id @default(uuid())
+  applicationNumber String        @unique // APP-YYYY-XXXXXX format
+  applicantId       String
+  applicant         Applicant     @relation(fields: [applicantId], references: [id], onDelete: Cascade)
+  jobId             String
+  job               Job           @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  status            String        @default("DRAFT") // DRAFT, SUBMITTED, UNDER_REVIEW, SHORTLISTED, etc.
+  screeningRemarks  String?
+  submittedAt       DateTime?
+  
+  // JSON Section data stored as text/JSON strings
+  personalInfo       String?
+  contactDetails     String?
+  qualifications     String?
+  experience         String?
+  researchDetails    String?
+  skillsCertificates String?
+  references         String?
+  declaration        Boolean       @default(false)
+  
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  documents         ApplicationDocument[]
+  statusHistory     ApplicationStatusHistory[]
+  interviews        Interview[]
+
+  @@index([applicationNumber])
+  @@index([applicantId])
+  @@index([jobId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model ApplicationDocument {
+  id            String      @id @default(uuid())
+  applicationId String
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  documentType  String      // resume, qualification, experience, research, other
+  filePath      String      // Storage key/path
+  originalName  String
+  fileSize      Int
+  mimeType      String
+  uploadedAt    DateTime    @default(now())
+
+  @@index([applicationId])
+  @@index([documentType])
+}
+
+model ApplicationStatusHistory {
+  id              String      @id @default(uuid())
+  applicationId   String
+  application     Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  previousStatus  String
+  newStatus       String
+  changedByUserId String
+  comment         String?
+  changedAt       DateTime    @default(now())
+
+  @@index([applicationId])
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  content   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([isRead])
+}
+
+model Interview {
+  id            String        @id @default(uuid())
+  applicationId String
+  application   Application   @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  jobId         String
+  job           Job           @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  candidateId   String
+  candidate     Applicant     @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  date          DateTime
+  time          String
+  mode          String        @default("IN_PERSON")
+  venue         String?
+  meetingLink   String?
+  round         String        @default("Round 1")
+  status        String        @default("SCHEDULED")
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  panelMembers  InterviewPanel[]
+  evaluations   Evaluation[]
+
+  @@index([applicationId])
+  @@index([candidateId])
+  @@index([jobId])
+  @@index([date])
+}
+
+model InterviewPanel {
+  id          String    @id @default(uuid())
+  interviewId String
+  interview   Interview @relation(fields: [interviewId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
+
+  @@unique([interviewId, userId])
+  @@index([userId])
+}
+
+model Evaluation {
+  id                String    @id @default(uuid())
+  interviewId       String
+  interview         Interview @relation(fields: [interviewId], references: [id], onDelete: Cascade)
+  evaluatorId       String
+  evaluator         User      @relation(fields: [evaluatorId], references: [id], onDelete: Cascade)
+  communication     Int       @default(0)
+  technicalScore    Int       @default(0)
+  experienceScore   Int       @default(0)
+  domainScore       Int       @default(0)
+  totalScore        Float     @default(0)
+  recommendation    String    @default("RECOMMEND")
+  remarks           String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@unique([interviewId, evaluatorId])
+  @@index([interviewId])
+  @@index([evaluatorId])
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action     String
+  entity     String
+  entityId   String
+  oldValue   String?
+  newValue   String?
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+  @@index([action])
+  @@index([entity])
+  @@index([createdAt])
+}

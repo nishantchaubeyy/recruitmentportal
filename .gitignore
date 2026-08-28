@@ -1,0 +1,26 @@
+# Node & Dependencies
+node_modules/
+backend/node_modules/
+frontend/node_modules/
+
+# Environment Variables
+.env
+backend/.env
+frontend/.env
+frontend/.env.local
+
+# Databases & Prisma Artifacts
+*.db
+*.db-journal
+*.sqlite
+prisma/dev.db
+backend/prisma/dev.db
+.prisma/
+
+# Build & Logs
+dist/
+frontend/dist/
+build/
+*.log
+uploads/
+backend/uploads/

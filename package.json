@@ -1,0 +1,22 @@
+{
+  "name": "dypiu-recruitment-portal",
+  "version": "1.0.0",
+  "description": "DYPIU Recruitment Portal - Full Stack Application",
+  "scripts": {
+    "dev": "concurrently --names \"BACKEND,FRONTEND\" --prefix-colors \"blue,green\" \"npm run dev --prefix backend\" \"npm run dev --prefix frontend\"",
+    "build": "npm run build --prefix frontend",
+    "backend": "npm run dev --prefix backend",
+    "frontend": "npm run dev --prefix frontend",
+    "db:push": "npm run prisma:push --prefix backend",
+    "db:seed": "npm run db:seed --prefix backend",
+    "db:setup": "npm run prisma:push --prefix backend && npm run db:seed --prefix backend",
+    "install:all": "npm install --prefix backend && npm install --prefix frontend"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "prisma": "^5.22.0"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.22.0"
+  }
+}
