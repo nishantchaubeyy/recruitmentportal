@@ -8,7 +8,8 @@
     "dev": "nodemon src/index.js",
     "prisma:generate": "prisma generate --schema=../prisma/schema.prisma",
     "prisma:push": "prisma db push --schema=../prisma/schema.prisma",
-    "db:seed": "node src/seed.js"
+    "db:seed": "node src/seed.js",
+    "postinstall": "prisma generate --schema=../prisma/schema.prisma"
   },
   "dependencies": {
     "@prisma/client": "^5.12.1",

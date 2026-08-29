@@ -56,9 +56,13 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Ensure upload root folder exists on startup
-const uploadRoot = process.env.UPLOAD_DIR || 'uploads';
-if (!fs.existsSync(uploadRoot)) {
-  fs.mkdirSync(uploadRoot, { recursive: true });
+const uploadRoot = process.env.UPLOAD_DIR || (process.env.VERCEL ? '/tmp/uploads' : 'uploads');
+try {
+  if (!fs.existsSync(uploadRoot)) {
+    fs.mkdirSync(uploadRoot, { recursive: true });
+  }
+} catch (err) {
+  console.warn('Notice: Could not create upload directory:', err.message);
 }
 
 // Health check endpoint
@@ -96,25 +100,29 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Server Initialization
-const server = app.listen(PORT, async () => {
-  console.log(`[Server] Running on port ${PORT}`);
-  
-  // Verify database connection
-  try {
-    await prisma.$connect();
-    console.log('[Database] PostgreSQL connection established successfully via Prisma.');
-  } catch (error) {
-    console.error('[Database] Failed to connect to PostgreSQL database on startup:', error.message);
-  }
-});
-
-// Graceful Shutdown
-process.on('SIGTERM', async () => {
-  console.log('[Server] SIGTERM received. Shutting down gracefully...');
-  server.close(async () => {
-    await prisma.$disconnect();
-    console.log('[Server] Shutdown complete.');
-    process.exit(0);
+// Server Initialization (Only listen when running directly, not on Vercel)
+if (process.env.NODE_ENV !== 'test' && !process.env.VERCEL) {
+  const server = app.listen(PORT, async () => {
+    console.log(`[Server] Running on port ${PORT}`);
+    
+    // Verify database connection
+    try {
+      await prisma.$connect();
+      console.log('[Database] Database connection established successfully via Prisma.');
+    } catch (error) {
+      console.error('[Database] Failed to connect to database on startup:', error.message);
+    }
   });
-});
+
+  // Graceful Shutdown
+  process.on('SIGTERM', async () => {
+    console.log('[Server] SIGTERM received. Shutting down gracefully...');
+    server.close(async () => {
+      await prisma.$disconnect();
+      console.log('[Server] Shutdown complete.');
+      process.exit(0);
+    });
+  });
+}
+
+module.exports = app;
