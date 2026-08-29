@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { API_BASE_URL } from '../utils/api';
+import { apiRequest } from '../utils/api';
 import InterestModal from '../components/InterestModal';
 
 function JobDetails() {
@@ -21,11 +21,7 @@ function JobDetails() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${API_BASE_URL}/public/vacancies/${id}`);
-      if (!res.ok) {
-        throw new Error('Job opening not found or access restricted.');
-      }
-      const data = await res.json();
+      const data = await apiRequest(`/public/vacancies/${id}`);
       setJob(data);
     } catch (err) {
       setError(err.message);

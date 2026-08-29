@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { API_BASE_URL } from '../utils/api';
+import { apiRequest } from '../utils/api';
 
 function InterestModal({ isOpen, onClose, defaultCategory = 'TEACHING', defaultSchoolId = '', defaultPosition = '' }) {
   const [formData, setFormData] = useState({
@@ -36,11 +36,8 @@ function InterestModal({ isOpen, onClose, defaultCategory = 'TEACHING', defaultS
 
   const fetchSchools = async (category) => {
     try {
-      const res = await fetch(`${API_BASE_URL}/public/schools?type=${category}`);
-      if (res.ok) {
-        const data = await res.json();
-        setSchools(data);
-      }
+      const data = await apiRequest(`/public/schools?type=${category}`);
+      setSchools(data || []);
     } catch (err) {
       console.error('Failed to fetch schools for interest modal:', err);
     }
@@ -58,17 +55,10 @@ function InterestModal({ isOpen, onClose, defaultCategory = 'TEACHING', defaultS
     setSuccessMsg('');
 
     try {
-      const res = await fetch(`${API_BASE_URL}/public/vacancy-interest`, {
+      const data = await apiRequest('/public/vacancy-interest', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
       });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.message || 'Failed to submit interest notification request.');
-      }
 
       setSuccessMsg(data.message || 'Interest registered successfully! We will notify you when a vacancy opens.');
       setTimeout(() => {

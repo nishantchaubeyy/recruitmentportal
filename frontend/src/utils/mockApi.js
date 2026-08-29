@@ -311,9 +311,23 @@ export async function mockApiRequest(endpoint, options = {}) {
   if (path === '/auth/register' && method === 'POST') return mockRegister(body);
   if (path === '/auth/me' && method === 'GET') return mockGetMe();
 
-  // ── JOBS
-  if (path === '/jobs' && method === 'GET') return mockGetJobs(params);
-  if (parts[0] === 'jobs' && parts.length === 2 && method === 'GET') return mockGetJobById(parts[1]);
+  // ── PUBLIC & JOBS
+  if ((path === '/public/vacancies' || path === '/jobs') && method === 'GET') return mockGetJobs(params);
+  if (((parts[0] === 'public' && parts[1] === 'vacancies' && parts.length === 3) || (parts[0] === 'jobs' && parts.length === 2)) && method === 'GET') return mockGetJobById(parts[2] || parts[1]);
+  if (path === '/public/schools' && method === 'GET') {
+    await delay();
+    const type = params.get('type');
+    const schoolsList = [
+      { id: 'sch-1', name: 'School of Computing', type: 'TEACHING' },
+      { id: 'sch-2', name: 'School of Engineering', type: 'TEACHING' },
+      { id: 'sch-3', name: 'Administration & Staff', type: 'NON_TEACHING' }
+    ];
+    return type ? schoolsList.filter(s => s.type === type) : schoolsList;
+  }
+  if (path === '/public/vacancy-interest' && method === 'POST') {
+    await delay();
+    return { message: 'Interest registered successfully.' };
+  }
   if (path === '/jobs' && method === 'POST') return mockCreateJob(body);
   if (parts[0] === 'jobs' && parts.length === 2 && method === 'PUT') return mockUpdateJob(parts[1], body);
   if (parts[0] === 'jobs' && parts[2] === 'status' && method === 'PATCH') return mockUpdateJobStatus(parts[1], body);

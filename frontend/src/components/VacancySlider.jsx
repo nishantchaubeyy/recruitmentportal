@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { API_BASE_URL } from '../utils/api';
+import { apiRequest } from '../utils/api';
 import InterestModal from './InterestModal';
 
 function VacancySlider() {
@@ -24,12 +24,8 @@ function VacancySlider() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${API_BASE_URL}/public/vacancies`);
-      if (!res.ok) {
-        throw new Error('Unable to fetch open vacancies.');
-      }
-      const data = await res.json();
-      setVacancies(data);
+      const data = await apiRequest('/public/vacancies');
+      setVacancies(data || []);
     } catch (err) {
       console.error('Fetch slider vacancies error:', err);
       setError(err.message);
