@@ -58,6 +58,26 @@ const INDIAN_STATES = [
   'Delhi NCR', 'Chandigarh', 'Other'
 ];
 
+const DAYS_LIST = Array.from({ length: 31 }, (_, i) => String(i + 1).padStart(2, '0'));
+
+const MONTHS_LIST = [
+  { value: '01', label: '01 - Jan' },
+  { value: '02', label: '02 - Feb' },
+  { value: '03', label: '03 - Mar' },
+  { value: '04', label: '04 - Apr' },
+  { value: '05', label: '05 - May' },
+  { value: '06', label: '06 - Jun' },
+  { value: '07', label: '07 - Jul' },
+  { value: '08', label: '08 - Aug' },
+  { value: '09', label: '09 - Sep' },
+  { value: '10', label: '10 - Oct' },
+  { value: '11', label: '11 - Nov' },
+  { value: '12', label: '12 - Dec' }
+];
+
+const CURRENT_YEAR = new Date().getFullYear();
+const YEARS_LIST = Array.from({ length: 70 }, (_, i) => String(CURRENT_YEAR - 18 - i));
+
 function ApplicationForm() {
   const [searchParams] = useSearchParams();
   const { jobId: routeJobId } = useParams();
@@ -96,8 +116,20 @@ function ApplicationForm() {
   const [firstName, setFirstName] = useState(user?.name?.split(' ')[0] || '');
   const [middleName, setMiddleName] = useState('');
   const [lastName, setLastName] = useState(user?.name?.split(' ').slice(1).join(' ') || '');
+  const [dobDay, setDobDay] = useState('');
+  const [dobMonth, setDobMonth] = useState('');
+  const [dobYear, setDobYear] = useState('');
   const [dob, setDob] = useState('');
   const [age, setAge] = useState('');
+
+  // Sync Day/Month/Year dropdowns with dob string
+  useEffect(() => {
+    if (dobDay && dobMonth && dobYear) {
+      setDob(`${dobYear}-${dobMonth}-${dobDay}`);
+    } else {
+      setDob('');
+    }
+  }, [dobDay, dobMonth, dobYear]);
   const [gender, setGender] = useState('Male');
   const [maritalStatus, setMaritalStatus] = useState('Married');
   const [email, setEmail] = useState(user?.email || '');
@@ -425,7 +457,7 @@ function ApplicationForm() {
           </div>
           <div className="form-section-body">
             
-            <div style={{ display: 'grid', gridTemplateColumns: '100px 1fr 1fr 1fr 150px 110px', gap: '14px', marginBottom: '15px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '110px 1fr 1fr 1fr', gap: '14px', marginBottom: '18px' }}>
               <div className="form-group">
                 <label>Title <span className="required">*</span></label>
                 <select value={title} onChange={(e) => setTitle(e.target.value)}>
@@ -469,31 +501,62 @@ function ApplicationForm() {
                   required
                 />
               </div>
+            </div>
 
+            {/* Row 2: Date of Birth, Age, Gender, Marital Status */}
+            <div style={{ display: 'grid', gridTemplateColumns: '2fr 100px 1fr 1fr', gap: '14px', marginBottom: '20px' }}>
               <div className="form-group">
                 <label>Date of Birth <span className="required">*</span></label>
-                <input
-                  type="date"
-                  value={dob}
-                  onChange={(e) => setDob(e.target.value)}
-                  required
-                />
+                <div style={{ display: 'flex', gap: '6px' }}>
+                  <select
+                    value={dobDay}
+                    onChange={(e) => setDobDay(e.target.value)}
+                    required
+                    style={{ flex: 1 }}
+                  >
+                    <option value="">Day</option>
+                    {DAYS_LIST.map((d) => (
+                      <option key={d} value={d}>{d}</option>
+                    ))}
+                  </select>
+
+                  <select
+                    value={dobMonth}
+                    onChange={(e) => setDobMonth(e.target.value)}
+                    required
+                    style={{ flex: 1.5 }}
+                  >
+                    <option value="">Month</option>
+                    {MONTHS_LIST.map((m) => (
+                      <option key={m.value} value={m.value}>{m.label}</option>
+                    ))}
+                  </select>
+
+                  <select
+                    value={dobYear}
+                    onChange={(e) => setDobYear(e.target.value)}
+                    required
+                    style={{ flex: 1.2 }}
+                  >
+                    <option value="">Year</option>
+                    {YEARS_LIST.map((y) => (
+                      <option key={y} value={y}>{y}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               <div className="form-group">
                 <label>Age</label>
                 <input
                   type="text"
-                  style={{ backgroundColor: '#f1f5f9', cursor: 'not-allowed' }}
+                  style={{ backgroundColor: '#f1f5f9', cursor: 'not-allowed', textAlign: 'center', fontWeight: 700, color: '#0f2b5c' }}
                   value={age}
                   readOnly
                   placeholder="Age"
                 />
               </div>
-            </div>
 
-            {/* Gender & Marital Status Dropdowns */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
               <div className="form-group">
                 <label>Gender <span className="required">*</span></label>
                 <select
@@ -501,7 +564,7 @@ function ApplicationForm() {
                   onChange={(e) => setGender(e.target.value)}
                   required
                 >
-                  <option value="">-- Select Gender --</option>
+                  <option value="">-- Select --</option>
                   <option value="Male">Male</option>
                   <option value="Female">Female</option>
                   <option value="Other">Other</option>
@@ -515,7 +578,7 @@ function ApplicationForm() {
                   onChange={(e) => setMaritalStatus(e.target.value)}
                   required
                 >
-                  <option value="">-- Select Marital Status --</option>
+                  <option value="">-- Select --</option>
                   <option value="Married">Married</option>
                   <option value="Unmarried">Unmarried</option>
                   <option value="Single">Single</option>
