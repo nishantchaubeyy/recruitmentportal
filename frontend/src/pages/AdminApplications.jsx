@@ -57,14 +57,39 @@ function AdminApplications() {
     setSearchParams(searchParams);
   };
 
+  const handleClearApplications = () => {
+    if (window.confirm('Are you sure you want to clear all applications?')) {
+      localStorage.removeItem('MOCK_APPLICATIONS_PERSIST');
+      setApplications([]);
+      fetchApplications(1);
+    }
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       {/* PAGE HEADER */}
-      <div>
-        <h2 style={{ color: '#0f2b5c', margin: 0, fontWeight: 800, fontSize: '1.4rem' }}>Candidate Applications Screening</h2>
-        <p style={{ color: '#64748b', margin: '4px 0 0 0', fontSize: '0.86rem' }}>
-          Review candidate dossiers, inspect uploaded qualification documents, and update recruitment status.
-        </p>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+        <div>
+          <h2 style={{ color: '#0f2b5c', margin: 0, fontWeight: 800, fontSize: '1.4rem' }}>Candidate Applications Screening</h2>
+          <p style={{ color: '#64748b', margin: '4px 0 0 0', fontSize: '0.86rem' }}>
+            Review candidate dossiers, inspect uploaded qualification documents, and update recruitment status.
+          </p>
+        </div>
+        <button
+          onClick={handleClearApplications}
+          style={{
+            backgroundColor: '#ffffff',
+            border: '1px solid #fca5a5',
+            color: '#b91c1c',
+            padding: '7px 14px',
+            borderRadius: '8px',
+            fontSize: '0.8rem',
+            fontWeight: 700,
+            cursor: 'pointer'
+          }}
+        >
+          🗑️ Clear All Applications
+        </button>
       </div>
 
       {error && (
