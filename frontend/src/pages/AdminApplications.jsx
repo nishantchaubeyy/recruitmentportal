@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { apiRequest } from '../utils/api';
+import { apiRequest, IS_MOCK } from '../utils/api';
 import { IconSearch } from '../components/icons/AdminIcons';
+import { STATUS_TABS, statusLabel, statusBadgeStyle } from '../utils/status';
 
 function AdminApplications() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -65,23 +66,7 @@ function AdminApplications() {
     }
   };
 
-  const getStatusBadgeStyle = (status) => {
-    switch (status) {
-      case 'Selected':
-      case 'Shortlisted':
-        return { bg: '#DCFCE7', text: '#166534', border: '#BBF7D0' };
-      case 'Interview Scheduled':
-      case 'Interview':
-        return { bg: '#E0E7FF', text: '#3730A3', border: '#C7D2FE' };
-      case 'Under Review':
-        return { bg: '#FEF3C7', text: '#92400E', border: '#FDE68A' };
-      case 'Not Selected':
-      case 'Application Closed':
-        return { bg: '#FEE2E2', text: '#991B1B', border: '#FECACA' };
-      default:
-        return { bg: '#F1F5F9', text: '#334155', border: '#E2E8F0' };
-    }
-  };
+  const getStatusBadgeStyle = statusBadgeStyle;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -96,12 +81,14 @@ function AdminApplications() {
             Review candidate dossiers, inspect uploaded qualification documents, and update recruitment status.
           </p>
         </div>
-        <button
-          onClick={handleClearApplications}
-          style={clearButtonStyle}
-        >
-          Reset / Clear Applications
-        </button>
+        {IS_MOCK && (
+          <button
+            onClick={handleClearApplications}
+            style={clearButtonStyle}
+          >
+            Reset / Clear Demo Applications
+          </button>
+        )}
       </div>
 
       {error && (
@@ -112,15 +99,7 @@ function AdminApplications() {
 
       {/* PIPELINE STATUS TAB BAR */}
       <div style={{ display: 'flex', gap: '4px', borderBottom: '1px solid #E2E8F0', overflowX: 'auto', paddingBottom: '0' }}>
-        {[
-          { key: 'ALL', label: 'All Applications' },
-          { key: 'Application Submitted', label: 'Submitted' },
-          { key: 'Under Review', label: 'Under Review' },
-          { key: 'Shortlisted', label: 'Shortlisted' },
-          { key: 'Interview Scheduled', label: 'Interview' },
-          { key: 'Selected', label: 'Selected' },
-          { key: 'Not Selected', label: 'Rejected' }
-        ].map(tab => {
+        {STATUS_TABS.map(tab => {
           const active = currentStatusTab === tab.key;
           return (
             <button
@@ -218,7 +197,7 @@ function AdminApplications() {
                           color: badge.text,
                           border: `1px solid ${badge.border}`
                         }}>
-                          {app.status || 'SUBMITTED'}
+                          {statusLabel(app.status) || 'Application Submitted'}
                         </span>
                       </td>
                       <td style={{ padding: '12px', textAlign: 'right' }}>

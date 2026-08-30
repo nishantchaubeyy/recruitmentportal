@@ -1,25 +1,46 @@
 /**
  * Audit Logging Service
- * Records system and administrative activity for compliance and security auditing.
+ * Persists system and administrative activity to the AuditLog table for
+ * compliance and security auditing. Failures never break the calling request.
  */
 
-async function logAuditAction({ action, userId, targetType, targetId, details = {}, req = null }) {
-  const timestamp = new Date().toISOString();
-  const ipAddress = req ? (req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown') : 'system';
-  
-  const logEntry = {
-    timestamp,
-    action,
-    userId,
-    targetType,
-    targetId,
-    ipAddress,
-    details
-  };
+const prisma = require('./prisma');
 
-  console.log(`[AUDIT LOG] ${timestamp} | User: ${userId || 'SYSTEM'} | Action: ${action} | Target: ${targetType}:${targetId} | IP: ${ipAddress}`);
+/**
+ * Record an audit event.
+ *
+ * @param {Object}  opts
+ * @param {string}  opts.action       - e.g. USER_LOGIN, APPLICATION_STATUS_UPDATED
+ * @param {?string} opts.userId       - the acting user's id (null for system/anon)
+ * @param {string}  opts.targetType   - entity type, e.g. 'Application'
+ * @param {string}  opts.targetId     - entity id
+ * @param {Object}  [opts.details]    - arbitrary JSON-serialisable detail (stored as newValue)
+ * @param {Object}  [opts.oldValue]   - previous value snapshot (stored as oldValue)
+ * @param {Object}  [opts.req]        - express request, used to capture IP address
+ */
+async function logAuditAction({ action, userId = null, targetType, targetId, details = {}, oldValue = null, req = null }) {
+  const ipAddress = req
+    ? (req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress || null)
+    : null;
 
-  return logEntry;
+  try {
+    // Only attribute to a user when we have a real id; otherwise leave null so the
+    // optional FK relation (onDelete: SetNull) stays valid.
+    await prisma.auditLog.create({
+      data: {
+        userId: userId || null,
+        action,
+        entity: targetType || 'System',
+        entityId: targetId ? String(targetId) : '',
+        oldValue: oldValue ? JSON.stringify(oldValue) : null,
+        newValue: details ? JSON.stringify(details) : null,
+        ipAddress
+      }
+    });
+  } catch (error) {
+    // Auditing must never break the primary operation.
+    console.error('[Audit Service] Failed to write audit log:', error.message);
+  }
 }
 
 module.exports = {

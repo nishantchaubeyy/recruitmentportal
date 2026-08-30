@@ -34,15 +34,15 @@ function AdminInterviews() {
       setLoading(true);
       const [interviewsRes, appsRes, jobsRes, usersRes] = await Promise.all([
         apiRequest('/interviews'),
-        apiRequest('/applications'),
-        apiRequest('/jobs?adminView=true'),
+        apiRequest('/applications?limit=100'),
+        apiRequest('/admin/vacancies'),
         apiRequest('/admin/users').catch(() => []) // Fallback if not super admin
       ]);
 
-      setInterviews(interviewsRes || []);
+      setInterviews(Array.isArray(interviewsRes) ? interviewsRes : (interviewsRes?.data || []));
       setApplications(appsRes?.data || appsRes || []);
-      setJobs(jobsRes || []);
-      setUsers(usersRes || []);
+      setJobs(Array.isArray(jobsRes) ? jobsRes : (jobsRes?.data || []));
+      setUsers(Array.isArray(usersRes) ? usersRes : (usersRes?.data || []));
     } catch (err) {
       setError(err.message || 'Failed to load interview data.');
     } finally {

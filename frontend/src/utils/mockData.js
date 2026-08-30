@@ -88,7 +88,7 @@ export const MOCK_APPLICATIONS = [
     applicationNumber: 'APP-2026-000001',
     jobId: 'job-001',
     applicantId: 'applicant-001',
-    status: 'Under Review',
+    status: 'UNDER_REVIEW',
     declaration: true,
     personalInfo: {
       title: 'Dr.',
@@ -145,8 +145,8 @@ export const MOCK_APPLICATIONS = [
       { id: 'doc-002', documentType: 'qualification', originalName: 'PhD_Certificate.pdf', fileSize: 256000, uploadedAt: '2026-08-20T10:05:00.000Z' }
     ],
     statusHistory: [
-      { newStatus: 'Application Submitted', changedAt: '2026-08-20T10:30:00.000Z', comment: 'Application submitted by candidate.' },
-      { newStatus: 'Under Review', changedAt: '2026-08-22T09:00:00.000Z', comment: 'Profile reviewed. Strong publication record. Moving to under review.' }
+      { newStatus: 'SUBMITTED', changedAt: '2026-08-20T10:30:00.000Z', comment: 'Application submitted by candidate.' },
+      { newStatus: 'UNDER_REVIEW', changedAt: '2026-08-22T09:00:00.000Z', comment: 'Profile reviewed. Strong publication record. Moving to under review.' }
     ],
     job: { id: 'job-001', position: 'Assistant Professor - Computer Science', department: 'School of Computing', type: 'TEACHING' },
     applicant: { name: 'Priya Sharma', mobile: '9876543210', user: { email: 'priya.sharma@example.com' } },
@@ -158,7 +158,7 @@ export const MOCK_APPLICATIONS = [
     applicationNumber: 'APP-2026-000002',
     jobId: 'job-003',
     applicantId: 'applicant-002',
-    status: 'Application Submitted',
+    status: 'SUBMITTED',
     declaration: true,
     personalInfo: { title: 'Mr.', firstName: 'Amit', middleName: 'R.', lastName: 'Desai', dob: '1985-07-22', age: '41 Yrs', gender: 'Male', maritalStatus: 'Married', email: 'amit.desai@example.com', alternateEmail: '' },
     contactDetails: { state: 'Maharashtra', city: 'Mumbai', mobile: '9823456789', alternateMobile: '' },
@@ -175,7 +175,7 @@ export const MOCK_APPLICATIONS = [
       { id: 'doc-003', documentType: 'resume', originalName: 'Amit_Desai_Resume.pdf', fileSize: 345000, uploadedAt: '2026-08-21T14:00:00.000Z' }
     ],
     statusHistory: [
-      { newStatus: 'Application Submitted', changedAt: '2026-08-21T14:30:00.000Z', comment: 'Application submitted by candidate.' }
+      { newStatus: 'SUBMITTED', changedAt: '2026-08-21T14:30:00.000Z', comment: 'Application submitted by candidate.' }
     ],
     job: { id: 'job-003', position: 'Registrar / Section Officer', department: 'Administration', type: 'NON_TEACHING' },
     applicant: { name: 'Amit Desai', mobile: '9823456789', user: { email: 'amit.desai@example.com' } },
@@ -187,7 +187,7 @@ export const MOCK_APPLICATIONS = [
     applicationNumber: 'APP-2026-000003',
     jobId: 'job-002',
     applicantId: 'applicant-003',
-    status: 'Shortlisted',
+    status: 'SHORTLISTED',
     declaration: true,
     personalInfo: { title: 'Dr.', firstName: 'Sneha', middleName: 'M.', lastName: 'Kulkarni', dob: '1988-11-05', age: '37 Yrs', gender: 'Female', maritalStatus: 'Married', email: 'sneha.kulkarni@example.com', alternateEmail: '' },
     contactDetails: { state: 'Maharashtra', city: 'Pune', mobile: '9765432109', alternateMobile: '' },
@@ -205,8 +205,8 @@ export const MOCK_APPLICATIONS = [
       { id: 'doc-004', documentType: 'resume', originalName: 'Sneha_Kulkarni_Dossier.pdf', fileSize: 410000, uploadedAt: '2026-08-22T11:00:00.000Z' }
     ],
     statusHistory: [
-      { newStatus: 'Application Submitted', changedAt: '2026-08-22T11:00:00.000Z', comment: 'Application submitted.' },
-      { newStatus: 'Shortlisted', changedAt: '2026-08-24T16:00:00.000Z', comment: 'Shortlisted for management faculty interview.' }
+      { newStatus: 'SUBMITTED', changedAt: '2026-08-22T11:00:00.000Z', comment: 'Application submitted.' },
+      { newStatus: 'SHORTLISTED', changedAt: '2026-08-24T16:00:00.000Z', comment: 'Shortlisted for management faculty interview.' }
     ],
     job: { id: 'job-002', position: 'Associate Professor - Management', department: 'School of Management', type: 'TEACHING' },
     applicant: { name: 'Dr. Sneha Kulkarni', mobile: '9765432109', user: { email: 'sneha.kulkarni@example.com' } },
@@ -218,7 +218,7 @@ export const MOCK_APPLICATIONS = [
     applicationNumber: 'APP-2026-000004',
     jobId: 'job-004',
     applicantId: 'applicant-004',
-    status: 'Interview Scheduled',
+    status: 'INTERVIEW_SCHEDULED',
     declaration: true,
     personalInfo: { title: 'Mr.', firstName: 'Rajesh', middleName: '', lastName: 'Verma', dob: '1993-04-18', age: '33 Yrs', gender: 'Male', maritalStatus: 'Single', email: 'rajesh.verma@example.com', alternateEmail: '' },
     contactDetails: { state: 'Maharashtra', city: 'Pune', mobile: '9988776655', alternateMobile: '' },
@@ -235,8 +235,8 @@ export const MOCK_APPLICATIONS = [
       { id: 'doc-005', documentType: 'resume', originalName: 'Rajesh_Verma_Resume.pdf', fileSize: 290000, uploadedAt: '2026-08-23T09:30:00.000Z' }
     ],
     statusHistory: [
-      { newStatus: 'Application Submitted', changedAt: '2026-08-23T09:30:00.000Z', comment: 'Application received.' },
-      { newStatus: 'Interview Scheduled', changedAt: '2026-08-25T14:20:00.000Z', comment: 'Interview scheduled for IT System Admin role.' }
+      { newStatus: 'SUBMITTED', changedAt: '2026-08-23T09:30:00.000Z', comment: 'Application received.' },
+      { newStatus: 'INTERVIEW_SCHEDULED', changedAt: '2026-08-25T14:20:00.000Z', comment: 'Interview scheduled for IT System Admin role.' }
     ],
     job: { id: 'job-004', position: 'Systems Administrator', department: 'Systems & IT Infrastructure', type: 'NON_TEACHING' },
     applicant: { name: 'Rajesh Verma', mobile: '9988776655', user: { email: 'rajesh.verma@example.com' } },
@@ -261,9 +261,9 @@ export const MOCK_REPORTS = MOCK_JOBS.map(job => ({
   department: job.department,
   postedDate: job.createdAt,
   totalApplications: MOCK_APPLICATIONS.filter(a => a.jobId === job.id).length,
-  shortlisted: MOCK_APPLICATIONS.filter(a => a.jobId === job.id && ['Shortlisted', 'Interview Scheduled', 'Selected'].includes(a.status)).length,
-  rejected: MOCK_APPLICATIONS.filter(a => a.jobId === job.id && ['Not Selected', 'Application Closed'].includes(a.status)).length,
-  underReview: MOCK_APPLICATIONS.filter(a => a.jobId === job.id && ['Under Review', 'Application Submitted'].includes(a.status)).length
+  shortlisted: MOCK_APPLICATIONS.filter(a => a.jobId === job.id && ['SHORTLISTED', 'INTERVIEW_SCHEDULED', 'SELECTED'].includes(a.status)).length,
+  rejected: MOCK_APPLICATIONS.filter(a => a.jobId === job.id && ['REJECTED', 'CLOSED'].includes(a.status)).length,
+  underReview: MOCK_APPLICATIONS.filter(a => a.jobId === job.id && ['UNDER_REVIEW', 'SUBMITTED', 'WAITLISTED'].includes(a.status)).length
 }));
 
 export const MOCK_USERS = {

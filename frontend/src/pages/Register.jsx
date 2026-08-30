@@ -2,6 +2,7 @@ import React, { useState, useContext } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { apiRequest } from '../utils/api';
+import { homePathForRole } from '../utils/status';
 
 function Register() {
   const [formData, setFormData] = useState({
@@ -54,7 +55,7 @@ function Register() {
       });
 
       login(data.token, data.user);
-      navigate('/applicant/dashboard');
+      navigate(homePathForRole(data.user?.role));
     } catch (err) {
       setError(err.message);
     } finally {

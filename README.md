@@ -1,81 +1,100 @@
 # DYPIU Recruitment Portal
 
-Recruitment management system for **D Y Patil International University** — Phase 1 base version.
+Full-stack Recruitment Management System for **D Y Patil International University (DYPIU)**.
 
-## Project Structure
+## Project Architecture
 ```
-/recruitment portal
-  ├── prisma/          ← Prisma database schema
+/recruitmentportal
+  ├── prisma/          ← Prisma database schema (PostgreSQL)
   ├── backend/         ← Node.js + Express REST API
-  └── frontend/        ← React + Vite application
+  ├── frontend/        ← React 18 + Vite SPA
+  └── deploy-ubuntu.sh ← Automated Ubuntu Linux deployment script
 ```
 
-## Prerequisites
-
-- **Node.js** v18+
-- **PostgreSQL** (running locally or remote)
+## Environment Requirements
+- **Node.js** v18+ or v20+ LTS
+- **PostgreSQL** database server
 
 ---
 
-## 1. Database Setup (PostgreSQL)
+## 1. Environment Setup
 
-Create a new PostgreSQL database:
-
-```sql
-CREATE DATABASE dypiu_recruitment;
-```
-
-Update `backend/.env` with your credentials:
-
+### Backend Environment Configuration
+Copy `backend/.env.example` to `backend/.env`:
 ```env
-DATABASE_URL="postgresql://YOUR_USER:YOUR_PASSWORD@localhost:5432/dypiu_recruitment?schema=public"
-JWT_SECRET="your_strong_secret_key"
 PORT=5000
+NODE_ENV=development
+CORS_ORIGIN=*
+DATABASE_URL="postgresql://dypiu_user:DypiuSecurePass2026!@localhost:5432/dypiu_recruitment?schema=public"
+JWT_SECRET="your_jwt_access_secret_key"
+REFRESH_SECRET="your_jwt_refresh_secret_key"
 UPLOAD_DIR="uploads"
+SEED_ADMIN_EMAIL="admin@dypiu.edu"
+SEED_ADMIN_PASSWORD="AdminPassword123"
+SEED_APPLICANT_EMAIL="demo@applicant.com"
+SEED_APPLICANT_PASSWORD="Demo@1234"
+```
+
+### Frontend Environment Configuration
+Copy `frontend/.env.example` to `frontend/.env`:
+```env
+VITE_API_URL=http://localhost:5000/api
+VITE_MOCK_API=false
 ```
 
 ---
 
-## 2. Backend Setup
+## 2. Installation & Running Locally
 
+Install dependencies for root, backend, and frontend with a single command:
+```bash
+npm run install:all
+```
+
+### Database Initialization
 ```bash
 cd backend
-npm install
-npm run prisma:generate
-npm run prisma:push       # Pushes schema to database
-npm run db:seed           # Seeds default admin + sample jobs
-npm run dev               # Starts backend on port 5000
+npm run prisma:generate   # Generate Prisma client
+npm run prisma:push       # Push PostgreSQL schema
+npm run db:seed           # Seed admin user, demo applicant, and sample vacancies
 ```
 
-**Default Admin credentials (after seeding):**
-- Email: `admin@dypiu.edu`
-- Password: `AdminPassword123`
-
----
-
-## 3. Frontend Setup
-
+### Running Development Servers
+To run both backend API (port 5000) and frontend SPA (port 5173) concurrently:
 ```bash
-cd frontend
-npm install
-npm run dev               # Starts frontend on port 5173
+npm run dev
 ```
 
-Open: http://localhost:5173
+Or start individually:
+```bash
+# Terminal 1: Backend REST API
+npm run backend
+
+# Terminal 2: Frontend Vite App
+npm run frontend
+```
 
 ---
 
-## API Base URL
+## 3. Key Seed Credentials
 
-All API requests go to: `http://localhost:5000/api`
+- **Admin Account**: `admin@dypiu.edu` / `AdminPassword123`
+- **Demo Applicant Account**: `demo@applicant.com` / `Demo@1234`
 
 ---
 
-## Phase 1 Test Flow
+## 4. Canonical Status Architecture
 
-1. Login as Admin → Create/Publish a Teaching vacancy
-2. Visit public site → Teaching Positions → Apply
-3. Register as applicant → Fill form → Upload CV → Submit
-4. Receive Application Number (e.g. `APP-2026-000001`)
-5. Login as Admin → Applications → Review → Change Status → Add comment
-6. Login as Applicant → Dashboard → See updated status
+The platform uses single-source-of-truth machine status enums defined in `backend/src/constants/statuses.js` and mapped in `frontend/src/utils/status.js`:
+
+`DRAFT`, `SUBMITTED`, `UNDER_REVIEW`, `SHORTLISTED`, `INTERVIEW_SCHEDULED`, `SELECTED`, `WAITLISTED`, `REJECTED`, `WITHDRAWN`, `CLOSED`
+
+---
+
+## 5. Production Deployment (Ubuntu)
+
+Execute the automated setup script on your Ubuntu server:
+```bash
+sudo bash deploy-ubuntu.sh
+```
+This installs Node.js, PostgreSQL, Nginx, PM2, configures database permissions, runs Prisma migrations & seeds, and sets up Nginx reverse proxying to Express on port 5000.

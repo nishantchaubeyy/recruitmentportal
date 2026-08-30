@@ -1,6 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { apiRequest, API_URL } from '../utils/api';
+import { statusLabel, statusBadgeClass } from '../utils/status';
+
+// Sections may arrive as JSON strings (real backend) or objects (mock).
+const parseField = (field, fallback) => {
+  if (field === undefined || field === null || field === '') return fallback;
+  if (typeof field === 'object') return field;
+  try { return JSON.parse(field); } catch { return fallback; }
+};
 
 function ApplicantApplicationDetails() {
   const { id } = useParams();
@@ -26,12 +34,12 @@ function ApplicantApplicationDetails() {
   if (error) return <div className="container"><p className="text-danger">Error: {error}</p><Link to="/applicant/dashboard">Back to Dashboard</Link></div>;
   if (!app) return <div className="container"><p>Application not found.</p></div>;
 
-  const personal = app.personalInfo || {};
-  const contact = app.contactDetails || {};
-  const qualifications = app.qualifications || [];
-  const experience = app.experience || [];
-  const research = app.researchDetails || {};
-  const references = app.references || [];
+  const personal = parseField(app.personalInfo, {});
+  const contact = parseField(app.contactDetails, {});
+  const qualifications = parseField(app.qualifications, []);
+  const experience = parseField(app.experience, []);
+  const research = parseField(app.researchDetails, {});
+  const references = parseField(app.references, []);
 
   return (
     <div className="container">
@@ -51,8 +59,8 @@ function ApplicantApplicationDetails() {
         </div>
         <div style={{ textAlign: 'right' }}>
           <span style={{ fontSize: '0.85rem', display: 'block', color: '#64748b', marginBottom: '5px' }}>Current Status</span>
-          <span className={`badge badge-${app.status.toLowerCase().replace(/ /g, '')}`} style={{ fontSize: '0.95rem', padding: '6px 12px' }}>
-            {app.status}
+          <span className={`status-badge ${statusBadgeClass(app.status)}`} style={{ fontSize: '0.95rem', padding: '6px 12px' }}>
+            {statusLabel(app.status)}
           </span>
         </div>
       </div>
@@ -257,7 +265,7 @@ function ApplicantApplicationDetails() {
             <ul style={{ paddingLeft: '20px' }}>
               {app.documents.map((doc) => {
                 // Generate a secure download URL passing application ID and doc ID
-                const downloadLink = `${API_URL}/applications/${app.id}/documents/${doc.id}`;
+                const downloadLink = `${API_URL}/applications/${app.id}/documents/${doc.id}/download`;
                 
                 // Get token to construct auth download
                 const token = localStorage.getItem('token');

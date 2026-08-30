@@ -1,7 +1,8 @@
 import React, { useState, useContext } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { apiRequest } from '../utils/api';
+import { homePathForRole, isStaffRole } from '../utils/status';
 
 function Login() {
   const [email, setEmail] = useState('');
@@ -11,6 +12,7 @@ function Login() {
   
   const { login } = useContext(AuthContext);
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -29,12 +31,14 @@ function Login() {
       });
 
       login(data.token, data.user);
-      
-      // Redirect based on role
-      if (data.user.role === 'ADMIN') {
-        navigate('/admin/dashboard');
+
+      // Return to the page the user was trying to reach (e.g. an apply link),
+      // otherwise route by role.
+      const from = location.state?.from;
+      if (from && !isStaffRole(data.user.role)) {
+        navigate(from, { replace: true });
       } else {
-        navigate('/applicant/dashboard');
+        navigate(homePathForRole(data.user.role), { replace: true });
       }
     } catch (err) {
       setError(err.message);

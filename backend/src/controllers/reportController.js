@@ -1,4 +1,5 @@
 const prisma = require('../services/prisma');
+const { APPLICATION_STATUS, REPORT_BUCKETS } = require('../constants/statuses');
 
 /**
  * Generates job-wise recruitment reports for Admins.
@@ -12,7 +13,7 @@ async function getRecruitmentReport(req, res) {
         applications: {
           where: {
             status: {
-              not: 'DRAFT' // Exclude drafts from official reports
+              not: APPLICATION_STATUS.DRAFT // Exclude drafts from official reports
             }
           }
         }
@@ -25,17 +26,9 @@ async function getRecruitmentReport(req, res) {
       const apps = job.applications;
       const total = apps.length;
       
-      const shortlisted = apps.filter(a => 
-        ['Shortlisted', 'Interview Scheduled', 'Selected'].includes(a.status)
-      ).length;
-
-      const rejected = apps.filter(a => 
-        ['Not Selected', 'Application Closed'].includes(a.status)
-      ).length;
-
-      const underReview = apps.filter(a => 
-        ['Under Review', 'Application Submitted', 'Waitlisted'].includes(a.status)
-      ).length;
+      const shortlisted = apps.filter(a => REPORT_BUCKETS.shortlisted.includes(a.status)).length;
+      const rejected = apps.filter(a => REPORT_BUCKETS.rejected.includes(a.status)).length;
+      const underReview = apps.filter(a => REPORT_BUCKETS.underReview.includes(a.status)).length;
 
       return {
         jobId: job.id,

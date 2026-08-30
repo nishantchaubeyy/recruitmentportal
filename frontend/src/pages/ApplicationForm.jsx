@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { useSearchParams, useParams, useNavigate, Link } from 'react-router-dom';
+import { useSearchParams, useParams, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { apiRequest } from '../utils/api';
 
@@ -323,8 +323,14 @@ function ApplicationForm() {
         declaration: true
       };
 
-      // Always create and submit a candidate application so it displays in Admin Applications Screening
-      const targetJobId = activeJobId || loadedVacancy?.id || 'job-001';
+      // A specific vacancy is required to submit an application.
+      const targetJobId = activeJobId || loadedVacancy?.id;
+      if (!targetJobId) {
+        setError('Please open a specific vacancy from the listings and click "Apply" to start your application.');
+        setSubmitting(false);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+      }
 
       const response = await apiRequest('/applications', {
         method: 'POST',

@@ -34,7 +34,7 @@ function AdminDashboard() {
       try {
         setLoading(true);
         const [jobsData, appsData] = await Promise.all([
-          apiRequest('/jobs?adminView=true').catch(() => []),
+          apiRequest('/admin/vacancies').catch(() => []),
           apiRequest('/applications?limit=100').catch(() => [])
         ]);
 

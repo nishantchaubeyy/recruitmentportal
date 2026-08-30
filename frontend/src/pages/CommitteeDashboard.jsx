@@ -139,7 +139,7 @@ function CommitteeDashboard() {
                     max="10"
                     className="form-input"
                     value={evalData.communication}
-                    onChange={e => setFormData({ ...evalData, communication: e.target.value })}
+                    onChange={e => setEvalData({ ...evalData, communication: e.target.value })}
                     required
                   />
                 </div>

@@ -161,14 +161,19 @@ async function getInterviewById(req, res) {
  */
 async function updateInterview(req, res) {
   const { id } = req.params;
-  const data = req.body;
+  const data = req.body || {};
 
   try {
-    if (data.date) data.date = new Date(data.date);
+    const editable = ['date', 'time', 'mode', 'venue', 'meetingLink', 'round', 'status'];
+    const updateData = {};
+    for (const key of editable) {
+      if (data[key] !== undefined) updateData[key] = data[key];
+    }
+    if (updateData.date) updateData.date = new Date(updateData.date);
 
     const updated = await prisma.interview.update({
       where: { id },
-      data
+      data: updateData
     });
 
     return res.json({ message: 'Interview updated.', interview: updated });

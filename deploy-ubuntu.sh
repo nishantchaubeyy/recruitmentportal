@@ -81,6 +81,7 @@ if [ ! -f "$ENV_FILE" ]; then
   cat <<EOT > "$ENV_FILE"
 PORT=$APP_PORT
 NODE_ENV=production
+CORS_ORIGIN="*"
 DATABASE_URL="postgresql://$DB_USER:$DB_PASS@localhost:5432/$DB_NAME?schema=public"
 
 JWT_SECRET="dypiu_prod_jwt_secret_key_$(date +%s)_key"
@@ -93,6 +94,11 @@ SMTP_PORT=587
 SMTP_USER="careers@dypiu.ac.in"
 SMTP_PASS="change_this_password"
 EMAIL_FROM='"DYPIU Recruitment Cell" <careers@dypiu.ac.in>'
+
+SEED_ADMIN_EMAIL="admin@dypiu.edu"
+SEED_ADMIN_PASSWORD="AdminPassword123"
+SEED_APPLICANT_EMAIL="demo@applicant.com"
+SEED_APPLICANT_PASSWORD="Demo@1234"
 EOT
   echo -e "${GREEN}✓ Created production .env file at $ENV_FILE${NC}"
 else
@@ -102,9 +108,10 @@ fi
 echo -e "\n${YELLOW}[6/7] Building Prisma Client & Starting Backend with PM2...${NC}"
 if [ -d "$APP_DIR/backend/src" ]; then
   cd "$APP_DIR/backend"
-  npm install --production
+  npm install
   npx prisma db push --schema=../prisma/schema.prisma || true
   npx prisma generate --schema=../prisma/schema.prisma || true
+  npm run db:seed || true
   
   pm2 stop dypiu-backend 2>/dev/null || true
   pm2 start src/index.js --name "dypiu-backend"

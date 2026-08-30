@@ -1,9 +1,7 @@
-import React, { useState, useEffect, useContext } from 'react';
-import { API_BASE_URL } from '../utils/api';
-import { AuthContext } from '../context/AuthContext';
+import React, { useState, useEffect } from 'react';
+import { apiRequest } from '../utils/api';
 
 function AdminInterestedApplicants() {
-  const { token } = useContext(AuthContext);
   const [interests, setInterests] = useState([]);
   const [positionCounts, setPositionCounts] = useState({});
   const [schools, setSchools] = useState([]);
@@ -25,11 +23,8 @@ function AdminInterestedApplicants() {
 
   const fetchSchools = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/public/schools`);
-      if (res.ok) {
-        const data = await res.json();
-        setSchools(data);
-      }
+      const data = await apiRequest('/public/schools');
+      setSchools(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error('Fetch schools error:', err);
     }
@@ -39,21 +34,13 @@ function AdminInterestedApplicants() {
     setLoading(true);
     setError('');
     try {
-      let url = `${API_BASE_URL}/admin/vacancy-interests?`;
-      if (categoryFilter) url += `category=${categoryFilter}&`;
-      if (schoolFilter) url += `schoolId=${schoolFilter}&`;
-      if (statusFilter) url += `status=${statusFilter}&`;
-      if (searchQuery) url += `search=${encodeURIComponent(searchQuery)}&`;
+      const query = new URLSearchParams();
+      if (categoryFilter) query.set('category', categoryFilter);
+      if (schoolFilter) query.set('schoolId', schoolFilter);
+      if (statusFilter) query.set('status', statusFilter);
+      if (searchQuery) query.set('search', searchQuery);
 
-      const res = await fetch(url, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      if (!res.ok) {
-        throw new Error('Failed to load interested applicant records.');
-      }
-
-      const resData = await res.json();
+      const resData = await apiRequest(`/admin/vacancy-interests?${query.toString()}`);
       setInterests(resData.data || []);
       setPositionCounts(resData.counts || {});
     } catch (err) {

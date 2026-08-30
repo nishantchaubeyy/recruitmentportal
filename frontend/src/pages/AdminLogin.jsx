@@ -2,6 +2,7 @@ import React, { useState, useContext } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { apiRequest } from '../utils/api';
+import { homePathForRole, isStaffRole } from '../utils/status';
 
 function AdminLogin() {
   const [email, setEmail] = useState('');
@@ -28,12 +29,12 @@ function AdminLogin() {
         body: JSON.stringify({ email, password })
       });
 
-      if (data.user.role !== 'ADMIN') {
-        throw new Error('Access denied. This login is restricted to administrators.');
+      if (!isStaffRole(data.user.role)) {
+        throw new Error('Access denied. This login is restricted to staff accounts.');
       }
 
       login(data.token, data.user);
-      navigate('/admin/dashboard');
+      navigate(homePathForRole(data.user.role), { replace: true });
     } catch (err) {
       setError(err.message);
     } finally {

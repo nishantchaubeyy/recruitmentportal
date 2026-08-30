@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { apiRequest, API_URL } from '../utils/api';
+import { statusLabel } from '../utils/status';
 
 function AdminJobDetails() {
   const { id } = useParams();
@@ -13,11 +14,11 @@ function AdminJobDetails() {
   useEffect(() => {
     async function fetchData() {
       try {
-        const jobData = await apiRequest(`/jobs/${id}?adminView=true`);
+        const jobData = await apiRequest(`/admin/vacancies/${id}`);
         setJob(jobData);
 
-        const appsData = await apiRequest(`/applications?jobId=${id}`);
-        setApplications(appsData);
+        const appsData = await apiRequest(`/applications?jobId=${id}&limit=100`);
+        setApplications(Array.isArray(appsData) ? appsData : (appsData?.data || []));
       } catch (err) {
         setError(err.message);
       } finally {
@@ -30,7 +31,7 @@ function AdminJobDetails() {
   const downloadCV = async (appId, docId, filename) => {
     const token = localStorage.getItem('token');
     try {
-      const response = await fetch(`${API_URL}/applications/${appId}/documents/${docId}`, {
+      const response = await fetch(`${API_URL}/applications/${appId}/documents/${docId}/download`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (!response.ok) throw new Error('File download failed.');
@@ -98,12 +99,12 @@ function AdminJobDetails() {
                 <td>
                   <strong>{app.applicationNumber}</strong>
                 </td>
-                <td>{app.applicant.name}</td>
-                <td>{app.applicant.user.email}</td>
+                <td>{app.applicant?.name}</td>
+                <td>{app.applicant?.user?.email}</td>
                 <td>{new Date(app.createdAt).toLocaleDateString('en-IN')}</td>
                 <td>
-                  <span className={`badge badge-${app.status.toLowerCase().replace(/ /g, '')}`}>
-                    {app.status}
+                  <span className={`badge badge-${(app.status || '').toLowerCase().replace(/_/g, '')}`}>
+                    {statusLabel(app.status)}
                   </span>
                 </td>
                 <td>

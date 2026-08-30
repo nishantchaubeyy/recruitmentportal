@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { apiRequest } from '../utils/api';
+import { statusLabel, statusBadgeClass, APPLICATION_STATUS } from '../utils/status';
 
 function ApplicantDashboard() {
   const [applications, setApplications] = useState([]);
@@ -12,11 +13,11 @@ function ApplicantDashboard() {
   useEffect(() => {
     async function fetchData() {
       try {
-        const appsData = await apiRequest('/applications');
-        setApplications(appsData);
+        const appsData = await apiRequest('/applications/my');
+        setApplications(Array.isArray(appsData) ? appsData : (appsData?.data || []));
 
         const notifData = await apiRequest('/notifications');
-        setNotifications(notifData);
+        setNotifications(Array.isArray(notifData) ? notifData : (notifData?.data || []));
       } catch (err) {
         setError(err.message);
       } finally {
@@ -35,19 +36,7 @@ function ApplicantDashboard() {
     }
   };
 
-  const getStatusBadgeClass = (status) => {
-    switch (status) {
-      case 'Application Submitted': return 'status-submitted';
-      case 'Under Review': return 'status-under-review';
-      case 'Shortlisted': return 'status-shortlisted';
-      case 'Interview Scheduled': return 'status-interview';
-      case 'Selected': return 'status-selected';
-      case 'Waitlisted': return 'status-waitlisted';
-      case 'Not Selected': return 'status-not-selected';
-      case 'Application Closed': return 'status-closed';
-      default: return 'status-submitted';
-    }
-  };
+  const getStatusBadgeClass = statusBadgeClass;
 
   return (
     <div className="container">
@@ -110,7 +99,7 @@ function ApplicantDashboard() {
           </thead>
           <tbody>
             {applications.map((app) => {
-              const isDraft = app.status === 'DRAFT';
+              const isDraft = app.status === APPLICATION_STATUS.DRAFT;
               return (
                 <tr key={app.id}>
                   <td>
@@ -121,7 +110,7 @@ function ApplicantDashboard() {
                   <td>{new Date(app.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</td>
                   <td>
                     <span className={`status-badge ${getStatusBadgeClass(app.status)}`}>
-                      {app.status}
+                      {statusLabel(app.status)}
                     </span>
                   </td>
                   <td>

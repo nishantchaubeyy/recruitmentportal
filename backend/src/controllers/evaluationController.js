@@ -111,9 +111,23 @@ async function updateEvaluation(req, res) {
       return res.status(403).json({ error: 'Access denied.' });
     }
 
+    const editable = ['communication', 'technicalScore', 'experienceScore', 'domainScore', 'recommendation', 'remarks'];
+    const updateData = {};
+    for (const key of editable) {
+      if (data[key] !== undefined) updateData[key] = data[key];
+    }
+    ['communication', 'technicalScore', 'experienceScore', 'domainScore'].forEach((k) => {
+      if (updateData[k] !== undefined) updateData[k] = parseInt(updateData[k]) || 0;
+    });
+    if (['communication', 'technicalScore', 'experienceScore', 'domainScore'].some((k) => updateData[k] !== undefined)) {
+      const merged = { ...evaluation, ...updateData };
+      updateData.totalScore =
+        (merged.communication + merged.technicalScore + merged.experienceScore + merged.domainScore) / 4;
+    }
+
     const updated = await prisma.evaluation.update({
       where: { id },
-      data
+      data: updateData
     });
 
     return res.json({ message: 'Evaluation updated.', evaluation: updated });

@@ -1,11 +1,9 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { API_BASE_URL } from '../utils/api';
-import { AuthContext } from '../context/AuthContext';
+import { apiRequest } from '../utils/api';
 
 function AdminJobs() {
   const navigate = useNavigate();
-  const { token } = useContext(AuthContext);
 
   const [vacancies, setVacancies] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -30,21 +28,13 @@ function AdminJobs() {
     setLoading(true);
     setError('');
     try {
-      let url = `${API_BASE_URL}/admin/vacancies?`;
-      if (typeFilter) url += `type=${typeFilter}&`;
-      if (statusFilter) url += `status=${statusFilter}&`;
-      if (searchQuery) url += `search=${encodeURIComponent(searchQuery)}&`;
+      const query = new URLSearchParams();
+      if (typeFilter) query.set('type', typeFilter);
+      if (statusFilter) query.set('status', statusFilter);
+      if (searchQuery) query.set('search', searchQuery);
 
-      const res = await fetch(url, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      if (!res.ok) {
-        throw new Error('Failed to retrieve vacancies.');
-      }
-
-      const data = await res.json();
-      setVacancies(data);
+      const data = await apiRequest(`/admin/vacancies?${query.toString()}`);
+      setVacancies(Array.isArray(data) ? data : (data?.data || []));
     } catch (err) {
       setError(err.message);
     } finally {
@@ -55,17 +45,10 @@ function AdminJobs() {
   const handleStatusChange = async (jobId, newStatus) => {
     setActionMenuOpenId(null);
     try {
-      const res = await fetch(`${API_BASE_URL}/admin/vacancies/${jobId}/status`, {
+      await apiRequest(`/admin/vacancies/${jobId}/status`, {
         method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
         body: JSON.stringify({ status: newStatus })
       });
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to update status.');
 
       setActionBanner(`Vacancy status changed to ${newStatus}.`);
       fetchVacancies();
@@ -78,13 +61,9 @@ function AdminJobs() {
   const handleTriggerNotify = async (jobId, positionTitle) => {
     setActionMenuOpenId(null);
     try {
-      const res = await fetch(`${API_BASE_URL}/admin/vacancies/${jobId}/notify-interested`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` }
+      const data = await apiRequest(`/admin/vacancies/${jobId}/notify-interested`, {
+        method: 'POST'
       });
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Notification trigger failed.');
 
       setActionBanner(data.message || `Notifications sent to interested candidates for ${positionTitle}.`);
       fetchVacancies();

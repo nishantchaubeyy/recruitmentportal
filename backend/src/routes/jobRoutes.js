@@ -26,11 +26,8 @@ router.get('/admin/schools', authenticateToken, requireAdmin, jobController.getS
 router.get('/admin/schools/:id/departments', authenticateToken, requireAdmin, jobController.getSchoolDepartments);
 router.get('/admin/departments/:id/positions', authenticateToken, requireAdmin, jobController.getDepartmentPositions);
 
-// Backward compatibility routes for existing code
-router.get('/', jobController.getPublicVacancies);
-router.get('/:id', jobController.getPublicVacancyById);
-router.post('/', authenticateToken, requireAdmin, jobController.createJob);
-router.put('/:id', authenticateToken, requireAdmin, jobController.updateJob);
-router.patch('/:id/status', authenticateToken, requireAdmin, jobController.updateJobStatus);
+// Public jobs aliases (explicit prefix to avoid greedy catch-all routing).
+router.get('/jobs', jobController.getPublicVacancies);
+router.get('/jobs/:id', jobController.getPublicVacancyById);
 
 module.exports = router;

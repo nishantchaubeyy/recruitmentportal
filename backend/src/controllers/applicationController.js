@@ -2,18 +2,57 @@ const prisma = require('../services/prisma');
 const storageService = require('../services/storageService');
 const { notifyStatusChange } = require('../services/notificationService');
 const { logAuditAction } = require('../services/auditService');
+const {
+  APPLICATION_STATUS,
+  HR_SETTABLE_STATUSES
+} = require('../constants/statuses');
+
+const ADMIN_ROLES = ['SUPER_ADMIN', 'HR_ADMIN', 'HR_USER', 'ADMIN'];
+
+function isAdminRole(role) {
+  return ADMIN_ROLES.includes(role);
+}
+
+function isStaffRole(role) {
+  return isAdminRole(role) || role === 'COMMITTEE_MEMBER';
+}
 
 /**
- * Generates a sequential application number (APP-YYYY-XXXXXX format)
+ * Serialize the section payload the client sends into the JSON string columns.
+ * Accepts both the applicant form shape (phdDetails/workExperience) and the
+ * canonical column names (researchDetails/experience).
+ */
+function buildSectionData(payload = {}) {
+  const data = {};
+  const set = (col, value) => {
+    if (value !== undefined) data[col] = value === null ? null : JSON.stringify(value);
+  };
+
+  set('personalInfo', payload.personalInfo);
+  set('contactDetails', payload.contactDetails);
+  set('qualifications', payload.qualifications);
+  if (payload.experience !== undefined) set('experience', payload.experience);
+  if (payload.workExperience !== undefined) set('experience', payload.workExperience);
+  if (payload.researchDetails !== undefined) set('researchDetails', payload.researchDetails);
+  if (payload.phdDetails !== undefined) set('researchDetails', payload.phdDetails);
+  set('skillsCertificates', payload.skillsCertificates);
+  set('references', payload.references);
+
+  if (payload.declaration !== undefined) data.declaration = Boolean(payload.declaration);
+  return data;
+}
+
+/**
+ * Generates a sequential application number (APP-YYYY-XXXXXX format).
  */
 async function generateApplicationNumber() {
   const currentYear = new Date().getFullYear();
   const prefix = `APP-${currentYear}-`;
-  
+
   const count = await prisma.application.count({
     where: {
       applicationNumber: { startsWith: prefix },
-      status: { not: 'DRAFT' }
+      status: { not: APPLICATION_STATUS.DRAFT }
     }
   });
 
@@ -23,90 +62,57 @@ async function generateApplicationNumber() {
 
 /**
  * Initialize a new draft application for a job opening.
+ * Requires an authenticated applicant (enforced by route middleware).
  */
 async function createApplicationDraft(req, res) {
-  const { jobId, personalInfo, contactDetails, qualifications, workExperience, declaration } = req.body;
-  let applicantId = req.user?.applicantId;
+  const { jobId } = req.body;
+  const applicantId = req.user?.applicantId;
+
+  if (!applicantId) {
+    return res.status(403).json({ error: 'Only applicant accounts can create applications.' });
+  }
 
   if (!jobId) {
     return res.status(400).json({ error: 'Job ID is required to start an application.' });
   }
 
   try {
-    let job = null;
-    if (jobId) {
-      job = await prisma.job.findFirst({
-        where: {
-          OR: [
-            { id: jobId },
-            { vacancyNumber: jobId }
-          ]
-        }
+    const job = await prisma.job.findFirst({
+      where: { OR: [{ id: jobId }, { vacancyNumber: jobId }] }
+    });
+
+    if (!job) {
+      return res.status(404).json({ error: 'The selected vacancy could not be found.' });
+    }
+
+    // Only allow starting an application against a published vacancy.
+    if (job.status !== 'PUBLISHED') {
+      return res.status(400).json({ error: 'This vacancy is not open for applications.' });
+    }
+    if (job.deadline && new Date(job.deadline) < new Date()) {
+      return res.status(400).json({ error: 'The application deadline for this vacancy has passed.' });
+    }
+
+    // Reuse an existing draft for the same (applicant, job) instead of creating duplicates.
+    const existingDraft = await prisma.application.findFirst({
+      where: { applicantId, jobId: job.id, status: APPLICATION_STATUS.DRAFT }
+    });
+    if (existingDraft) {
+      return res.status(200).json({
+        message: 'Existing draft resumed.',
+        applicationId: existingDraft.id
       });
     }
 
-    if (!job) {
-      job = await prisma.job.findFirst({
-        where: { status: 'PUBLISHED' }
-      });
-    }
-
-    if (!job) {
-      job = await prisma.job.findFirst();
-    }
-
-    if (!job) {
-      return res.status(404).json({
-        success: false,
-        error: 'VACANCY_NOT_FOUND',
-        message: 'No vacancy found in database to associate this application.'
-      });
-    }
-
-    if (!applicantId) {
-      const candidateEmail = personalInfo?.email || req.body.email || `candidate-${Date.now()}@applicant.com`;
-      const candidateName = personalInfo?.firstName 
-        ? `${personalInfo.firstName} ${personalInfo.lastName || ''}`.trim() 
-        : 'Guest Candidate';
-      const candidateMobile = contactDetails?.mobile || req.body.mobile || '';
-
-      const bcrypt = require('bcryptjs');
-      let user = await prisma.user.findUnique({ where: { email: candidateEmail }, include: { applicant: true } });
-      if (!user) {
-        const dummyPassword = await bcrypt.hash('Guest@12345', 10);
-        user = await prisma.user.create({
-          data: {
-            email: candidateEmail,
-            password: dummyPassword,
-            role: 'APPLICANT',
-            applicant: {
-              create: { name: candidateName, mobile: candidateMobile }
-            }
-          },
-          include: { applicant: true }
-        });
-      } else if (!user.applicant) {
-        const appProfile = await prisma.applicant.create({
-          data: { userId: user.id, name: candidateName, mobile: candidateMobile }
-        });
-        user.applicant = appProfile;
-      }
-      applicantId = user.applicant.id;
-    }
-
-    const draftNumber = `DRAFT-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+    const draftNumber = `DRAFT-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
 
     const newApplication = await prisma.application.create({
       data: {
         applicationNumber: draftNumber,
         applicantId,
         jobId: job.id,
-        status: 'DRAFT',
-        personalInfo: personalInfo ? JSON.stringify(personalInfo) : null,
-        contactDetails: contactDetails ? JSON.stringify(contactDetails) : null,
-        qualifications: qualifications ? JSON.stringify(qualifications) : null,
-        experience: workExperience ? JSON.stringify(workExperience) : null,
-        declaration: Boolean(declaration)
+        status: APPLICATION_STATUS.DRAFT,
+        ...buildSectionData(req.body)
       }
     });
 
@@ -126,8 +132,8 @@ async function createApplicationDraft(req, res) {
  */
 async function updateApplicationDraft(req, res) {
   const { id } = req.params;
-  const applicantId = req.user.applicantId;
-  const data = req.body;
+  const applicantId = req.user?.applicantId;
+  const data = req.body || {};
 
   try {
     const application = await prisma.application.findUnique({ where: { id } });
@@ -135,33 +141,25 @@ async function updateApplicationDraft(req, res) {
       return res.status(404).json({ error: 'Application not found.' });
     }
 
-    // Verify ownership
-    if (application.applicantId !== applicantId && req.user.role !== 'SUPER_ADMIN' && req.user.role !== 'HR_ADMIN') {
+    const isOwner = applicantId && application.applicantId === applicantId;
+    const canEdit = isOwner || isAdminRole(req.user?.role);
+    if (!canEdit) {
       return res.status(403).json({ error: 'Access denied.' });
     }
 
-    // Block modifications after submission
-    if (application.status !== 'DRAFT' && req.user.role === 'APPLICANT') {
-      return res.status(403).json({ error: 'Submitted applications cannot be modified by the applicant.' });
+    // Block applicant modifications after submission.
+    if (application.status !== APPLICATION_STATUS.DRAFT && req.user?.role === 'APPLICANT') {
+      return res.status(403).json({ error: 'Submitted applications cannot be modified.' });
     }
 
-    const updateData = {};
-    if (data.personalInfo !== undefined) updateData.personalInfo = data.personalInfo;
-    if (data.contactDetails !== undefined) updateData.contactDetails = data.contactDetails;
-    if (data.qualifications !== undefined) updateData.qualifications = data.qualifications;
-    if (data.experience !== undefined) updateData.experience = data.experience;
-    if (data.researchDetails !== undefined) updateData.researchDetails = data.researchDetails;
-    if (data.skillsCertificates !== undefined) updateData.skillsCertificates = data.skillsCertificates;
-    if (data.references !== undefined) updateData.references = data.references;
-    if (data.declaration !== undefined) updateData.declaration = data.declaration;
-    if (data.screeningRemarks !== undefined && (req.user.role === 'HR_ADMIN' || req.user.role === 'SUPER_ADMIN')) {
+    const updateData = buildSectionData(data);
+
+    // HR screening remarks may only be written by HR/Super admins.
+    if (data.screeningRemarks !== undefined && isAdminRole(req.user?.role)) {
       updateData.screeningRemarks = data.screeningRemarks;
     }
 
-    const updatedApp = await prisma.application.update({
-      where: { id },
-      data: updateData
-    });
+    const updatedApp = await prisma.application.update({ where: { id }, data: updateData });
 
     return res.json({ message: 'Draft application updated.', application: updatedApp });
   } catch (error) {
@@ -171,7 +169,7 @@ async function updateApplicationDraft(req, res) {
 }
 
 /**
- * Submit Application with Deadline and Field Validations.
+ * Submit Application with deadline, ownership and field validations.
  */
 async function submitApplication(req, res) {
   const { id } = req.params;
@@ -181,46 +179,62 @@ async function submitApplication(req, res) {
   try {
     const application = await prisma.application.findUnique({
       where: { id },
-      include: {
-        job: true,
-        documents: true
-      }
+      include: { job: true }
     });
 
     if (!application) {
       return res.status(404).json({ error: 'Application not found.' });
     }
 
-    if (applicantId && application.applicantId !== applicantId && req.user?.role === 'APPLICANT') {
+    // Ownership: applicants may only submit their own application.
+    if (!isAdminRole(req.user?.role) && application.applicantId !== applicantId) {
       return res.status(403).json({ error: 'Access denied.' });
     }
 
+    // Block re-submission.
+    if (application.status !== APPLICATION_STATUS.DRAFT) {
+      return res.status(400).json({ error: 'This application has already been submitted.' });
+    }
+
+    // Vacancy must still be open.
+    const job = application.job;
     const now = new Date();
+    if (!job || job.status !== 'PUBLISHED') {
+      return res.status(400).json({ error: 'This vacancy is no longer open for applications.' });
+    }
+    if (job.deadline && new Date(job.deadline) < now) {
+      return res.status(400).json({ error: 'The application deadline for this vacancy has passed.' });
+    }
+
+    // Merge any final edits sent with the submit call.
+    const sectionData = buildSectionData(payload);
+
+    // Declaration must be accepted.
+    const declarationAccepted =
+      payload.declaration !== undefined ? Boolean(payload.declaration) : application.declaration;
+    if (!declarationAccepted) {
+      return res.status(400).json({ error: 'You must accept the declaration before submitting.' });
+    }
+
     const finalAppNumber = await generateApplicationNumber();
-
-    const updateData = {
-      applicationNumber: finalAppNumber,
-      status: 'SUBMITTED',
-      submittedAt: now
-    };
-
-    if (payload.personalInfo) updateData.personalInfo = JSON.stringify(payload.personalInfo);
-    if (payload.contactDetails) updateData.contactDetails = JSON.stringify(payload.contactDetails);
-    if (payload.qualifications) updateData.qualifications = JSON.stringify(payload.qualifications);
-    if (payload.workExperience) updateData.experience = JSON.stringify(payload.workExperience);
-    if (payload.declaration !== undefined) updateData.declaration = Boolean(payload.declaration);
 
     const submittedApp = await prisma.$transaction(async (tx) => {
       const app = await tx.application.update({
         where: { id },
-        data: updateData
+        data: {
+          ...sectionData,
+          declaration: declarationAccepted,
+          applicationNumber: finalAppNumber,
+          status: APPLICATION_STATUS.SUBMITTED,
+          submittedAt: now
+        }
       });
 
       await tx.applicationStatusHistory.create({
         data: {
           applicationId: id,
-          previousStatus: 'DRAFT',
-          newStatus: 'SUBMITTED',
+          previousStatus: APPLICATION_STATUS.DRAFT,
+          newStatus: APPLICATION_STATUS.SUBMITTED,
           changedByUserId: req.user?.id || null,
           comment: 'Application submitted by candidate.'
         }
@@ -229,10 +243,21 @@ async function submitApplication(req, res) {
       return app;
     });
 
+    await logAuditAction({
+      action: 'APPLICATION_SUBMITTED',
+      userId: req.user?.id,
+      targetType: 'Application',
+      targetId: id,
+      details: { applicationNumber: finalAppNumber, jobId: application.jobId },
+      req
+    });
+
     return res.json({
       message: 'Application submitted successfully.',
       applicationNumber: finalAppNumber,
-      submittedAt: now
+      status: APPLICATION_STATUS.SUBMITTED,
+      submittedAt: now,
+      application: submittedApp
     });
   } catch (error) {
     console.error('Submit application error:', error);
@@ -257,8 +282,12 @@ async function withdrawApplication(req, res) {
       return res.status(403).json({ error: 'Access denied.' });
     }
 
-    if (application.status === 'WITHDRAWN') {
+    if (application.status === APPLICATION_STATUS.WITHDRAWN) {
       return res.status(400).json({ error: 'Application is already withdrawn.' });
+    }
+
+    if (application.status === APPLICATION_STATUS.DRAFT) {
+      return res.status(400).json({ error: 'Draft applications cannot be withdrawn.' });
     }
 
     const previousStatus = application.status;
@@ -266,14 +295,14 @@ async function withdrawApplication(req, res) {
     const updatedApp = await prisma.$transaction(async (tx) => {
       const app = await tx.application.update({
         where: { id },
-        data: { status: 'WITHDRAWN' }
+        data: { status: APPLICATION_STATUS.WITHDRAWN }
       });
 
       await tx.applicationStatusHistory.create({
         data: {
           applicationId: id,
           previousStatus,
-          newStatus: 'WITHDRAWN',
+          newStatus: APPLICATION_STATUS.WITHDRAWN,
           changedByUserId: req.user.id,
           comment: 'Application withdrawn by applicant.'
         }
@@ -299,7 +328,7 @@ async function withdrawApplication(req, res) {
 }
 
 /**
- * Get applicant's applications.
+ * Get the authenticated applicant's own applications.
  */
 async function getMyApplications(req, res) {
   const applicantId = req.user.applicantId;
@@ -310,13 +339,7 @@ async function getMyApplications(req, res) {
       include: {
         job: true,
         documents: {
-          select: {
-            id: true,
-            documentType: true,
-            originalName: true,
-            fileSize: true,
-            uploadedAt: true
-          }
+          select: { id: true, documentType: true, originalName: true, fileSize: true, uploadedAt: true }
         }
       },
       orderBy: { updatedAt: 'desc' }
@@ -330,7 +353,8 @@ async function getMyApplications(req, res) {
 }
 
 /**
- * HR Application Screening List with Server-Side Pagination, Filtering & Search.
+ * HR Application Screening List with server-side pagination, filtering & search.
+ * Requires authentication (applicant sees only their own; staff see all non-drafts).
  */
 async function getAllApplications(req, res) {
   const {
@@ -339,39 +363,44 @@ async function getAllApplications(req, res) {
     status,
     type,
     department,
+    jobId,
     search,
     sortBy = 'createdAt',
     sortOrder = 'desc'
   } = req.query;
 
-  const pageNum = parseInt(page);
-  const limitNum = parseInt(limit);
+  if (!req.user) {
+    return res.status(401).json({ error: 'Authentication required.' });
+  }
+
+  const pageNum = Math.max(parseInt(page) || 1, 1);
+  const limitNum = Math.min(Math.max(parseInt(limit) || 10, 1), 100);
   const skip = (pageNum - 1) * limitNum;
 
   const where = {};
 
-  // Applicants only see their own
-  if (req.user?.role === 'APPLICANT') {
+  if (req.user.role === 'APPLICANT') {
     where.applicantId = req.user.applicantId;
-  } else {
-    // HR Filters - Exclude raw drafts unless explicitly requested
-    if (status) {
-      where.status = status;
-    } else {
-      where.status = { not: 'DRAFT' };
-    }
+  } else if (isStaffRole(req.user.role)) {
+    where.status = status ? status : { not: APPLICATION_STATUS.DRAFT };
     if (type) where.job = { ...where.job, type };
-    if (department) where.job = { ...where.job, department: { contains: department } };
+    if (department) where.job = { ...where.job, department: { contains: department, mode: 'insensitive' } };
+    if (jobId) where.jobId = jobId;
+  } else {
+    return res.status(403).json({ error: 'Access denied.' });
   }
 
-  // Search filter
   if (search) {
     where.OR = [
-      { applicationNumber: { contains: search } },
-      { applicant: { name: { contains: search } } },
-      { job: { position: { contains: search } } }
+      { applicationNumber: { contains: search, mode: 'insensitive' } },
+      { applicant: { name: { contains: search, mode: 'insensitive' } } },
+      { job: { position: { contains: search, mode: 'insensitive' } } }
     ];
   }
+
+  const allowedSort = ['createdAt', 'updatedAt', 'submittedAt', 'status'];
+  const orderField = allowedSort.includes(sortBy) ? sortBy : 'createdAt';
+  const orderDir = String(sortOrder).toLowerCase() === 'asc' ? 'asc' : 'desc';
 
   try {
     const [total, applications] = await Promise.all([
@@ -380,15 +409,11 @@ async function getAllApplications(req, res) {
         where,
         include: {
           applicant: {
-            select: {
-              name: true,
-              mobile: true,
-              user: { select: { email: true } }
-            }
+            select: { name: true, mobile: true, user: { select: { email: true } } }
           },
           job: true
         },
-        orderBy: { [sortBy]: sortOrder.toLowerCase() === 'asc' ? 'asc' : 'desc' },
+        orderBy: { [orderField]: orderDir },
         skip,
         take: limitNum
       })
@@ -410,10 +435,15 @@ async function getAllApplications(req, res) {
 }
 
 /**
- * Get detailed Application dossier.
+ * Get detailed Application dossier. Requires authentication; only the owning
+ * applicant or staff may view it.
  */
 async function getApplicationById(req, res) {
   const { id } = req.params;
+
+  if (!req.user) {
+    return res.status(401).json({ error: 'Authentication required.' });
+  }
 
   try {
     const application = await prisma.application.findUnique({
@@ -421,20 +451,10 @@ async function getApplicationById(req, res) {
       include: {
         job: true,
         documents: {
-          select: {
-            id: true,
-            documentType: true,
-            originalName: true,
-            fileSize: true,
-            uploadedAt: true
-          }
+          select: { id: true, documentType: true, originalName: true, fileSize: true, uploadedAt: true }
         },
         statusHistory: { orderBy: { changedAt: 'desc' } },
-        applicant: {
-          include: {
-            user: { select: { email: true } }
-          }
-        }
+        applicant: { include: { user: { select: { email: true } } } }
       }
     });
 
@@ -442,16 +462,15 @@ async function getApplicationById(req, res) {
       return res.status(404).json({ error: 'Application not found.' });
     }
 
-    // Role check (Safely handle optional user auth)
-    const isOwner = req.user?.role === 'APPLICANT' && req.user?.applicantId === application.applicantId;
-    const isAdmin = !req.user || ['SUPER_ADMIN', 'HR_ADMIN', 'HR_USER', 'ADMIN', 'COMMITTEE_MEMBER'].includes(req.user?.role);
+    const isOwner = req.user.role === 'APPLICANT' && req.user.applicantId === application.applicantId;
+    const isStaff = isStaffRole(req.user.role);
 
-    if (!isOwner && !isAdmin) {
+    if (!isOwner && !isStaff) {
       return res.status(403).json({ error: 'Access denied.' });
     }
 
-    // Confidentiality masking: Hide HR screeningRemarks from applicants
-    if (req.user?.role === 'APPLICANT') {
+    // Confidentiality: hide HR screening remarks from applicants.
+    if (req.user.role === 'APPLICANT') {
       delete application.screeningRemarks;
     }
 
@@ -471,6 +490,12 @@ async function updateApplicationStatus(req, res) {
 
   if (!status) {
     return res.status(400).json({ error: 'New status is required.' });
+  }
+
+  if (!HR_SETTABLE_STATUSES.includes(status)) {
+    return res.status(400).json({
+      error: `Invalid status. Allowed values: ${HR_SETTABLE_STATUSES.join(', ')}.`
+    });
   }
 
   try {
@@ -507,13 +532,23 @@ async function updateApplicationStatus(req, res) {
       return app;
     });
 
-    // Notify applicant
+    // Notify applicant (best-effort; never blocks the response).
     await notifyStatusChange({
       userId: application.applicant.userId,
       application,
       newStatus: status,
       previousStatus,
       comment,
+      req
+    });
+
+    await logAuditAction({
+      action: 'APPLICATION_STATUS_UPDATED',
+      userId: req.user.id,
+      targetType: 'Application',
+      targetId: id,
+      oldValue: { status: previousStatus },
+      details: { status, comment: comment || null },
       req
     });
 
@@ -525,7 +560,7 @@ async function updateApplicationStatus(req, res) {
 }
 
 /**
- * Get status and history for tracking.
+ * Get status and history for tracking (used by the public tracker via number).
  */
 async function getApplicationStatus(req, res) {
   const { id } = req.params;
@@ -557,6 +592,51 @@ async function getApplicationStatus(req, res) {
 }
 
 /**
+ * Public application tracker by application number.
+ * GET /api/applications/track?applicationNumber=APP-YYYY-XXXXXX
+ */
+async function trackApplication(req, res) {
+  const { applicationNumber } = req.query;
+
+  if (!applicationNumber) {
+    return res.status(400).json({ error: 'Application number is required.' });
+  }
+
+  try {
+    const application = await prisma.application.findUnique({
+      where: { applicationNumber: applicationNumber.trim() },
+      select: {
+        applicationNumber: true,
+        status: true,
+        submittedAt: true,
+        createdAt: true,
+        job: { select: { position: true, department: true } },
+        statusHistory: {
+          select: { newStatus: true, changedAt: true, comment: true },
+          orderBy: { changedAt: 'desc' }
+        }
+      }
+    });
+
+    if (!application || application.status === APPLICATION_STATUS.DRAFT) {
+      return res.status(404).json({ error: 'No application found with the provided number.' });
+    }
+
+    return res.json({
+      applicationNumber: application.applicationNumber,
+      position: application.job?.position,
+      department: application.job?.department,
+      appliedDate: application.submittedAt || application.createdAt,
+      status: application.status,
+      history: application.statusHistory
+    });
+  } catch (error) {
+    console.error('Track application error:', error);
+    return res.status(500).json({ error: 'Failed to look up application.' });
+  }
+}
+
+/**
  * Document Upload Endpoint.
  */
 async function uploadDocument(req, res) {
@@ -574,7 +654,12 @@ async function uploadDocument(req, res) {
       return res.status(404).json({ error: 'Application not found.' });
     }
 
-    // Save using storage service abstraction
+    // Ownership: applicants may only upload to their own draft application.
+    const isOwner = req.user?.applicantId && application.applicantId === req.user.applicantId;
+    if (!isOwner && !isAdminRole(req.user?.role)) {
+      return res.status(403).json({ error: 'Access denied.' });
+    }
+
     const saved = await storageService.saveFile(file, application.jobId, id);
 
     const doc = await prisma.applicationDocument.create({
@@ -603,11 +688,17 @@ async function downloadDocument(req, res) {
 
   try {
     const doc = await prisma.applicationDocument.findFirst({
-      where: { id: docId, applicationId: id }
+      where: { id: docId, applicationId: id },
+      include: { application: { select: { applicantId: true } } }
     });
 
     if (!doc) {
       return res.status(404).json({ error: 'Document not found.' });
+    }
+
+    const isOwner = req.user?.applicantId && doc.application.applicantId === req.user.applicantId;
+    if (!isOwner && !isStaffRole(req.user?.role)) {
+      return res.status(403).json({ error: 'Access denied.' });
     }
 
     const absolutePath = storageService.getFileLocation(doc.filePath);
@@ -634,7 +725,12 @@ async function deleteDocument(req, res) {
       return res.status(404).json({ error: 'Document not found.' });
     }
 
-    if (doc.application.status !== 'DRAFT' && req.user.role === 'APPLICANT') {
+    const isOwner = req.user?.applicantId && doc.application.applicantId === req.user.applicantId;
+    if (!isOwner && !isAdminRole(req.user?.role)) {
+      return res.status(403).json({ error: 'Access denied.' });
+    }
+
+    if (doc.application.status !== APPLICATION_STATUS.DRAFT && req.user?.role === 'APPLICANT') {
       return res.status(403).json({ error: 'Documents cannot be deleted after application submission.' });
     }
 
@@ -657,6 +753,7 @@ module.exports = {
   getApplicationById,
   updateApplicationStatus,
   getApplicationStatus,
+  trackApplication,
   uploadDocument,
   downloadDocument,
   deleteDocument

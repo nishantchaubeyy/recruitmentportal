@@ -1,13 +1,11 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
-import { API_BASE_URL } from '../utils/api';
-import { AuthContext } from '../context/AuthContext';
+import { apiRequest } from '../utils/api';
 
 function AdminCreateJob() {
   const { id } = useParams(); // If id exists, it's Edit mode
   const isEditMode = Boolean(id);
   const navigate = useNavigate();
-  const { token } = useContext(AuthContext);
 
   const [formData, setFormData] = useState({
     vacancyNumber: '',
@@ -73,13 +71,8 @@ function AdminCreateJob() {
 
   const fetchSchools = async (type) => {
     try {
-      const res = await fetch(`${API_BASE_URL}/admin/schools?type=${type}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setSchools(data);
-      }
+      const data = await apiRequest(`/admin/schools?type=${type}`);
+      setSchools(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error('Fetch schools error:', err);
     }
@@ -87,13 +80,8 @@ function AdminCreateJob() {
 
   const fetchDepartments = async (schId) => {
     try {
-      const res = await fetch(`${API_BASE_URL}/admin/schools/${schId}/departments`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setDepartments(data);
-      }
+      const data = await apiRequest(`/admin/schools/${schId}/departments`);
+      setDepartments(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error('Fetch departments error:', err);
     }
@@ -101,13 +89,8 @@ function AdminCreateJob() {
 
   const fetchPositions = async (deptId) => {
     try {
-      const res = await fetch(`${API_BASE_URL}/admin/departments/${deptId}/positions`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setPositions(data);
-      }
+      const data = await apiRequest(`/admin/departments/${deptId}/positions`);
+      setPositions(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error('Fetch positions error:', err);
     }
@@ -116,11 +99,8 @@ function AdminCreateJob() {
   const fetchExistingJob = async (jobId) => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE_URL}/admin/vacancies/${jobId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (res.ok) {
-        const data = await res.json();
+      const data = await apiRequest(`/admin/vacancies/${jobId}`);
+      if (data) {
         setFormData({
           vacancyNumber: data.vacancyNumber || '',
           type: data.type || 'TEACHING',
@@ -226,23 +206,13 @@ function AdminCreateJob() {
     }
 
     try {
-      const url = isEditMode ? `${API_BASE_URL}/admin/vacancies/${id}` : `${API_BASE_URL}/admin/vacancies`;
+      const endpoint = isEditMode ? `/admin/vacancies/${id}` : '/admin/vacancies';
       const method = isEditMode ? 'PUT' : 'POST';
 
-      const res = await fetch(url, {
+      await apiRequest(endpoint, {
         method,
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
         body: JSON.stringify(payload)
       });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to save vacancy opening.');
-      }
 
       navigate('/admin/jobs');
     } catch (err) {

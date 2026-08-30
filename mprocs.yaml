@@ -1,0 +1,5 @@
+procs:
+  Backend:
+    cmd: ["npm.cmd", "run", "dev", "--prefix", "backend"]
+  Frontend:
+    cmd: ["npm.cmd", "run", "dev", "--prefix", "frontend"]

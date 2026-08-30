@@ -128,8 +128,13 @@ async function login(req, res) {
       return res.status(400).json({ error: 'Invalid email or password.' });
     }
 
+    if (user.status === 'INACTIVE' || user.status === 'SUSPENDED') {
+      return res.status(403).json({ error: 'Account disabled. Please contact the system administrator.' });
+    }
+
     const { accessToken, refreshToken } = generateTokens(user);
-    const name = user.role === 'ADMIN' ? user.admin?.name : user.applicant?.name;
+    // Any user with an Admin profile is staff; otherwise fall back to the applicant profile.
+    const name = user.admin ? user.admin.name : user.applicant?.name;
 
     await logAuditAction({
       action: 'USER_LOGIN',
@@ -205,8 +210,8 @@ async function getMe(req, res) {
       return res.status(404).json({ error: 'User not found.' });
     }
 
-    const name = user.role === 'ADMIN' ? user.admin?.name : user.applicant?.name;
-    const profileDetails = user.role === 'ADMIN' ? user.admin : user.applicant;
+    const name = user.admin ? user.admin.name : user.applicant?.name;
+    const profileDetails = user.admin || user.applicant;
 
     return res.json({
       id: user.id,

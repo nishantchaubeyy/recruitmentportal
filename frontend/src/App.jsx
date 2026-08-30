@@ -1,5 +1,5 @@
 import React, { useContext } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import AuthProvider, { AuthContext } from './context/AuthContext';
 import Header from './components/Header';
 import Footer from './components/Footer';
@@ -40,9 +40,10 @@ import CommitteeDashboard from './pages/CommitteeDashboard';
  */
 function ApplicantRoute({ children }) {
   const { user, loading } = useContext(AuthContext);
+  const location = useLocation();
   if (loading) return <div className="container"><p>Verifying authentication...</p></div>;
   if (!user || user.role !== 'APPLICANT') {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/login" replace state={{ from: location.pathname + location.search }} />;
   }
   return (
     <>
@@ -92,7 +93,8 @@ function App() {
         <Routes>
           {/* Public Routes */}
           <Route path="/" element={<PublicLayout><Home /></PublicLayout>} />
-          <Route path="/apply" element={<PublicLayout><ApplicationForm /></PublicLayout>} />
+          {/* Applying requires an applicant account. */}
+          <Route path="/apply" element={<ApplicantRoute><ApplicationForm /></ApplicantRoute>} />
           <Route path="/teaching" element={<PublicLayout><TeachingPositions /></PublicLayout>} />
           <Route path="/non-teaching" element={<PublicLayout><NonTeachingPositions /></PublicLayout>} />
           <Route path="/jobs/:id" element={<PublicLayout><JobDetails /></PublicLayout>} />

@@ -14,10 +14,10 @@ async function getCommitteeAssignments(req, res) {
         interview: {
           include: {
             candidate: {
+              // Mobile intentionally omitted to mask contact info from committee members.
               select: {
                 id: true,
-                name: true,
-                mobile: false // Mask mobile for committee members
+                name: true
               }
             },
             job: {

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { apiRequest, API_URL } from '../utils/api';
+import { HR_STATUS_OPTIONS, statusLabel, APPLICATION_STATUS } from '../utils/status';
 
 function AdminReviewApplication() {
   const { id } = useParams();
@@ -59,7 +60,7 @@ function AdminReviewApplication() {
       });
 
       // 2. If status is Interview Scheduled, also schedule the interview record
-      if (newStatus === 'Interview Scheduled' && interviewDate) {
+      if (newStatus === APPLICATION_STATUS.INTERVIEW_SCHEDULED && interviewDate) {
         await apiRequest('/interviews', {
           method: 'POST',
           body: JSON.stringify({
@@ -72,10 +73,10 @@ function AdminReviewApplication() {
             mode: interviewMode,
             round: 'Technical & HR Interview'
           })
-        }).catch(() => {});
+        });
       }
 
-      setStatusSuccess(`Application status changed to "${newStatus}" successfully.`);
+      setStatusSuccess(`Application status changed to "${statusLabel(newStatus)}" successfully.`);
       setAdminComment('');
       fetchApplicationDetails();
     } catch (err) {
@@ -89,7 +90,7 @@ function AdminReviewApplication() {
     e.preventDefault();
     const token = localStorage.getItem('token');
     try {
-      const response = await fetch(`${API_URL}/applications/${app?.id}/documents/${docId}`, {
+      const response = await fetch(`${API_URL}/applications/${app?.id}/documents/${docId}/download`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (!response.ok) throw new Error('Failed to retrieve file.');
@@ -208,11 +209,11 @@ function AdminReviewApplication() {
               borderRadius: '20px',
               fontWeight: 800,
               display: 'inline-block',
-              backgroundColor: app.status === 'Shortlisted' ? '#dcfce7' : app.status === 'Under Review' ? '#cff4fc' : '#e0f2fe',
-              color: app.status === 'Shortlisted' ? '#15803d' : app.status === 'Under Review' ? '#0e7490' : '#0369a1',
+              backgroundColor: app.status === APPLICATION_STATUS.SHORTLISTED ? '#dcfce7' : app.status === APPLICATION_STATUS.UNDER_REVIEW ? '#cff4fc' : '#e0f2fe',
+              color: app.status === APPLICATION_STATUS.SHORTLISTED ? '#15803d' : app.status === APPLICATION_STATUS.UNDER_REVIEW ? '#0e7490' : '#0369a1',
               border: '1px solid currentColor'
             }}>
-              {app.status || 'SUBMITTED'}
+              {statusLabel(app.status) || 'Application Submitted'}
             </span>
           </div>
         </div>
@@ -238,14 +239,9 @@ function AdminReviewApplication() {
               onChange={(e) => setNewStatus(e.target.value)}
               style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontWeight: 600 }}
             >
-              <option value="Application Submitted">Application Submitted</option>
-              <option value="Under Review">Under Review</option>
-              <option value="Shortlisted">Shortlisted</option>
-              <option value="Interview Scheduled">Interview Scheduled</option>
-              <option value="Selected">Selected</option>
-              <option value="Waitlisted">Waitlisted</option>
-              <option value="Not Selected">Not Selected</option>
-              <option value="Application Closed">Application Closed</option>
+              {HR_STATUS_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
             </select>
           </div>
 
@@ -268,7 +264,7 @@ function AdminReviewApplication() {
             {submitting ? 'Updating...' : 'Update Status'}
           </button>
 
-          {newStatus === 'Interview Scheduled' && (
+          {newStatus === APPLICATION_STATUS.INTERVIEW_SCHEDULED && (
             <div style={{ gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px', marginTop: '14px', paddingTop: '14px', borderTop: '1px solid #cbd5e1' }}>
               <div className="form-group" style={{ margin: 0 }}>
                 <label style={{ fontWeight: 700, fontSize: '0.82rem', color: '#334155' }}>Interview Date *</label>

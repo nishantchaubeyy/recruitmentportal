@@ -5,6 +5,9 @@ import { mockApiRequest } from './mockApi';
 // Remove it (or set false) when connecting to a real server.
 const USE_MOCK = import.meta.env.VITE_MOCK_API === 'true';
 
+// Exposed so UI can hide mock-only affordances when talking to a real backend.
+export const IS_MOCK = USE_MOCK;
+
 export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 export const API_BASE_URL = API_URL;
 

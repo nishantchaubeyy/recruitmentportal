@@ -19,15 +19,30 @@ const prisma = require('./services/prisma');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Fail fast in production if critical secrets are not configured.
+if (process.env.NODE_ENV === 'production') {
+  const missing = ['JWT_SECRET', 'REFRESH_SECRET', 'DATABASE_URL'].filter((k) => !process.env[k]);
+  if (missing.length) {
+    console.error(`[FATAL] Missing required environment variables in production: ${missing.join(', ')}`);
+    process.exit(1);
+  }
+}
+
 // Security HTTP Headers Middleware (Helmet)
 app.use(helmet({
   contentSecurityPolicy: false,
   crossOriginResourcePolicy: { policy: "cross-origin" }
 }));
 
-// Enable CORS with support for headers
+// Enable CORS. Restrict to configured origins in production via CORS_ORIGIN
+// (comma-separated list); defaults to allowing all origins for local development.
+const corsOrigins = (process.env.CORS_ORIGIN || '*')
+  .split(',')
+  .map((o) => o.trim())
+  .filter(Boolean);
+
 app.use(cors({
-  origin: '*',
+  origin: corsOrigins.includes('*') ? '*' : corsOrigins,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
@@ -80,8 +95,9 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/interviews', interviewRoutes);
 app.use('/api/committee', committeeRoutes);
 app.use('/api/admin', adminRoutes);
-app.use('/api/jobs', jobRoutes);
 app.use('/api', vacancyInterestRoutes);
+// jobRoutes exposes /api/public/* and /api/admin/vacancies|schools|departments,
+// plus /api/jobs and /api/jobs/:id. Mounted once at /api.
 app.use('/api', jobRoutes);
 
 // Global Error Handler

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { apiRequest } from '../utils/api';
+import { statusLabel, statusBadgeClass, statusStageStep, APPLICATION_STATUS } from '../utils/status';
 
 function TrackApplication() {
   const [appNumber, setAppNumber] = useState('');
@@ -29,31 +30,8 @@ function TrackApplication() {
     }
   };
 
-  const getStatusBadgeClass = (status) => {
-    switch (status) {
-      case 'Application Submitted': return 'status-submitted';
-      case 'Under Review': return 'status-under-review';
-      case 'Shortlisted': return 'status-shortlisted';
-      case 'Interview Scheduled': return 'status-interview';
-      case 'Selected': return 'status-selected';
-      case 'Waitlisted': return 'status-waitlisted';
-      case 'Not Selected': return 'status-not-selected';
-      case 'Application Closed': return 'status-closed';
-      default: return 'status-submitted';
-    }
-  };
-
-  // Determine stage progression index for the tracking timeline
-  const getStageStep = (currentStatus) => {
-    if (currentStatus === 'Application Submitted') return 1;
-    if (currentStatus === 'Under Review') return 2;
-    if (currentStatus === 'Shortlisted') return 3;
-    if (currentStatus === 'Interview Scheduled') return 4;
-    if (['Selected', 'Not Selected', 'Application Closed'].includes(currentStatus)) return 5;
-    return 1;
-  };
-
-  const currentStepNum = result ? getStageStep(result.status) : 0;
+  const getStatusBadgeClass = statusBadgeClass;
+  const currentStepNum = result ? statusStageStep(result.status) : 0;
 
   return (
     <div className="container" style={{ maxWidth: '850px' }}>
@@ -147,7 +125,7 @@ function TrackApplication() {
 
             <div>
               <span className={`status-badge ${getStatusBadgeClass(result.status)}`} style={{ fontSize: '0.92rem', padding: '6px 16px' }}>
-                ● {result.status}
+                ● {statusLabel(result.status)}
               </span>
             </div>
           </div>
@@ -201,7 +179,7 @@ function TrackApplication() {
             </div>
 
             {/* Step 5: Final Decision */}
-            <div className={`timeline-step ${currentStepNum >= 5 ? (result.status === 'Selected' ? 'active-green' : 'completed') : ''}`}>
+            <div className={`timeline-step ${currentStepNum >= 5 ? (result.status === APPLICATION_STATUS.SELECTED ? 'active-green' : 'completed') : ''}`}>
               <div className="timeline-node">5</div>
               <div className="timeline-label">Decision</div>
             </div>
@@ -222,7 +200,7 @@ function TrackApplication() {
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', flexWrap: 'wrap', gap: '8px' }}>
                   <span className={`status-badge ${getStatusBadgeClass(step.newStatus)}`}>
-                    {step.newStatus}
+                    {statusLabel(step.newStatus)}
                   </span>
                   <span style={{ fontSize: '0.82rem', color: '#64748b', fontWeight: 600 }}>
                     {new Date(step.changedAt).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}

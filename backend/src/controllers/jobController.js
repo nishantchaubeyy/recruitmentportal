@@ -110,7 +110,8 @@ async function getPublicVacancyById(req, res) {
       }
     });
 
-    if (!job) {
+    // Do not expose unpublished (draft/archived) vacancies on the public endpoint.
+    if (!job || job.status === 'DRAFT' || job.status === 'ARCHIVED') {
       return res.status(404).json({ error: 'Vacancy opening not found.' });
     }
 
@@ -346,13 +347,34 @@ async function updateJob(req, res) {
       return res.status(404).json({ error: 'Vacancy opening not found.' });
     }
 
-    if (data.numPositions) data.numPositions = parseInt(data.numPositions);
-    if (data.deadline) data.deadline = new Date(data.deadline);
-    if (data.openingDate) data.openingDate = new Date(data.openingDate);
+    // Whitelist updatable fields — never trust the raw request body, which may
+    // echo back derived fields (_count, school, isApplicationOpen, …) that would
+    // make Prisma throw, or attempt to overwrite protected columns.
+    const editable = [
+      'position', 'type', 'schoolId', 'departmentId', 'positionId', 'department',
+      'employmentType', 'numPositions', 'qualification', 'experience', 'skills',
+      'description', 'salaryScale', 'location', 'openingDate', 'deadline',
+      'requiredDocuments', 'eligibilityCriteria', 'status'
+    ];
+
+    const updateData = {};
+    for (const key of editable) {
+      if (data[key] !== undefined) updateData[key] = data[key];
+    }
+
+    if (updateData.numPositions !== undefined) updateData.numPositions = parseInt(updateData.numPositions) || 1;
+    if (updateData.deadline) updateData.deadline = new Date(updateData.deadline);
+    if (updateData.openingDate) updateData.openingDate = new Date(updateData.openingDate);
+    if (updateData.type && !['TEACHING', 'NON_TEACHING'].includes(updateData.type)) {
+      return res.status(400).json({ error: 'Vacancy type must be TEACHING or NON_TEACHING.' });
+    }
+    if (updateData.status && !['DRAFT', 'PUBLISHED', 'CLOSED', 'ARCHIVED'].includes(updateData.status)) {
+      return res.status(400).json({ error: 'Invalid vacancy status.' });
+    }
 
     const updatedJob = await prisma.job.update({
       where: { id },
-      data
+      data: updateData
     });
 
     if (existing.status !== 'PUBLISHED' && updatedJob.status === 'PUBLISHED') {

@@ -1,27 +1,30 @@
 const express = require('express');
 const router = express.Router();
 const applicationController = require('../controllers/applicationController');
-const { authenticate, optionalAuthenticate, requireAdmin, requireApplicant } = require('../middleware/authMiddleware');
+const { authenticate, requireAdmin, requireApplicant } = require('../middleware/authMiddleware');
 const upload = require('../middleware/uploadMiddleware');
 
-// Application Creation & Applicant List
-router.post('/', optionalAuthenticate, applicationController.createApplicationDraft);
+// Public status tracker by application number (no account required).
+router.get('/track', applicationController.trackApplication);
+
+// Application Creation (applicants only) & Applicant List
+router.post('/', authenticate, requireApplicant, applicationController.createApplicationDraft);
 router.get('/my', authenticate, requireApplicant, applicationController.getMyApplications);
 
-// HR Screening List with Pagination, Filters & Search
-router.get('/', optionalAuthenticate, applicationController.getAllApplications);
+// Screening / listing list (applicant sees own, staff see all)
+router.get('/', authenticate, applicationController.getAllApplications);
 
 // Application Dossier Details & Draft Save
-router.get('/:id', optionalAuthenticate, applicationController.getApplicationById);
-router.put('/:id', optionalAuthenticate, applicationController.updateApplicationDraft);
+router.get('/:id', authenticate, applicationController.getApplicationById);
+router.put('/:id', authenticate, applicationController.updateApplicationDraft);
 
 // Workflow Actions: Submit & Withdraw
-router.post('/:id/submit', optionalAuthenticate, applicationController.submitApplication);
+router.post('/:id/submit', authenticate, applicationController.submitApplication);
 router.post('/:id/withdraw', authenticate, requireApplicant, applicationController.withdrawApplication);
 
-// Status Tracking
-router.get('/:id/status', applicationController.getApplicationStatus);
-router.get('/:id/status-history', applicationController.getApplicationStatus);
+// Status Tracking (authenticated)
+router.get('/:id/status', authenticate, applicationController.getApplicationStatus);
+router.get('/:id/status-history', authenticate, applicationController.getApplicationStatus);
 
 // HR Status Update & Screening Remarks
 router.patch('/:id/status', authenticate, requireAdmin, applicationController.updateApplicationStatus);
