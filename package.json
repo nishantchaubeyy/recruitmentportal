@@ -11,7 +11,7 @@
     "db:seed": "npm run db:seed --prefix backend",
     "db:setup": "npm run prisma:push --prefix backend && npm run db:seed --prefix backend",
     "install:all": "npm install --prefix backend && npm install --prefix frontend",
-    "mprocs": "mprocs"
+    "mprocs": "npx mprocs"
   },
   "devDependencies": {
     "concurrently": "^8.2.2",

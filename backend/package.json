@@ -5,11 +5,11 @@
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",
-    "dev": "nodemon src/index.js",
+    "dev": "npx nodemon src/index.js",
     "prisma:generate": "prisma generate --schema=../prisma/schema.prisma && node -e \"require('fs').cpSync('../node_modules/.prisma', 'node_modules/.prisma', {recursive: true})\"",
     "prisma:push": "prisma db push --schema=../prisma/schema.prisma",
     "db:seed": "node src/seed.js",
-    "postinstall": "prisma generate --schema=../prisma/schema.prisma && node -e \"require('fs').cpSync('../node_modules/.prisma', 'node_modules/.prisma', {recursive: true})\""
+    "postinstall": "prisma generate --schema=../prisma/schema.prisma && node -e \"try { require('fs').cpSync('../node_modules/.prisma', 'node_modules/.prisma', {recursive: true}); } catch (e) {}\""
   },
   "dependencies": {
     "@prisma/client": "^5.12.1",
