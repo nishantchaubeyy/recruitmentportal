@@ -130,6 +130,14 @@ if (process.env.NODE_ENV !== 'test' && !process.env.VERCEL) {
     }
   });
 
+  server.on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+      console.error(`[Server] Port ${PORT} is already in use. Retrying or update PORT in .env.`);
+    } else {
+      console.error('[Server] Server error:', err);
+    }
+  });
+
   // Graceful Shutdown
   process.on('SIGTERM', async () => {
     console.log('[Server] SIGTERM received. Shutting down gracefully...');
