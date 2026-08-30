@@ -1,16 +1,21 @@
-import React, { useContext, useState } from 'react';
+import React, { useContext } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
+import {
+  IconDashboard,
+  IconBriefcase,
+  IconFileText,
+  IconCalendar,
+  IconUserCheck,
+  IconBarChart,
+  IconUsers,
+  IconLogOut
+} from './icons/AdminIcons';
 
-function AdminSidebar({ mobileOpen, setMobileOpen }) {
+function AdminSidebar() {
   const { user, logout } = useContext(AuthContext);
   const location = useLocation();
   const navigate = useNavigate();
-
-  // Navigation collapsible state
-  const [recruitmentOpen, setRecruitmentOpen] = useState(true);
-  const [interviewsOpen, setInterviewsOpen] = useState(true);
-  const [adminOpen, setAdminOpen] = useState(true);
 
   const handleLogout = () => {
     logout();
@@ -23,180 +28,124 @@ function AdminSidebar({ mobileOpen, setMobileOpen }) {
     return false;
   };
 
-  const isSuperAdminOrHRAdmin = user && ['SUPER_ADMIN', 'HR_ADMIN', 'ADMIN'].includes(user.role);
+  const isSuperAdminOrHRAdmin = !user || ['SUPER_ADMIN', 'HR_ADMIN', 'ADMIN'].includes(user.role);
+
+  const navItems = [
+    { label: 'Dashboard', path: '/admin/dashboard', icon: IconDashboard },
+    { label: 'Vacancies', path: '/admin/jobs', icon: IconBriefcase },
+    { label: 'Applications', path: '/admin/applications', icon: IconFileText },
+    { label: 'Interviews', path: '/admin/interviews', icon: IconCalendar },
+    { label: 'Interested Applicants', path: '/admin/vacancy-interests', icon: IconUserCheck },
+    { label: 'Reports', path: '/admin/reports', icon: IconBarChart },
+    ...(isSuperAdminOrHRAdmin ? [{ label: 'User Management', path: '/admin/users', icon: IconUsers }] : [])
+  ];
 
   return (
-    <>
-      {/* Mobile Backdrop overlay */}
-      {mobileOpen && (
-        <div 
-          className="admin-sidebar-backdrop"
-          onClick={() => setMobileOpen(false)}
-        />
-      )}
+    <aside style={sidebarContainerStyle}>
+      {/* 1. TOP BRANDING */}
+      <div style={{ padding: '20px 20px 18px 20px', borderBottom: '1px solid #E2E8F0' }}>
+        <Link to="/admin/dashboard" style={{ display: 'flex', alignItems: 'center', gap: '12px', textDecoration: 'none' }}>
+          <img
+            src="/logo.dypiu.png"
+            alt="DYPIU Logo"
+            style={{ height: '36px', width: 'auto', objectFit: 'contain' }}
+          />
+          <div>
+            <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0F172A', letterSpacing: '-0.3px', lineHeight: 1.2 }}>
+              Recruitment Portal
+            </div>
+            <div style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: 600, marginTop: '2px' }}>
+              Enterprise HR Admin
+            </div>
+          </div>
+        </Link>
+      </div>
 
-      <aside className={`admin-sidebar ${mobileOpen ? 'mobile-open' : ''}`}>
-        {/* BRAND LOGO HEADER */}
-        <div className="sidebar-logo-header">
-          <Link to="/admin/dashboard" className="sidebar-brand-link">
-            <img src="/logo.dypiu.png" alt="DYPIU" className="sidebar-logo-img" />
-          </Link>
-          <div className="sidebar-portal-tag">Recruitment Portal</div>
+      {/* 2. NAVIGATION MENU */}
+      <div style={{ flex: 1, padding: '16px 12px', overflowY: 'auto' }}>
+        <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#94A3B8', letterSpacing: '0.8px', textTransform: 'uppercase', padding: '0 12px 8px 12px' }}>
+          Navigation
         </div>
-
-        {/* SIDEBAR NAVIGATION SCROLLABLE AREA */}
-        <nav className="sidebar-nav-container">
-          {/* DASHBOARD LINK */}
-          <Link 
-            to="/admin/dashboard" 
-            className={`sidebar-nav-link ${isActive('/admin/dashboard') ? 'active' : ''}`}
-            onClick={() => setMobileOpen(false)}
-          >
-            <span className="nav-icon">📊</span>
-            <span>Dashboard</span>
-          </Link>
-
-          {/* GROUP 1: RECRUITMENT */}
-          <div className="sidebar-nav-group">
-            <div 
-              className="group-title-row"
-              onClick={() => setRecruitmentOpen(!recruitmentOpen)}
-            >
-              <span className="group-title-text">RECRUITMENT</span>
-              <span className="group-toggle-arrow">{recruitmentOpen ? '▾' : '▸'}</span>
-            </div>
-
-            {recruitmentOpen && (
-              <div className="group-links-list">
-                <Link 
-                  to="/admin/jobs" 
-                  className={`sidebar-sublink ${isActive('/admin/jobs') ? 'active' : ''}`}
-                  onClick={() => setMobileOpen(false)}
-                >
-                  <span className="sublink-icon">📋</span>
-                  <span>Vacancies</span>
-                </Link>
-
-                <Link 
-                  to="/admin/applications" 
-                  className={`sidebar-sublink ${isActive('/admin/applications') && !location.search.includes('Shortlisted') ? 'active' : ''}`}
-                  onClick={() => setMobileOpen(false)}
-                >
-                  <span className="sublink-icon">📄</span>
-                  <span>Applications</span>
-                </Link>
-
-                <Link 
-                  to="/admin/vacancy-interests" 
-                  className={`sidebar-sublink ${isActive('/admin/vacancy-interests') ? 'active' : ''}`}
-                  onClick={() => setMobileOpen(false)}
-                >
-                  <span className="sublink-icon">🔔</span>
-                  <span>Interested Applicants</span>
-                </Link>
-              </div>
-            )}
-          </div>
-
-          {/* GROUP 2: INTERVIEWS */}
-          <div className="sidebar-nav-group">
-            <div 
-              className="group-title-row"
-              onClick={() => setInterviewsOpen(!interviewsOpen)}
-            >
-              <span className="group-title-text">INTERVIEWS</span>
-              <span className="group-toggle-arrow">{interviewsOpen ? '▾' : '▸'}</span>
-            </div>
-
-            {interviewsOpen && (
-              <div className="group-links-list">
-                <Link 
-                  to="/admin/interviews" 
-                  className={`sidebar-sublink ${isActive('/admin/interviews') ? 'active' : ''}`}
-                  onClick={() => setMobileOpen(false)}
-                >
-                  <span className="sublink-icon">🗓</span>
-                  <span>Schedule & Calendar</span>
-                </Link>
-
-                <Link 
-                  to="/committee/dashboard" 
-                  className={`sidebar-sublink ${isActive('/committee/dashboard') ? 'active' : ''}`}
-                  onClick={() => setMobileOpen(false)}
-                >
-                  <span className="sublink-icon">✍️</span>
-                  <span>Committee Evaluations</span>
-                </Link>
-              </div>
-            )}
-          </div>
-
-          {/* GROUP 3: REPORTS */}
-          <div className="sidebar-nav-group">
-            <Link 
-              to="/admin/reports" 
-              className={`sidebar-nav-link ${isActive('/admin/reports') ? 'active' : ''}`}
-              onClick={() => setMobileOpen(false)}
-            >
-              <span className="nav-icon">📈</span>
-              <span>Reports & Analytics</span>
-            </Link>
-          </div>
-
-          {/* GROUP 4: ADMINISTRATION */}
-          {isSuperAdminOrHRAdmin && (
-            <div className="sidebar-nav-group">
-              <div 
-                className="group-title-row"
-                onClick={() => setAdminOpen(!adminOpen)}
+        <nav style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            const active = isActive(item.path);
+            return (
+              <Link
+                key={item.path}
+                to={item.path}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  padding: '9px 12px',
+                  borderRadius: '8px',
+                  fontSize: '0.88rem',
+                  fontWeight: active ? 700 : 600,
+                  color: active ? '#0F172A' : '#475569',
+                  backgroundColor: active ? '#F1F5F9' : 'transparent',
+                  borderLeft: active ? '3px solid #0F172A' : '3px solid transparent',
+                  textDecoration: 'none',
+                  transition: 'all 0.15s ease'
+                }}
               >
-                <span className="group-title-text">ADMINISTRATION</span>
-                <span className="group-toggle-arrow">{adminOpen ? '▾' : '▸'}</span>
-              </div>
-
-              {adminOpen && (
-                <div className="group-links-list">
-                  <Link 
-                    to="/admin/users" 
-                    className={`sidebar-sublink ${isActive('/admin/users') ? 'active' : ''}`}
-                    onClick={() => setMobileOpen(false)}
-                  >
-                    <span className="sublink-icon">👥</span>
-                    <span>Users & RBAC Roles</span>
-                  </Link>
-
-                  <Link 
-                    to="/admin/audit-logs" 
-                    className={`sidebar-sublink ${isActive('/admin/audit-logs') ? 'active' : ''}`}
-                    onClick={() => setMobileOpen(false)}
-                  >
-                    <span className="sublink-icon">📜</span>
-                    <span>Security Audit Logs</span>
-                  </Link>
-                </div>
-              )}
-            </div>
-          )}
+                <Icon size={18} color={active ? '#0F172A' : '#64748B'} />
+                <span>{item.label}</span>
+              </Link>
+            );
+          })}
         </nav>
+      </div>
 
-        {/* USER PROFILE FOOTER */}
-        <div className="sidebar-profile-footer">
-          <div className="profile-info-block">
-            <div className="profile-name">{user?.name || 'HR Administrator'}</div>
-            <div className="profile-role-badge">{user?.role || 'ADMIN'}</div>
+      {/* 3. USER PROFILE & LOGOUT FOOTER */}
+      <div style={{ padding: '16px 14px', borderTop: '1px solid #E2E8F0', backgroundColor: '#FAFAFA' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
+          <div style={{ overflow: 'hidden' }}>
+            <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#0F172A', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {user?.name || 'HR Administrator'}
+            </div>
+            <div style={{ display: 'inline-block', fontSize: '0.68rem', fontWeight: 700, color: '#0369A1', backgroundColor: '#E0F2FE', padding: '1px 6px', borderRadius: '4px', marginTop: '2px' }}>
+              {user?.role || 'ADMIN'}
+            </div>
           </div>
 
-          <button 
+          <button
             onClick={handleLogout}
-            className="sidebar-logout-btn"
-            title="Logout of Admin Portal"
+            style={logoutButtonStyle}
+            title="Sign out of Admin Portal"
           >
-            ↪ Logout
+            <IconLogOut size={16} color="#64748B" />
           </button>
         </div>
-      </aside>
-    </>
+      </div>
+    </aside>
   );
 }
+
+const sidebarContainerStyle = {
+  width: '250px',
+  height: '100vh',
+  position: 'fixed',
+  top: 0,
+  left: 0,
+  backgroundColor: '#FFFFFF',
+  borderRight: '1px solid #E2E8F0',
+  display: 'flex',
+  flexDirection: 'column',
+  zIndex: 100
+};
+
+const logoutButtonStyle = {
+  background: 'none',
+  border: '1px solid #E2E8F0',
+  borderRadius: '6px',
+  padding: '6px',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  cursor: 'pointer',
+  transition: 'all 0.15s ease',
+  backgroundColor: '#FFFFFF'
+};
 
 export default AdminSidebar;
