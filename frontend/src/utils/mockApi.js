@@ -15,25 +15,20 @@ import {
 // Simulate async network delay
 const delay = (ms = 150) => new Promise(resolve => setTimeout(resolve, ms));
 
-// Initialize applications from localStorage or default to empty array
+// Initialize applications from localStorage or default to seed MOCK_APPLICATIONS
 const getStoredApplications = () => {
   try {
     const stored = localStorage.getItem('MOCK_APPLICATIONS_PERSIST');
     if (stored) {
       const parsed = JSON.parse(stored);
-      if (Array.isArray(parsed)) {
-        // Filter out old seed test entries (app-001 Priya Sharma & app-002 Amit Desai)
-        const cleaned = parsed.filter(a => a.id !== 'app-001' && a.id !== 'app-002');
-        if (cleaned.length !== parsed.length) {
-          localStorage.setItem('MOCK_APPLICATIONS_PERSIST', JSON.stringify(cleaned));
-        }
-        return cleaned;
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed;
       }
     }
   } catch (e) {
     console.error('Failed to parse stored applications:', e);
   }
-  return [];
+  return JSON.parse(JSON.stringify(MOCK_APPLICATIONS));
 };
 
 let jobs = JSON.parse(JSON.stringify(MOCK_JOBS));
