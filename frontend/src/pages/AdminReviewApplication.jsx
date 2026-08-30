@@ -40,11 +40,25 @@ function AdminReviewApplication() {
       return;
     }
 
+  // Interview Scheduling Extra State
+  const [interviewDate, setInterviewDate] = useState('');
+  const [interviewTime, setInterviewTime] = useState('10:00 AM');
+  const [interviewVenue, setInterviewVenue] = useState('DYPIU Akurdi Pune Campus - Conference Room A');
+  const [interviewMode, setInterviewMode] = useState('IN_PERSON');
+
+  const handleStatusChangeSubmit = async (e) => {
+    e.preventDefault();
+    if (!newStatus) {
+      alert('Please select a valid status.');
+      return;
+    }
+
     setSubmitting(true);
     setError('');
     setStatusSuccess('');
 
     try {
+      // 1. Update Application Status
       await apiRequest(`/applications/${id}/status`, {
         method: 'PATCH',
         body: JSON.stringify({
@@ -52,6 +66,23 @@ function AdminReviewApplication() {
           comment: adminComment
         })
       });
+
+      // 2. If status is Interview Scheduled, also schedule the interview record
+      if (newStatus === 'Interview Scheduled' && interviewDate) {
+        await apiRequest('/interviews', {
+          method: 'POST',
+          body: JSON.stringify({
+            applicationId: id,
+            jobId: app?.jobId,
+            candidateId: app?.applicantId,
+            date: interviewDate,
+            time: interviewTime,
+            venue: interviewVenue,
+            mode: interviewMode,
+            round: 'Technical & HR Interview'
+          })
+        }).catch(() => {});
+      }
 
       setStatusSuccess(`Application status changed to "${newStatus}" successfully.`);
       setAdminComment('');
@@ -245,6 +276,30 @@ function AdminReviewApplication() {
           >
             {submitting ? 'Updating...' : 'Update Status'}
           </button>
+
+          {newStatus === 'Interview Scheduled' && (
+            <div style={{ gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px', marginTop: '14px', paddingTop: '14px', borderTop: '1px solid #cbd5e1' }}>
+              <div className="form-group" style={{ margin: 0 }}>
+                <label style={{ fontWeight: 700, fontSize: '0.82rem', color: '#334155' }}>Interview Date *</label>
+                <input type="date" value={interviewDate} onChange={e => setInterviewDate(e.target.value)} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1' }} required />
+              </div>
+              <div className="form-group" style={{ margin: 0 }}>
+                <label style={{ fontWeight: 700, fontSize: '0.82rem', color: '#334155' }}>Interview Time</label>
+                <input type="text" value={interviewTime} onChange={e => setInterviewTime(e.target.value)} placeholder="10:00 AM" style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
+              </div>
+              <div className="form-group" style={{ margin: 0 }}>
+                <label style={{ fontWeight: 700, fontSize: '0.82rem', color: '#334155' }}>Interview Mode</label>
+                <select value={interviewMode} onChange={e => setInterviewMode(e.target.value)} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1' }}>
+                  <option value="IN_PERSON">In-Person (Campus)</option>
+                  <option value="ONLINE">Online Video Call</option>
+                </select>
+              </div>
+              <div className="form-group" style={{ margin: 0 }}>
+                <label style={{ fontWeight: 700, fontSize: '0.82rem', color: '#334155' }}>Venue / Meeting Link</label>
+                <input type="text" value={interviewVenue} onChange={e => setInterviewVenue(e.target.value)} placeholder="Conference Room A / Google Meet Link" style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
+              </div>
+            </div>
+          )}
         </form>
       </div>
 
