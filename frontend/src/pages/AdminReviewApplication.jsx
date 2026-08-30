@@ -9,10 +9,14 @@ function AdminReviewApplication() {
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  // Status Change State
+  // Status Change & Interview State
   const [newStatus, setNewStatus] = useState('');
   const [adminComment, setAdminComment] = useState('');
   const [statusSuccess, setStatusSuccess] = useState('');
+  const [interviewDate, setInterviewDate] = useState('');
+  const [interviewTime, setInterviewTime] = useState('10:00 AM');
+  const [interviewVenue, setInterviewVenue] = useState('DYPIU Akurdi Pune Campus - Conference Room A');
+  const [interviewMode, setInterviewMode] = useState('IN_PERSON');
 
   const fetchApplicationDetails = async () => {
     try {
@@ -32,19 +36,6 @@ function AdminReviewApplication() {
       fetchApplicationDetails();
     }
   }, [id]);
-
-  const handleStatusChangeSubmit = async (e) => {
-    e.preventDefault();
-    if (!newStatus) {
-      alert('Please select a valid status.');
-      return;
-    }
-
-  // Interview Scheduling Extra State
-  const [interviewDate, setInterviewDate] = useState('');
-  const [interviewTime, setInterviewTime] = useState('10:00 AM');
-  const [interviewVenue, setInterviewVenue] = useState('DYPIU Akurdi Pune Campus - Conference Room A');
-  const [interviewMode, setInterviewMode] = useState('IN_PERSON');
 
   const handleStatusChangeSubmit = async (e) => {
     e.preventDefault();
