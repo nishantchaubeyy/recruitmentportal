@@ -72,14 +72,14 @@ async function mockGetJobs(params) {
       j.department.toLowerCase().includes(s)
     );
   }
-  return result;
+  return result.map(j => ({ ...j, isApplicationOpen: j.status === 'PUBLISHED' }));
 }
 
 async function mockGetJobById(id) {
   await delay();
   const job = jobs.find(j => j.id === id);
   if (!job) throw new Error('Job opening not found.');
-  return job;
+  return { ...job, isApplicationOpen: job.status === 'PUBLISHED' };
 }
 
 async function mockCreateJob(body) {

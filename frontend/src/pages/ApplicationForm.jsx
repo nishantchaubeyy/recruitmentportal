@@ -79,8 +79,7 @@ function ApplicationForm() {
   // Fetch active vacancy details if jobId is provided
   useEffect(() => {
     if (activeJobId) {
-      fetch(`${API_BASE_URL}/public/vacancies/${activeJobId}`)
-        .then((res) => res.json())
+      apiRequest(`/public/vacancies/${activeJobId}`)
         .then((data) => {
           if (data && !data.error) {
             setLoadedVacancy(data);
@@ -286,7 +285,7 @@ function ApplicationForm() {
       const catType = urlType || (isNonTeaching ? 'NON_TEACHING' : 'TEACHING');
 
       // If active open vacancy exists
-      if (activeJobId && loadedVacancy && loadedVacancy.isApplicationOpen) {
+      if (activeJobId && loadedVacancy && (loadedVacancy.isApplicationOpen !== false || loadedVacancy.status === 'PUBLISHED')) {
         const response = await apiRequest('/applications', {
           method: 'POST',
           body: JSON.stringify({ jobId: activeJobId, ...payload })
@@ -308,9 +307,8 @@ function ApplicationForm() {
         });
       } else {
         // No active open vacancy for this specific submission -> Save Interest Request
-        await fetch(`${API_BASE_URL}/public/vacancy-interest`, {
+        await apiRequest('/public/vacancy-interest', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             name: fullName,
             email,
@@ -393,6 +391,9 @@ function ApplicationForm() {
                   {FACULTIES_LIST.map((f) => (
                     <option key={f} value={f}>{f}</option>
                   ))}
+                  {selectedFaculty && !FACULTIES_LIST.includes(selectedFaculty) && (
+                    <option value={selectedFaculty}>{selectedFaculty}</option>
+                  )}
                 </select>
               </div>
 
@@ -407,6 +408,9 @@ function ApplicationForm() {
                   {availablePosts.map((p) => (
                     <option key={p} value={p}>{p}</option>
                   ))}
+                  {postAppliedFor && !availablePosts.includes(postAppliedFor) && (
+                    <option value={postAppliedFor}>{postAppliedFor}</option>
+                  )}
                 </select>
               </div>
             </div>
