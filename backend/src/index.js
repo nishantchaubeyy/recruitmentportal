@@ -74,15 +74,15 @@ const vacancyInterestRoutes = require('./routes/vacancyInterestRoutes');
 
 // API Routes Mounting
 app.use('/api/auth', authRoutes);
-app.use('/api/jobs', jobRoutes);
-app.use('/api', jobRoutes);
 app.use('/api/applications', applicationRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/interviews', interviewRoutes);
 app.use('/api/committee', committeeRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/jobs', jobRoutes);
 app.use('/api', vacancyInterestRoutes);
+app.use('/api', jobRoutes);
 
 // Global Error Handler
 app.use((err, req, res, next) => {

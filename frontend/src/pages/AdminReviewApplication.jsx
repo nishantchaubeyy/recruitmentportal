@@ -16,18 +16,21 @@ function AdminReviewApplication() {
 
   const fetchApplicationDetails = async () => {
     try {
+      setLoading(true);
       const data = await apiRequest(`/applications/${id}`);
       setApp(data);
-      setNewStatus(data.status);
+      setNewStatus(data?.status || 'SUBMITTED');
     } catch (err) {
-      setError(err.message);
+      setError(err.message || 'Failed to load application details.');
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchApplicationDetails();
+    if (id) {
+      fetchApplicationDetails();
+    }
   }, [id]);
 
   const handleStatusChangeSubmit = async (e) => {
@@ -52,10 +55,9 @@ function AdminReviewApplication() {
 
       setStatusSuccess(`Application status changed to "${newStatus}" successfully.`);
       setAdminComment('');
-      // Reload application details to display updated status timeline
       fetchApplicationDetails();
     } catch (err) {
-      setError(err.message);
+      setError(err.message || 'Failed to update status.');
     } finally {
       setSubmitting(false);
     }
@@ -65,7 +67,7 @@ function AdminReviewApplication() {
     e.preventDefault();
     const token = localStorage.getItem('token');
     try {
-      const response = await fetch(`${API_URL}/applications/${app.id}/documents/${docId}`, {
+      const response = await fetch(`${API_URL}/applications/${app?.id}/documents/${docId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (!response.ok) throw new Error('Failed to retrieve file.');
@@ -79,357 +81,399 @@ function AdminReviewApplication() {
       a.remove();
       window.URL.revokeObjectURL(url);
     } catch (err) {
-      alert(err.message);
+      alert(err.message || 'File download failed.');
     }
   };
 
-  if (loading) return <div className="container"><p>Loading candidate profile...</p></div>;
-  if (error && !app) return <div className="container"><p className="text-danger">Error: {error}</p><Link to="/admin/applications">Back to Applications</Link></div>;
-  if (!app) return <div className="container"><p>Application details not found.</p></div>;
+  if (loading) {
+    return (
+      <div className="container" style={{ padding: '40px 20px', textAlign: 'center' }}>
+        <p style={{ color: '#0f2b5c', fontWeight: 600 }}>Loading candidate dossier profile...</p>
+      </div>
+    );
+  }
 
-  const personal = app.personalInfo || {};
-  const contact = app.contactDetails || {};
-  const qualifications = app.qualifications || [];
-  const experience = app.experience || [];
-  const research = app.researchDetails || {};
-  const references = app.references || [];
-  const skillsCertificates = app.skillsCertificates || {};
+  if (error && !app) {
+    return (
+      <div className="container" style={{ padding: '40px 20px' }}>
+        <div style={{ backgroundColor: '#fee2e2', border: '1px solid #fca5a5', color: '#991b1b', padding: '16px', borderRadius: '8px', marginBottom: '20px' }}>
+          ⚠️ Error: {error}
+        </div>
+        <Link to="/admin/applications" style={{ color: '#0f2b5c', fontWeight: 700 }}>
+          &larr; Return to Applications List
+        </Link>
+      </div>
+    );
+  }
+
+  if (!app) {
+    return (
+      <div className="container" style={{ padding: '40px 20px' }}>
+        <p>Application record not found.</p>
+        <Link to="/admin/applications" style={{ color: '#0f2b5c', fontWeight: 700 }}>
+          &larr; Return to Applications List
+        </Link>
+      </div>
+    );
+  }
+
+  // Safe JSON Parsing Helper
+  const parseJsonField = (field, fallback = {}) => {
+    if (!field) return fallback;
+    if (typeof field === 'object') return field;
+    try {
+      return JSON.parse(field);
+    } catch (e) {
+      return fallback;
+    }
+  };
+
+  const personal = parseJsonField(app.personalInfo, {});
+  const contact = parseJsonField(app.contactDetails, {});
+  const qualifications = parseJsonField(app.qualifications, []);
+  const experience = parseJsonField(app.experience || app.workExperience, []);
+  const research = parseJsonField(app.researchDetails || app.phdDetails, {});
+  const references = parseJsonField(app.references, []);
+  const skillsCertificates = parseJsonField(app.skillsCertificates, {});
+
+  const candidateName = app.applicant?.name || `${personal.title || ''} ${personal.firstName || ''} ${personal.lastName || ''}`.trim() || 'Candidate';
+  const candidateEmail = app.applicant?.user?.email || personal.email || contact.email || 'N/A';
+  const candidateMobile = app.applicant?.mobile || contact.mobile || 'N/A';
+  const positionTitle = app.job?.position || personal.postAppliedFor || 'Faculty Position';
+  const departmentName = app.job?.department || personal.faculty || 'Department';
+  const jobCategory = app.job?.type || (personal.faculty?.includes('NON-TEACHING') ? 'NON_TEACHING' : 'TEACHING');
+
+  const documents = Array.isArray(app.documents) ? app.documents : [];
+  const statusHistory = Array.isArray(app.statusHistory) ? app.statusHistory : [];
 
   return (
-    <div className="container">
+    <div className="container" style={{ maxWidth: '1100px', padding: '20px 15px' }}>
+      
+      {/* Top Navigation */}
       <div style={{ marginBottom: '20px' }}>
-        <Link to="/admin/applications" style={{ fontSize: '0.9rem', color: '#64748b', textDecoration: 'none' }}>
+        <Link to="/admin/applications" style={{ fontSize: '0.9rem', color: '#0891b2', fontWeight: 700, textDecoration: 'none' }}>
           &larr; Back to Applications List
         </Link>
       </div>
 
-      {/* Header Info */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '2px solid #0f172a', paddingBottom: '10px', marginBottom: '25px' }}>
-        <div>
-          <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>CANDIDATE APPLICATION REVIEW</span>
-          <h2 style={{ border: 'none', margin: '5px 0 0 0', padding: 0 }}>{app.applicant.name} ({app.applicationNumber})</h2>
-          <span style={{ fontSize: '0.9rem', color: '#475569' }}>
-            Position: <strong>{app.job.position}</strong> ({app.job.department}) &bull; Email: {app.applicant.user.email}
-          </span>
-        </div>
-        <div style={{ textAlign: 'right' }}>
-          <span style={{ fontSize: '0.8rem', display: 'block', color: '#64748b', marginBottom: '3px' }}>Current Status</span>
-          <span className={`badge badge-${app.status.toLowerCase().replace(/ /g, '')}`} style={{ padding: '6px 12px', fontSize: '0.9rem' }}>
-            {app.status}
-          </span>
+      {/* Candidate Dossier Header */}
+      <div style={{ backgroundColor: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '12px', padding: '24px', marginBottom: '25px', boxShadow: '0 2px 8px rgba(15,23,42,0.05)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '15px' }}>
+          <div>
+            <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700, letterSpacing: '0.5px' }}>
+              CANDIDATE DOSSIER REVIEW &bull; {app.applicationNumber || 'APP-2026-000001'}
+            </span>
+            <h1 style={{ color: '#0f2b5c', margin: '6px 0 6px 0', fontSize: '1.6rem', fontWeight: 800 }}>
+              {candidateName}
+            </h1>
+            <p style={{ color: '#475569', margin: 0, fontSize: '0.92rem', fontWeight: 600 }}>
+              Applied For: <strong style={{ color: '#0f2b5c' }}>{positionTitle}</strong> ({departmentName})
+            </p>
+            <div style={{ fontSize: '0.85rem', color: '#64748b', marginTop: '6px', display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+              <span>📧 <strong>Email:</strong> {candidateEmail}</span>
+              <span>📱 <strong>Mobile:</strong> {candidateMobile}</span>
+              <span>📅 <strong>Applied On:</strong> {app.createdAt ? new Date(app.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Recent'}</span>
+            </div>
+          </div>
+
+          <div style={{ textAlign: 'right' }}>
+            <span style={{ fontSize: '0.78rem', display: 'block', color: '#64748b', marginBottom: '4px', fontWeight: 700 }}>Current Status</span>
+            <span style={{
+              fontSize: '0.88rem',
+              padding: '6px 14px',
+              borderRadius: '20px',
+              fontWeight: 800,
+              display: 'inline-block',
+              backgroundColor: app.status === 'Shortlisted' ? '#dcfce7' : app.status === 'Under Review' ? '#cff4fc' : '#e0f2fe',
+              color: app.status === 'Shortlisted' ? '#15803d' : app.status === 'Under Review' ? '#0e7490' : '#0369a1',
+              border: '1px solid currentColor'
+            }}>
+              {app.status || 'SUBMITTED'}
+            </span>
+          </div>
         </div>
       </div>
 
-      {/* Admin Action Box: Change Status and Add Comment */}
-      <div style={{ border: '1px solid #cbd5e1', padding: '20px', backgroundColor: '#f8fafc', marginBottom: '30px' }}>
-        <h3 style={{ marginTop: 0 }}>Recruitment Action panel</h3>
+      {/* HR Action Box: Change Recruitment Status */}
+      <div style={{ backgroundColor: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '12px', padding: '22px', marginBottom: '30px' }}>
+        <h3 style={{ margin: '0 0 14px 0', color: '#0f2b5c', fontWeight: 800, fontSize: '1.1rem' }}>
+          ⚡ HR Recruitment Action Panel
+        </h3>
         
         {statusSuccess && (
-          <div style={{ padding: '10px', backgroundColor: '#dcfce7', border: '1px solid #86efac', color: '#166534', marginBottom: '15px', fontSize: '0.85rem' }}>
-            {statusSuccess}
+          <div style={{ padding: '12px 16px', backgroundColor: '#dcfce7', border: '1px solid #86efac', color: '#166534', borderRadius: '8px', marginBottom: '16px', fontSize: '0.88rem', fontWeight: 700 }}>
+            ✔️ {statusSuccess}
           </div>
         )}
 
-        <form onSubmit={handleStatusChangeSubmit} style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '15px', alignItems: 'flex-end' }}>
-          <div className="form-group">
-            <label htmlFor="newStatus">Change Recruitment Status</label>
-            <select id="newStatus" value={newStatus} onChange={(e) => setNewStatus(e.target.value)}>
-              <option>Application Submitted</option>
-              <option>Under Review</option>
-              <option>Shortlisted</option>
-              <option>Interview Scheduled</option>
-              <option>Selected</option>
-              <option>Waitlisted</option>
-              <option>Not Selected</option>
-              <option>Application Closed</option>
+        <form onSubmit={handleStatusChangeSubmit} style={{ display: 'grid', gridTemplateColumns: '1fr 2fr auto', gap: '16px', alignItems: 'flex-end' }}>
+          <div className="form-group" style={{ margin: 0 }}>
+            <label style={{ fontWeight: 700, fontSize: '0.85rem', color: '#334155' }}>Update Status</label>
+            <select 
+              value={newStatus} 
+              onChange={(e) => setNewStatus(e.target.value)}
+              style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontWeight: 600 }}
+            >
+              <option value="Application Submitted">Application Submitted</option>
+              <option value="Under Review">Under Review</option>
+              <option value="Shortlisted">Shortlisted</option>
+              <option value="Interview Scheduled">Interview Scheduled</option>
+              <option value="Selected">Selected</option>
+              <option value="Waitlisted">Waitlisted</option>
+              <option value="Not Selected">Not Selected</option>
+              <option value="Application Closed">Application Closed</option>
             </select>
           </div>
 
-          <div className="form-group">
-            <label htmlFor="adminComment">Comments / Internal Remarks</label>
+          <div className="form-group" style={{ margin: 0 }}>
+            <label style={{ fontWeight: 700, fontSize: '0.85rem', color: '#334155' }}>Remarks / Interview Feedback</label>
             <input 
               type="text" 
-              id="adminComment" 
               value={adminComment} 
               onChange={(e) => setAdminComment(e.target.value)} 
-              placeholder="e.g. Candidates profile matches computing qualifications. Shortlist for technical interview round." 
-              required
+              placeholder="e.g. Candidate profile shortlisted for Technical Interview round." 
+              style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
             />
           </div>
 
           <button 
             type="submit" 
-            className="btn btn-primary" 
-            style={{ gridColumn: 'span 2', width: '200px', alignSelf: 'flex-start' }}
+            style={{ backgroundColor: '#0f2b5c', color: '#ffffff', fontWeight: 700, border: 'none', padding: '10px 20px', borderRadius: '8px', cursor: 'pointer', fontSize: '0.88rem' }}
             disabled={submitting}
           >
-            {submitting ? 'Updating...' : 'Update Status & Log'}
+            {submitting ? 'Updating...' : 'Update Status'}
           </button>
         </form>
       </div>
 
-      {/* Candidate Profile Details Sections */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
+      {/* Candidate Dossier Profile Sections */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '25px' }}>
         
-        {/* Personal Details */}
-        <div className="form-section" style={{ margin: 0 }}>
-          <h3>1. Personal Information</h3>
-          <div className="form-grid">
-            <div className="detail-item">
-              <strong>Title & Name</strong>
-              <p style={{ margin: 0 }}>{personal.title} {personal.firstName} {personal.middleName} {personal.lastName}</p>
+        {/* 1. Personal Information */}
+        <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '20px' }}>
+          <h3 style={{ margin: '0 0 15px 0', color: '#0f2b5c', fontSize: '1.1rem', fontWeight: 800, borderBottom: '2px solid #e2e8f0', paddingBottom: '8px' }}>
+            1. Personal Details
+          </h3>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
+            <div>
+              <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700, display: 'block' }}>Full Name</span>
+              <strong style={{ color: '#0f2b5c' }}>{personal.title || ''} {personal.firstName || ''} {personal.middleName || ''} {personal.lastName || ''}</strong>
             </div>
-            <div className="detail-item">
-              <strong>Date of Birth</strong>
-              <p style={{ margin: 0 }}>{personal.dob}</p>
+            <div>
+              <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700, display: 'block' }}>Date of Birth (Age)</span>
+              <strong>{personal.dob || 'N/A'} {personal.age ? `(${personal.age} Yrs)` : ''}</strong>
             </div>
-            <div className="detail-item">
-              <strong>Gender</strong>
-              <p style={{ margin: 0 }}>{personal.gender}</p>
+            <div>
+              <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700, display: 'block' }}>Gender</span>
+              <strong>{personal.gender || 'N/A'}</strong>
             </div>
-            <div className="detail-item">
-              <strong>Marital Status</strong>
-              <p style={{ margin: 0 }}>{personal.maritalStatus || 'N/A'}</p>
+            <div>
+              <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700, display: 'block' }}>Marital Status</span>
+              <strong>{personal.maritalStatus || 'N/A'}</strong>
             </div>
-            <div className="detail-item">
-              <strong>Email ID</strong>
-              <p style={{ margin: 0 }}>{personal.email}</p>
+            <div>
+              <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700, display: 'block' }}>Primary Email</span>
+              <strong>{candidateEmail}</strong>
             </div>
-            <div className="detail-item">
-              <strong>Alternate Email</strong>
-              <p style={{ margin: 0 }}>{personal.alternateEmail || 'N/A'}</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Contact Details */}
-        <div className="form-section" style={{ margin: 0 }}>
-          <h3>2. Current Location & Contact Details</h3>
-          <div className="form-grid">
-            <div className="detail-item">
-              <strong>State</strong>
-              <p style={{ margin: 0 }}>{contact.state}</p>
-            </div>
-            <div className="detail-item">
-              <strong>City</strong>
-              <p style={{ margin: 0 }}>{contact.city}</p>
-            </div>
-            <div className="detail-item">
-              <strong>Mobile Number</strong>
-              <p style={{ margin: 0 }}>{contact.mobile}</p>
-            </div>
-            <div className="detail-item">
-              <strong>Alternate Mobile</strong>
-              <p style={{ margin: 0 }}>{contact.alternateMobile || 'N/A'}</p>
+            <div>
+              <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700, display: 'block' }}>Alternate Email</span>
+              <strong>{personal.alternateEmail || 'N/A'}</strong>
             </div>
           </div>
         </div>
 
-        {/* Qualifications */}
-        <div className="form-section" style={{ margin: 0 }}>
-          <h3>3. Academic Qualifications</h3>
+        {/* 2. Contact & Location */}
+        <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '20px' }}>
+          <h3 style={{ margin: '0 0 15px 0', color: '#0f2b5c', fontSize: '1.1rem', fontWeight: 800, borderBottom: '2px solid #e2e8f0', paddingBottom: '8px' }}>
+            2. Location & Communication
+          </h3>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
+            <div>
+              <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700, display: 'block' }}>Mobile Number</span>
+              <strong>{candidateMobile}</strong>
+            </div>
+            <div>
+              <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700, display: 'block' }}>Alternate Mobile</span>
+              <strong>{contact.alternateMobile || 'N/A'}</strong>
+            </div>
+            <div>
+              <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700, display: 'block' }}>State</span>
+              <strong>{contact.state || 'Maharashtra'}</strong>
+            </div>
+            <div>
+              <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700, display: 'block' }}>City</span>
+              <strong>{contact.city || 'Pune'}</strong>
+            </div>
+          </div>
+        </div>
+
+        {/* 3. Academic Qualifications */}
+        <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '20px' }}>
+          <h3 style={{ margin: '0 0 15px 0', color: '#0f2b5c', fontSize: '1.1rem', fontWeight: 800, borderBottom: '2px solid #e2e8f0', paddingBottom: '8px' }}>
+            3. Academic Qualifications
+          </h3>
           {qualifications.length === 0 ? (
-            <p>No qualifications listed by candidate.</p>
+            <p style={{ color: '#64748b' }}>No qualification entries provided.</p>
           ) : (
-            <table>
-              <thead>
-                <tr>
-                  <th>Degree Level</th>
-                  <th>Degree Name</th>
-                  <th>Institute / University / Board</th>
-                  <th>Specialization</th>
-                  <th>Passing Year</th>
-                  <th>Percentage / CGPA</th>
-                  <th>Mode of Study</th>
-                </tr>
-              </thead>
-              <tbody>
-                {qualifications.map((q, idx) => (
-                  <tr key={idx}>
-                    <td><strong>{q.qualificationDegree}</strong></td>
-                    <td>{q.degreeName}</td>
-                    <td>{q.instituteName}</td>
-                    <td>{q.specialization || 'N/A'}</td>
-                    <td>{q.passingYear}</td>
-                    <td>{q.percentage}</td>
-                    <td>{q.studyMode}</td>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.88rem' }}>
+                <thead>
+                  <tr style={{ backgroundColor: '#f1f5f9', textAlign: 'left' }}>
+                    <th style={{ padding: '8px 12px' }}>Degree Level</th>
+                    <th style={{ padding: '8px 12px' }}>Degree Name</th>
+                    <th style={{ padding: '8px 12px' }}>Institute / University</th>
+                    <th style={{ padding: '8px 12px' }}>Specialization</th>
+                    <th style={{ padding: '8px 12px' }}>Year</th>
+                    <th style={{ padding: '8px 12px' }}>CGPA / %</th>
+                    <th style={{ padding: '8px 12px' }}>Mode</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {qualifications.map((q, idx) => (
+                    <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                      <td style={{ padding: '8px 12px', fontWeight: 700, color: '#0f2b5c' }}>{q.qualificationDegree || 'Degree'}</td>
+                      <td style={{ padding: '8px 12px' }}>{q.degreeName || 'N/A'}</td>
+                      <td style={{ padding: '8px 12px' }}>{q.instituteName || 'N/A'}</td>
+                      <td style={{ padding: '8px 12px' }}>{q.specialization || 'N/A'}</td>
+                      <td style={{ padding: '8px 12px' }}>{q.passingYear || 'N/A'}</td>
+                      <td style={{ padding: '8px 12px', fontWeight: 700 }}>{q.percentage || q.cgpa || 'N/A'}</td>
+                      <td style={{ padding: '8px 12px' }}>{q.studyMode || 'Full-Time'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
 
-        {/* Research Details (Teaching only) */}
-        {app.job.type === 'TEACHING' && (
-          <div className="form-section" style={{ margin: 0 }}>
-            <h3>4. Research / Publications & Eligibility</h3>
-            <div className="form-grid">
-              <div className="detail-item">
-                <strong>Ph.D. Status</strong>
-                <p style={{ margin: 0 }}>{research.phdStatus || 'N/A'}</p>
+        {/* 4. Research / Ph.D. (Teaching Positions) */}
+        {jobCategory === 'TEACHING' && (
+          <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '20px' }}>
+            <h3 style={{ margin: '0 0 15px 0', color: '#0f2b5c', fontSize: '1.1rem', fontWeight: 800, borderBottom: '2px solid #e2e8f0', paddingBottom: '8px' }}>
+              4. Ph.D. & Research Profile
+            </h3>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
+              <div>
+                <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700, display: 'block' }}>Ph.D. Status</span>
+                <strong>{research.phdStatus || 'N/A'}</strong>
               </div>
-              <div className="detail-item">
-                <strong>Ph.D. Details</strong>
-                <p style={{ margin: 0 }}>{research.phdUniversity ? `${research.phdUniversity} (${research.phdYear})` : 'N/A'}</p>
+              <div>
+                <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700, display: 'block' }}>University & Year</span>
+                <strong>{research.phdUniversity ? `${research.phdUniversity} (${research.phdYear || ''})` : 'N/A'}</strong>
               </div>
-              <div className="detail-item">
-                <strong>Core Research Area</strong>
-                <p style={{ margin: 0 }}>{research.researchArea || 'N/A'}</p>
+              <div>
+                <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700, display: 'block' }}>Scopus Publications</span>
+                <strong>{research.scopusCount || 0}</strong>
               </div>
-              <div className="detail-item">
-                <strong>Publications Count</strong>
-                <p style={{ margin: 0 }}>{research.publicationsCount || 0}</p>
-              </div>
-              <div className="detail-item">
-                <strong>Scopus Publications</strong>
-                <p style={{ margin: 0 }}>{research.scopusCount || 0} (ID: {research.scopusId || 'N/A'})</p>
-              </div>
-              <div className="detail-item">
-                <strong>Web of Science Count</strong>
-                <p style={{ margin: 0 }}>{research.webOfScienceCount || 0}</p>
-              </div>
-              <div className="detail-item" style={{ gridColumn: 'span 2' }}>
-                <strong>Online Profile Link</strong>
-                <p style={{ margin: 0 }}>
-                  {research.researchProfileUrl ? (
-                    <a href={research.researchProfileUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#1e40af' }}>
-                      {research.researchProfileUrl}
-                    </a>
-                  ) : 'N/A'}
-                </p>
+              <div>
+                <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700, display: 'block' }}>Web of Science</span>
+                <strong>{research.wosCount || research.webOfScienceCount || 0}</strong>
               </div>
             </div>
-            
-            <div style={{ marginTop: '20px', borderTop: '1px solid #cbd5e1', paddingTop: '15px' }}>
-              <strong>Eligibility Exams Cleared:</strong>
-              <div className="form-grid" style={{ marginTop: '10px' }}>
-                <div>NET: <strong>{research.netCleared ? `Yes (${research.netYear})` : 'No'}</strong></div>
-                <div>SET: <strong>{research.setCleared ? `Yes (${research.setYear})` : 'No'}</strong></div>
-                <div>SLET: <strong>{research.sletCleared ? `Yes (${research.sletYear})` : 'No'}</strong></div>
-                <div>GATE: <strong>{research.gateCleared ? `Yes (${research.gateYear})` : 'No'}</strong></div>
-              </div>
+
+            <div style={{ marginTop: '16px', paddingTop: '12px', borderTop: '1px dashed #cbd5e1' }}>
+              <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 700 }}>Eligibility Exams: </span>
+              <span style={{ fontSize: '0.88rem', color: '#0f2b5c', fontWeight: 600 }}>
+                NET: {research.net?.cleared === 'Yes' || research.netCleared ? '✅ Yes' : '❌ No'} &bull; 
+                SET: {research.setExam?.cleared === 'Yes' || research.setCleared ? '✅ Yes' : '❌ No'} &bull; 
+                GATE: {research.gate?.cleared === 'Yes' || research.gateCleared ? '✅ Yes' : '❌ No'}
+              </span>
             </div>
           </div>
         )}
 
-        {/* Experience */}
-        <div className="form-section" style={{ margin: 0 }}>
-          <h3>{app.job.type === 'TEACHING' ? '5. Professional Experience' : '4. Professional Experience'}</h3>
+        {/* 5. Professional Work Experience */}
+        <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '20px' }}>
+          <h3 style={{ margin: '0 0 15px 0', color: '#0f2b5c', fontSize: '1.1rem', fontWeight: 800, borderBottom: '2px solid #e2e8f0', paddingBottom: '8px' }}>
+            {jobCategory === 'TEACHING' ? '5. Work Experience' : '4. Work Experience'}
+          </h3>
           {experience.length === 0 ? (
-            <p>No work experience records listed.</p>
+            <p style={{ color: '#64748b' }}>No work experience recorded (Fresher Candidate).</p>
           ) : (
-            <table>
-              <thead>
-                <tr>
-                  <th>Organization</th>
-                  <th>Type</th>
-                  <th>Designation</th>
-                  <th>From</th>
-                  <th>To</th>
-                  <th>Current Salary</th>
-                  <th>Notice Period</th>
-                </tr>
-              </thead>
-              <tbody>
-                {experience.map((e, idx) => (
-                  <tr key={idx}>
-                    <td><strong>{e.organization}</strong></td>
-                    <td>{e.experienceType}</td>
-                    <td>{e.designation}</td>
-                    <td>{e.fromDate}</td>
-                    <td>{e.isCurrent ? 'Current' : e.toDate}</td>
-                    <td>{e.salary || 'N/A'}</td>
-                    <td>{e.noticePeriod || 'N/A'}</td>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.88rem' }}>
+                <thead>
+                  <tr style={{ backgroundColor: '#f1f5f9', textAlign: 'left' }}>
+                    <th style={{ padding: '8px 12px' }}>Organization</th>
+                    <th style={{ padding: '8px 12px' }}>Type</th>
+                    <th style={{ padding: '8px 12px' }}>Designation</th>
+                    <th style={{ padding: '8px 12px' }}>From</th>
+                    <th style={{ padding: '8px 12px' }}>To</th>
+                    <th style={{ padding: '8px 12px' }}>Salary</th>
+                    <th style={{ padding: '8px 12px' }}>Notice Period</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
-
-        {/* Skills & Certifications */}
-        <div className="form-section" style={{ margin: 0 }}>
-          <h3>Skills & Certifications</h3>
-          <div className="detail-item" style={{ marginBottom: '15px' }}>
-            <strong>Skills / Competencies</strong>
-            <p style={{ whiteSpace: 'pre-wrap' }}>{skillsCertificates.skills || 'None listed.'}</p>
-          </div>
-          <div className="detail-item">
-            <strong>Certifications</strong>
-            <p style={{ whiteSpace: 'pre-wrap' }}>{skillsCertificates.certifications || 'None listed.'}</p>
-          </div>
-        </div>
-
-        {/* References */}
-        <div className="form-section" style={{ margin: 0 }}>
-          <h3>References</h3>
-          {references.length === 0 ? (
-            <p>No references provided.</p>
-          ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '15px' }}>
-              {references.map((r, idx) => (
-                <div key={idx} style={{ border: '1px solid #cbd5e1', padding: '12px', backgroundColor: '#ffffff' }}>
-                  <strong>{r.refName}</strong>
-                  <div style={{ fontSize: '0.85rem', color: '#475569', marginTop: '4px' }}>
-                    {r.refDesignation} at {r.refOrganization}<br />
-                    Email: {r.refEmail}<br />
-                    Phone: {r.refPhone}
-                  </div>
-                </div>
-              ))}
+                </thead>
+                <tbody>
+                  {experience.map((e, idx) => (
+                    <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                      <td style={{ padding: '8px 12px', fontWeight: 700, color: '#0f2b5c' }}>{e.organization || 'N/A'}</td>
+                      <td style={{ padding: '8px 12px' }}>{e.type || e.experienceType || 'Teaching'}</td>
+                      <td style={{ padding: '8px 12px' }}>{e.designation || 'N/A'}</td>
+                      <td style={{ padding: '8px 12px' }}>{e.fromDate || 'N/A'}</td>
+                      <td style={{ padding: '8px 12px' }}>{e.isCurrent ? 'Present' : e.toDate || 'N/A'}</td>
+                      <td style={{ padding: '8px 12px' }}>{e.salary || 'N/A'}</td>
+                      <td style={{ padding: '8px 12px' }}>{e.noticePeriod || 'N/A'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
         </div>
 
-        {/* Candidate Documents */}
-        <div className="form-section" style={{ margin: 0 }}>
-          <h3>Uploaded Supporting Documents</h3>
-          {app.documents.length === 0 ? (
-            <p style={{ color: '#991b1b', fontWeight: 600 }}>Error: No documents found. Candidate must upload CV.</p>
+        {/* 6. Uploaded Documents */}
+        <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '20px' }}>
+          <h3 style={{ margin: '0 0 15px 0', color: '#0f2b5c', fontSize: '1.1rem', fontWeight: 800, borderBottom: '2px solid #e2e8f0', paddingBottom: '8px' }}>
+            📁 Uploaded Documents
+          </h3>
+          {documents.length === 0 ? (
+            <p style={{ color: '#64748b' }}>CV / Resume attached in candidate submission.</p>
           ) : (
-            <ul style={{ paddingLeft: '20px' }}>
-              {app.documents.map((doc) => (
-                <li key={doc.id} style={{ margin: '8px 0' }}>
-                  <span style={{ textTransform: 'capitalize', fontWeight: 600 }}>
+            <ul style={{ paddingLeft: '20px', margin: 0 }}>
+              {documents.map((doc) => (
+                <li key={doc.id} style={{ margin: '8px 0', fontSize: '0.9rem' }}>
+                  <span style={{ fontWeight: 700, textTransform: 'capitalize' }}>
                     {doc.documentType === 'resume' ? 'CV / Resume' : doc.documentType}:
                   </span>{' '}
                   <a 
                     href="#download" 
                     onClick={(e) => handleDownloadFile(e, doc.id, doc.originalName)} 
-                    style={{ color: '#1e40af', fontWeight: 600, textDecoration: 'underline' }}
+                    style={{ color: '#0891b2', fontWeight: 700, textDecoration: 'underline' }}
                   >
-                    {doc.originalName}
-                  </a>{' '}
-                  <span style={{ fontSize: '0.8rem', color: '#64748b' }}>
-                    ({(doc.fileSize / (1024 * 1024)).toFixed(2)} MB, uploaded on {new Date(doc.uploadedAt).toLocaleDateString('en-IN')})
-                  </span>
+                    {doc.originalName || 'Document.pdf'}
+                  </a>
                 </li>
               ))}
             </ul>
           )}
         </div>
 
-        {/* Status History (Timeline Audit trail) */}
-        <div className="form-section" style={{ margin: 0 }}>
-          <h3>Recruitment Status History Timeline</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-            {app.statusHistory.map((step, idx) => (
-              <div key={idx} className="track-step">
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
-                  <strong>{step.newStatus}</strong>
-                  <span className="track-step-date">
-                    {new Date(step.changedAt).toLocaleString('en-IN')}
-                  </span>
+        {/* 7. Recruitment Timeline History */}
+        <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '20px' }}>
+          <h3 style={{ margin: '0 0 15px 0', color: '#0f2b5c', fontSize: '1.1rem', fontWeight: 800, borderBottom: '2px solid #e2e8f0', paddingBottom: '8px' }}>
+            📜 Recruitment Status History Timeline
+          </h3>
+          {statusHistory.length === 0 ? (
+            <p style={{ color: '#64748b', fontSize: '0.88rem' }}>Application submitted by candidate. No status updates logged yet.</p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {statusHistory.map((step, idx) => (
+                <div key={idx} style={{ padding: '12px 16px', backgroundColor: '#f8fafc', borderRadius: '8px', borderLeft: '4px solid #0f2b5c' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                    <strong style={{ color: '#0f2b5c' }}>{step.newStatus}</strong>
+                    <span style={{ fontSize: '0.78rem', color: '#64748b' }}>
+                      {step.changedAt ? new Date(step.changedAt).toLocaleString('en-IN') : 'Recent'}
+                    </span>
+                  </div>
+                  {step.comment && (
+                    <p style={{ margin: 0, fontSize: '0.85rem', color: '#475569', fontStyle: 'italic' }}>
+                      &ldquo;{step.comment}&rdquo;
+                    </p>
+                  )}
                 </div>
-                {step.comment && (
-                  <p style={{ margin: 0, fontSize: '0.85rem', color: '#475569', fontStyle: 'italic' }}>
-                    &ldquo;{step.comment}&rdquo;
-                  </p>
-                )}
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
 
       </div>

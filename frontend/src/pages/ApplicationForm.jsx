@@ -260,41 +260,51 @@ function ApplicationForm() {
     setExperiences(updated);
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-
-    if (!postAppliedFor || postAppliedFor === 'Select Post Applied For') {
-      setError('Please select the Post Applied For.');
-      window.scrollTo(0, 0);
-      return;
+  const validateForm = () => {
+    if (!postAppliedFor) {
+      setError('Please select Post Applied For.');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return false;
     }
 
     if (!firstName || !lastName) {
       setError('First Name and Last Name are required.');
-      window.scrollTo(0, 0);
-      return;
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return false;
     }
 
     if (!dob) {
       setError('Date of Birth is mandatory.');
-      window.scrollTo(0, 0);
-      return;
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return false;
     }
 
     if (!email || !mobile) {
       setError('Email ID and Mobile Number are mandatory.');
-      window.scrollTo(0, 0);
-      return;
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return false;
     }
 
     if (!declaration) {
-      setError('Please confirm the declaration check before submitting.');
-      return;
+      setError('Please confirm the declaration checkbox before submitting.');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return false;
     }
 
     if (parseInt(captchaInput) !== captchaNum1 + captchaNum2) {
-      setError(`Math Security check failed. What is ${captchaNum1} + ${captchaNum2}?`);
+      setError(`Security Check failed. What is ${captchaNum1} + ${captchaNum2}?`);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+
+    if (!validateForm()) {
       return;
     }
 
@@ -313,9 +323,6 @@ function ApplicationForm() {
         declaration: true
       };
 
-      const fullName = `${title !== 'Select' ? title : ''} ${firstName} ${lastName}`.trim();
-      const catType = urlType || (isNonTeaching ? 'NON_TEACHING' : 'TEACHING');
-
       // Always create and submit a candidate application so it displays in Admin Applications Screening
       const targetJobId = activeJobId || loadedVacancy?.id || 'job-001';
 
@@ -331,15 +338,19 @@ function ApplicationForm() {
         body: JSON.stringify(payload)
       });
 
+      const finalAppNumber = submitRes.applicationNumber || response.applicationNumber || 'APP-2026-000001';
+
       navigate(`/applicant/applications/${targetId}/success`, {
         state: {
-          appNumber: submitRes.applicationNumber || 'APP-2026-000001',
+          appNumber: finalAppNumber,
           position: postAppliedFor || selectedFaculty,
           status: 'SUBMITTED'
         }
       });
     } catch (err) {
+      console.error('Submission error:', err);
       setError(err.message || 'Error submitting application. Please check all required fields.');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } finally {
       setSubmitting(false);
     }

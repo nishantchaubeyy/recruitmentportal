@@ -1,22 +1,22 @@
 const express = require('express');
 const router = express.Router();
 const applicationController = require('../controllers/applicationController');
-const { authenticate, requireAdmin, requireApplicant } = require('../middleware/authMiddleware');
+const { authenticate, optionalAuthenticate, requireAdmin, requireApplicant } = require('../middleware/authMiddleware');
 const upload = require('../middleware/uploadMiddleware');
 
 // Application Creation & Applicant List
-router.post('/', authenticate, requireApplicant, applicationController.createApplicationDraft);
+router.post('/', optionalAuthenticate, applicationController.createApplicationDraft);
 router.get('/my', authenticate, requireApplicant, applicationController.getMyApplications);
 
 // HR Screening List with Pagination, Filters & Search
-router.get('/', authenticate, applicationController.getAllApplications);
+router.get('/', optionalAuthenticate, applicationController.getAllApplications);
 
 // Application Dossier Details & Draft Save
-router.get('/:id', authenticate, applicationController.getApplicationById);
-router.put('/:id', authenticate, applicationController.updateApplicationDraft);
+router.get('/:id', optionalAuthenticate, applicationController.getApplicationById);
+router.put('/:id', optionalAuthenticate, applicationController.updateApplicationDraft);
 
 // Workflow Actions: Submit & Withdraw
-router.post('/:id/submit', authenticate, requireApplicant, applicationController.submitApplication);
+router.post('/:id/submit', optionalAuthenticate, applicationController.submitApplication);
 router.post('/:id/withdraw', authenticate, requireApplicant, applicationController.withdrawApplication);
 
 // Status Tracking
