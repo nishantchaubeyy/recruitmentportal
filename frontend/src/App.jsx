@@ -128,14 +128,8 @@ function App() {
               </ApplicantRoute>
             } 
           />
-          <Route 
-            path="/applicant/applications/:id/success" 
-            element={
-              <ApplicantRoute>
-                <ApplicationSuccess />
-              </ApplicantRoute>
-            } 
-          />
+          <Route path="/applicant/applications/success" element={<PublicLayout><ApplicationSuccess /></PublicLayout>} />
+          <Route path="/applicant/applications/:id/success" element={<PublicLayout><ApplicationSuccess /></PublicLayout>} />
 
           {/* Admin & Committee Protected Routes (with Left Admin Sidebar Layout) */}
           <Route 

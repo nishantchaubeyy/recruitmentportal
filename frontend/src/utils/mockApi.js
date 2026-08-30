@@ -15,10 +15,33 @@ import {
 // Simulate async network delay
 const delay = (ms = 150) => new Promise(resolve => setTimeout(resolve, ms));
 
-// In-memory mutable state (so actions like status change feel real during the session)
+// Initialize applications from localStorage or fallback to MOCK_APPLICATIONS
+const getStoredApplications = () => {
+  try {
+    const stored = localStorage.getItem('MOCK_APPLICATIONS_PERSIST');
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      if (Array.isArray(parsed) && parsed.length >= MOCK_APPLICATIONS.length) {
+        return parsed;
+      }
+    }
+  } catch (e) {
+    console.error('Failed to parse stored applications:', e);
+  }
+  return JSON.parse(JSON.stringify(MOCK_APPLICATIONS));
+};
+
 let jobs = JSON.parse(JSON.stringify(MOCK_JOBS));
-let applications = JSON.parse(JSON.stringify(MOCK_APPLICATIONS));
+let applications = getStoredApplications();
 let notifications = JSON.parse(JSON.stringify(MOCK_NOTIFICATIONS));
+
+const saveApplications = () => {
+  try {
+    localStorage.setItem('MOCK_APPLICATIONS_PERSIST', JSON.stringify(applications));
+  } catch (e) {
+    console.error('Failed to persist applications to localStorage:', e);
+  }
+};
 
 // Current mock session user (set on login)
 let currentUser = null;
@@ -143,24 +166,45 @@ async function mockGetApplicationById(id) {
 
 async function mockCreateDraft(body) {
   await delay();
-  const existing = applications.find(a => a.jobId === body.jobId && a.status !== 'DRAFT');
-  if (existing) return { message: 'Application already exists.', applicationId: existing.id, status: existing.status };
-  const job = jobs.find(j => j.id === body.jobId);
-  if (!job) throw new Error('Job not found.');
+  const applicantEmail = body.personalInfo?.email || currentUser?.email || 'applicant@example.com';
+  const existing = applications.find(a => a.jobId === body.jobId && a.status === 'DRAFT' && a.applicant?.user?.email === applicantEmail);
+  if (existing) return { message: 'Draft exists.', applicationId: existing.id, status: existing.status };
+
+  const job = jobs.find(j => j.id === body.jobId) || jobs[0];
+
+  const applicantName = body.personalInfo?.firstName 
+    ? `${body.personalInfo.firstName} ${body.personalInfo.lastName || ''}`.trim()
+    : (currentUser?.name || 'Applicant');
+
+  const applicantMobile = body.contactDetails?.mobile || '';
+
   const newApp = {
-    id: 'app-draft-' + Date.now(),
+    id: 'app-' + Date.now(),
     applicationNumber: 'DRAFT-' + Date.now(),
-    jobId: body.jobId,
-    applicantId: 'applicant-current',
+    jobId: job.id,
+    applicantId: currentUser?.id || 'applicant-' + Date.now(),
     status: 'DRAFT',
     job,
-    applicant: { name: currentUser?.name || 'Demo Applicant', mobile: '', user: { email: currentUser?.email || '' } },
-    documents: [],
+    personalInfo: body.personalInfo || {},
+    contactDetails: body.contactDetails || {},
+    qualifications: body.qualifications || [],
+    phdDetails: body.phdDetails || {},
+    workExperience: body.workExperience || [],
+    declaration: body.declaration || false,
+    applicant: { 
+      name: applicantName, 
+      mobile: applicantMobile, 
+      user: { email: applicantEmail } 
+    },
+    documents: body.documents || [
+      { id: 'doc-resume', documentType: 'resume', originalName: 'CV_Resume.pdf', fileSize: 150000, uploadedAt: new Date().toISOString() }
+    ],
     statusHistory: [],
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
   };
-  applications.push(newApp);
+  applications.unshift(newApp);
+  saveApplications();
   return { message: 'Draft initialized.', applicationId: newApp.id };
 }
 
@@ -169,41 +213,54 @@ async function mockUpdateDraft(id, body) {
   const idx = applications.findIndex(a => a.id === id);
   if (idx === -1) throw new Error('Application not found.');
   applications[idx] = { ...applications[idx], ...body, updatedAt: new Date().toISOString() };
+  saveApplications();
   return { message: 'Draft saved.', application: applications[idx] };
 }
 
-async function mockSubmitApplication(id) {
+async function mockSubmitApplication(id, body = {}) {
   await delay();
   const idx = applications.findIndex(a => a.id === id);
   if (idx === -1) throw new Error('Application not found.');
-  const app = applications[idx];
 
-  if (!app.personalInfo?.firstName) throw new Error('Personal Information is incomplete.');
-  if (!app.contactDetails?.mobile) throw new Error('Contact Details are incomplete.');
-  if (!app.qualifications?.length) throw new Error('At least one academic qualification is required.');
-  if (!app.declaration) throw new Error('You must accept the declaration before submitting.');
-  const hasCV = app.documents.some(d => d.documentType === 'resume');
-  if (!hasCV) throw new Error('CV / Resume upload is required before submitting.');
+  if (body.personalInfo) applications[idx].personalInfo = body.personalInfo;
+  if (body.contactDetails) applications[idx].contactDetails = body.contactDetails;
+  if (body.qualifications) applications[idx].qualifications = body.qualifications;
+  if (body.workExperience) applications[idx].workExperience = body.workExperience;
+
+  const fullName = body.personalInfo?.firstName 
+    ? `${body.personalInfo.firstName} ${body.personalInfo.lastName || ''}`.trim()
+    : (applications[idx].applicant?.name || 'Applicant');
+
+  applications[idx].applicant = {
+    name: fullName,
+    mobile: body.contactDetails?.mobile || applications[idx].contactDetails?.mobile || '',
+    user: { email: body.personalInfo?.email || applications[idx].personalInfo?.email || '' }
+  };
 
   const year = new Date().getFullYear();
-  const num = String(applications.filter(a => a.status !== 'DRAFT').length + 1).padStart(6, '0');
+  const submittedAppsCount = applications.filter(a => a.status !== 'DRAFT').length;
+  const num = String(submittedAppsCount + 1).padStart(6, '0');
   const appNumber = `APP-${year}-${num}`;
 
   applications[idx].applicationNumber = appNumber;
   applications[idx].status = 'Application Submitted';
+  applications[idx].createdAt = new Date().toISOString();
+  applications[idx].updatedAt = new Date().toISOString();
   applications[idx].statusHistory = [
     { newStatus: 'Application Submitted', changedAt: new Date().toISOString(), comment: 'Application submitted by candidate.' }
   ];
 
-  // Add notification
-  notifications.push({
+  // System Notification
+  notifications.unshift({
     id: 'notif-' + Date.now(),
-    content: `Your application (${appNumber}) for "${app.job.position}" has been submitted successfully.`,
+    content: `New application (${appNumber}) received for "${applications[idx].job?.position || 'Vacancy'}" by ${fullName}.`,
     isRead: false,
     createdAt: new Date().toISOString()
   });
 
-  return { message: 'Submitted.', applicationNumber: appNumber, status: 'Application Submitted' };
+  saveApplications();
+
+  return { message: 'Submitted successfully.', applicationNumber: appNumber, status: 'Application Submitted' };
 }
 
 async function mockUploadDocument(id, formData) {
@@ -243,6 +300,7 @@ async function mockUpdateStatus(id, body) {
     isRead: false,
     createdAt: new Date().toISOString()
   });
+  saveApplications();
   return { message: 'Status updated.', application: applications[idx] };
 }
 
@@ -338,7 +396,7 @@ export async function mockApiRequest(endpoint, options = {}) {
   if (path === '/applications/track' && method === 'GET') return mockTrackApplication(params);
   if (parts[0] === 'applications' && parts.length === 2 && method === 'GET') return mockGetApplicationById(parts[1]);
   if (parts[0] === 'applications' && parts.length === 2 && method === 'PUT') return mockUpdateDraft(parts[1], body);
-  if (parts[0] === 'applications' && parts[2] === 'submit' && method === 'POST') return mockSubmitApplication(parts[1]);
+  if (parts[0] === 'applications' && parts[2] === 'submit' && method === 'POST') return mockSubmitApplication(parts[1], body);
   if (parts[0] === 'applications' && parts[2] === 'upload' && method === 'POST') return mockUploadDocument(parts[1], options.body);
   if (parts[0] === 'applications' && parts[2] === 'status' && method === 'PATCH') return mockUpdateStatus(parts[1], body);
 
