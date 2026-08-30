@@ -136,7 +136,9 @@ function AdminReviewApplication() {
   const references = parseJsonField(app.references, []);
   const skillsCertificates = parseJsonField(app.skillsCertificates, {});
 
-  const candidateName = app.applicant?.name || `${personal.title || ''} ${personal.firstName || ''} ${personal.lastName || ''}`.trim() || 'Candidate';
+  const displayTitle = (personal.title && personal.title !== 'Select' && personal.title !== 'Select Title' && personal.title !== 'Select...') ? personal.title : '';
+  const formattedFullName = [displayTitle, personal.firstName, personal.middleName, personal.lastName].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim();
+  const candidateName = formattedFullName || app.applicant?.name || 'Candidate';
   const candidateEmail = app.applicant?.user?.email || personal.email || contact.email || 'N/A';
   const candidateMobile = app.applicant?.mobile || contact.mobile || 'N/A';
   const positionTitle = app.job?.position || personal.postAppliedFor || 'Faculty Position';
@@ -257,7 +259,7 @@ function AdminReviewApplication() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
             <div>
               <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700, display: 'block' }}>Full Name</span>
-              <strong style={{ color: '#0f2b5c' }}>{personal.title || ''} {personal.firstName || ''} {personal.middleName || ''} {personal.lastName || ''}</strong>
+              <strong style={{ color: '#0f2b5c' }}>{candidateName}</strong>
             </div>
             <div>
               <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700, display: 'block' }}>Date of Birth (Age)</span>

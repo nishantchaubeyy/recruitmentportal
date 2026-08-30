@@ -315,7 +315,7 @@ function ApplicationForm() {
         faculty: selectedFaculty,
         postAppliedFor: postAppliedFor || 'Faculty Position',
         subjectAppliedFor,
-        personalInfo: { title, firstName, middleName, lastName, dob, age, gender, maritalStatus, email, alternateEmail },
+        personalInfo: { title: title !== 'Select' ? title : '', firstName, middleName, lastName, dob, age, gender, maritalStatus, email, alternateEmail },
         contactDetails: { state, city, mobile, alternateMobile, instituteAppliedTo },
         qualifications,
         phdDetails: { phdStatus, phdUniversity, phdYear, scopusCount, scopusId, conferencePaper, wosCount, wosId, net, setExam, slet, gate },
