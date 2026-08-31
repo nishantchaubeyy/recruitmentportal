@@ -54,6 +54,16 @@ function Header() {
             >
               Track Application
             </Link>
+
+            {user && user.role === 'APPLICANT' && (
+              <Link 
+                to="/applicant/dashboard" 
+                className={`nav-link ${location.pathname.startsWith('/applicant/dashboard') || location.pathname.startsWith('/my-applications') ? 'active' : ''}`}
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                My Applications
+              </Link>
+            )}
           </nav>
 
           {/* RIGHT ACTIONS: Logged-in user profile & Logout */}

@@ -55,6 +55,9 @@ model School {
   name      String   @unique
   type      String   // TEACHING, NON_TEACHING
   code      String?
+  bannerUrl String?
+  posterUrl String?
+  description String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -115,6 +118,9 @@ model Job {
   deadline            DateTime
   requiredDocuments   String
   eligibilityCriteria String
+  bannerUrl           String?
+  posterUrl           String?
+  imageUrl            String?
   status              String      @default("DRAFT") // DRAFT, PUBLISHED, CLOSED, ARCHIVED
   createdBy           String?
   createdByUser       User?       @relation("CreatedVacancies", fields: [createdBy], references: [id], onDelete: SetNull)
@@ -162,7 +168,12 @@ model Application {
   applicant         Applicant     @relation(fields: [applicantId], references: [id], onDelete: Cascade)
   jobId             String
   job               Job           @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  schoolId          String?
+  departmentId      String?
   status            String        @default("DRAFT") // DRAFT, SUBMITTED, UNDER_REVIEW, SHORTLISTED, etc.
+  currentStep       Int           @default(1)
+  completionPercentage Int        @default(0)
+  emailVerified     Boolean       @default(false)
   screeningRemarks  String?
   submittedAt       DateTime?
   

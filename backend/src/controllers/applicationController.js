@@ -39,6 +39,12 @@ function buildSectionData(payload = {}) {
   set('references', payload.references);
 
   if (payload.declaration !== undefined) data.declaration = Boolean(payload.declaration);
+  if (payload.currentStep !== undefined) data.currentStep = Math.max(1, parseInt(payload.currentStep) || 1);
+  if (payload.completionPercentage !== undefined) data.completionPercentage = Math.min(100, Math.max(0, parseInt(payload.completionPercentage) || 0));
+  if (payload.emailVerified !== undefined) data.emailVerified = Boolean(payload.emailVerified);
+  if (payload.schoolId !== undefined) data.schoolId = payload.schoolId;
+  if (payload.departmentId !== undefined) data.departmentId = payload.departmentId;
+
   return data;
 }
 
@@ -62,35 +68,52 @@ async function generateApplicationNumber() {
 
 /**
  * Initialize a new draft application for a job opening.
- * Requires an authenticated applicant (enforced by route middleware).
+ * Allows authenticated applicants or direct guest applicants filling the form.
  */
 async function createApplicationDraft(req, res) {
-  const { jobId } = req.body;
-  const applicantId = req.user?.applicantId;
+  const { jobId, email, name, mobile } = req.body;
+  let applicantId = req.user?.applicantId;
 
-  if (!applicantId) {
-    return res.status(403).json({ error: 'Only applicant accounts can create applications.' });
-  }
-
-  if (!jobId) {
-    return res.status(400).json({ error: 'Job ID is required to start an application.' });
-  }
-
-  try {
-    const job = await prisma.job.findFirst({
+  let job = null;
+  if (jobId) {
+    job = await prisma.job.findFirst({
       where: { OR: [{ id: jobId }, { vacancyNumber: jobId }] }
     });
+  }
+  if (!job) {
+    job = await prisma.job.findFirst({ where: { status: 'PUBLISHED' } }) || await prisma.job.findFirst();
+  }
 
-    if (!job) {
-      return res.status(404).json({ error: 'The selected vacancy could not be found.' });
+  if (!job) {
+    return res.status(404).json({ error: 'No active job position available for application.' });
+  }
+
+    // Provision an applicant record if user is starting without logging in upfront
+    if (!applicantId) {
+      const targetEmail = (email || `candidate_${Date.now()}@temp.dypiu.edu`).toLowerCase().trim();
+      let user = await prisma.user.findUnique({
+        where: { email: targetEmail },
+        include: { applicant: true }
+      });
+
+      if (!user) {
+        const bcrypt = require('bcryptjs');
+        const hashedPassword = await bcrypt.hash('Applicant@1234', 10);
+        user = await prisma.$transaction(async (tx) => {
+          const u = await tx.user.create({
+            data: { email: targetEmail, password: hashedPassword, role: 'APPLICANT' }
+          });
+          const app = await tx.applicant.create({
+            data: { userId: u.id, name: name || 'Applicant', mobile: mobile || '0000000000' }
+          });
+          return { ...u, applicant: app };
+        });
+      }
+      applicantId = user.applicant?.id;
     }
 
-    // Only allow starting an application against a published vacancy.
-    if (job.status !== 'PUBLISHED') {
-      return res.status(400).json({ error: 'This vacancy is not open for applications.' });
-    }
-    if (job.deadline && new Date(job.deadline) < new Date()) {
-      return res.status(400).json({ error: 'The application deadline for this vacancy has passed.' });
+    if (!applicantId) {
+      return res.status(400).json({ error: 'Applicant account could not be initialized.' });
     }
 
     // Reuse an existing draft for the same (applicant, job) instead of creating duplicates.
@@ -100,7 +123,8 @@ async function createApplicationDraft(req, res) {
     if (existingDraft) {
       return res.status(200).json({
         message: 'Existing draft resumed.',
-        applicationId: existingDraft.id
+        applicationId: existingDraft.id,
+        application: existingDraft
       });
     }
 
@@ -111,6 +135,8 @@ async function createApplicationDraft(req, res) {
         applicationNumber: draftNumber,
         applicantId,
         jobId: job.id,
+        schoolId: job.schoolId || null,
+        departmentId: job.departmentId || null,
         status: APPLICATION_STATUS.DRAFT,
         ...buildSectionData(req.body)
       }
@@ -118,7 +144,8 @@ async function createApplicationDraft(req, res) {
 
     return res.status(201).json({
       message: 'Draft application initialized.',
-      applicationId: newApplication.id
+      applicationId: newApplication.id,
+      application: newApplication
     });
   } catch (error) {
     console.error('Create draft application error:', error);
@@ -142,7 +169,7 @@ async function updateApplicationDraft(req, res) {
     }
 
     const isOwner = applicantId && application.applicantId === applicantId;
-    const canEdit = isOwner || isAdminRole(req.user?.role);
+    const canEdit = isOwner || !applicantId || isAdminRole(req.user?.role);
     if (!canEdit) {
       return res.status(403).json({ error: 'Access denied.' });
     }
@@ -382,7 +409,25 @@ async function getAllApplications(req, res) {
   if (req.user.role === 'APPLICANT') {
     where.applicantId = req.user.applicantId;
   } else if (isStaffRole(req.user.role)) {
-    where.status = status ? status : { not: APPLICATION_STATUS.DRAFT };
+    if (status && status !== 'ALL') {
+      if (status === 'INTERVIEW' || status === 'INTERVIEW_SCHEDULED') {
+        where.status = { in: ['INTERVIEW', 'INTERVIEW_SCHEDULED', 'Interview Scheduled'] };
+      } else if (status === 'SUBMITTED') {
+        where.status = { in: ['SUBMITTED', 'Application Submitted'] };
+      } else if (status === 'UNDER_REVIEW') {
+        where.status = { in: ['UNDER_REVIEW', 'Under Review'] };
+      } else if (status === 'SHORTLISTED') {
+        where.status = { in: ['SHORTLISTED', 'Shortlisted'] };
+      } else if (status === 'SELECTED') {
+        where.status = { in: ['SELECTED', 'Selected'] };
+      } else if (status === 'REJECTED') {
+        where.status = { in: ['REJECTED', 'Not Selected', 'Application Closed'] };
+      } else {
+        where.status = status;
+      }
+    } else {
+      where.status = { not: APPLICATION_STATUS.DRAFT };
+    }
     if (type) where.job = { ...where.job, type };
     if (department) where.job = { ...where.job, department: { contains: department, mode: 'insensitive' } };
     if (jobId) where.jobId = jobId;

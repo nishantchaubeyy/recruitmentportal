@@ -187,27 +187,56 @@ function AdminDashboard() {
 
             {/* Pipeline Stage Indicators */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '12px' }}>
-              <div style={pipelineStepStyle}>
+              <div 
+                onClick={() => navigate('/admin/applications?status=SUBMITTED')}
+                style={{ ...pipelineStepStyle, cursor: 'pointer' }}
+                title="Click to view all Submitted applications"
+              >
                 <span style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: 700 }}>Submitted</span>
                 <span style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0F172A' }}>{metrics.submitted}</span>
               </div>
-              <div style={pipelineStepStyle}>
+
+              <div 
+                onClick={() => navigate('/admin/applications?status=UNDER_REVIEW')}
+                style={{ ...pipelineStepStyle, cursor: 'pointer' }}
+                title="Click to view all Under Review applications"
+              >
                 <span style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: 700 }}>Under Review</span>
                 <span style={{ fontSize: '1.2rem', fontWeight: 800, color: '#D97706' }}>{metrics.underReview}</span>
               </div>
-              <div style={pipelineStepStyle}>
+
+              <div 
+                onClick={() => navigate('/admin/applications?status=SHORTLISTED')}
+                style={{ ...pipelineStepStyle, cursor: 'pointer' }}
+                title="Click to view all Shortlisted applications"
+              >
                 <span style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: 700 }}>Shortlisted</span>
                 <span style={{ fontSize: '1.2rem', fontWeight: 800, color: '#059669' }}>{metrics.shortlisted}</span>
               </div>
-              <div style={pipelineStepStyle}>
+
+              <div 
+                onClick={() => navigate('/admin/applications?status=INTERVIEW_SCHEDULED')}
+                style={{ ...pipelineStepStyle, cursor: 'pointer' }}
+                title="Click to view all Interview stage applications"
+              >
                 <span style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: 700 }}>Interview</span>
                 <span style={{ fontSize: '1.2rem', fontWeight: 800, color: '#4F46E5' }}>{metrics.interview}</span>
               </div>
-              <div style={pipelineStepStyle}>
+
+              <div 
+                onClick={() => navigate('/admin/applications?status=SELECTED')}
+                style={{ ...pipelineStepStyle, cursor: 'pointer' }}
+                title="Click to view all Selected applications"
+              >
                 <span style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: 700 }}>Selected</span>
                 <span style={{ fontSize: '1.2rem', fontWeight: 800, color: '#047857' }}>{metrics.selected}</span>
               </div>
-              <div style={pipelineStepStyle}>
+
+              <div 
+                onClick={() => navigate('/admin/applications?status=REJECTED')}
+                style={{ ...pipelineStepStyle, cursor: 'pointer' }}
+                title="Click to view all Rejected applications"
+              >
                 <span style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: 700 }}>Rejected</span>
                 <span style={{ fontSize: '1.2rem', fontWeight: 800, color: '#DC2626' }}>{metrics.rejected}</span>
               </div>

@@ -311,6 +311,9 @@ async function createJob(req, res) {
         deadline: new Date(deadline),
         requiredDocuments: requiredDocuments || 'CV/Resume, Educational Certificates',
         eligibilityCriteria: eligibilityCriteria || '',
+        bannerUrl: req.body.bannerUrl || null,
+        posterUrl: req.body.posterUrl || null,
+        imageUrl: req.body.imageUrl || null,
         status: status || 'DRAFT',
         createdBy: req.user ? req.user.id : null
       }
@@ -347,14 +350,12 @@ async function updateJob(req, res) {
       return res.status(404).json({ error: 'Vacancy opening not found.' });
     }
 
-    // Whitelist updatable fields — never trust the raw request body, which may
-    // echo back derived fields (_count, school, isApplicationOpen, …) that would
-    // make Prisma throw, or attempt to overwrite protected columns.
+    // Whitelist updatable fields
     const editable = [
       'position', 'type', 'schoolId', 'departmentId', 'positionId', 'department',
       'employmentType', 'numPositions', 'qualification', 'experience', 'skills',
       'description', 'salaryScale', 'location', 'openingDate', 'deadline',
-      'requiredDocuments', 'eligibilityCriteria', 'status'
+      'requiredDocuments', 'eligibilityCriteria', 'bannerUrl', 'posterUrl', 'imageUrl', 'status'
     ];
 
     const updateData = {};
@@ -437,8 +438,21 @@ async function getSchools(req, res) {
   }
 
   try {
+    const now = new Date();
     const schools = await prisma.school.findMany({
       where,
+      include: {
+        _count: {
+          select: {
+            jobs: {
+              where: {
+                status: 'PUBLISHED',
+                deadline: { gte: now }
+              }
+            }
+          }
+        }
+      },
       orderBy: { name: 'asc' }
     });
     return res.json(schools);

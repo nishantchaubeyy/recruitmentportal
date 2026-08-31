@@ -93,8 +93,8 @@ function App() {
         <Routes>
           {/* Public Routes */}
           <Route path="/" element={<PublicLayout><Home /></PublicLayout>} />
-          {/* Applying requires an applicant account. */}
-          <Route path="/apply" element={<ApplicantRoute><ApplicationForm /></ApplicantRoute>} />
+          <Route path="/apply" element={<PublicLayout><ApplicationForm /></PublicLayout>} />
+          <Route path="/apply/:jobId" element={<PublicLayout><ApplicationForm /></PublicLayout>} />
           <Route path="/teaching" element={<PublicLayout><TeachingPositions /></PublicLayout>} />
           <Route path="/non-teaching" element={<PublicLayout><NonTeachingPositions /></PublicLayout>} />
           <Route path="/jobs/:id" element={<PublicLayout><JobDetails /></PublicLayout>} />
@@ -115,15 +115,31 @@ function App() {
             } 
           />
           <Route 
-            path="/applicant/apply/:jobId" 
+            path="/my-applications" 
             element={
               <ApplicantRoute>
-                <ApplicationForm />
+                <ApplicantDashboard />
               </ApplicantRoute>
             } 
           />
           <Route 
+            path="/applicant/apply/:jobId" 
+            element={
+              <PublicLayout>
+                <ApplicationForm />
+              </PublicLayout>
+            } 
+          />
+          <Route 
             path="/applicant/applications/:id" 
+            element={
+              <ApplicantRoute>
+                <ApplicantApplicationDetails />
+              </ApplicantRoute>
+            } 
+          />
+          <Route 
+            path="/my-applications/:id" 
             element={
               <ApplicantRoute>
                 <ApplicantApplicationDetails />
