@@ -1956,3 +1956,31 @@ footer.footer-dypiu {
   scrollbar-width: none;
 }
 
+/* EXECUTIVE VACANCY CARD REDESIGN STYLES */
+.vacancy-card-hover:hover {
+  border-color: #94a3b8 !important;
+  box-shadow: 0 16px 32px -6px rgba(15, 23, 42, 0.1) !important;
+  transform: translateY(-3px);
+}
+
+.job-title-link:hover {
+  color: #2563eb !important;
+}
+
+.btn-secondary-hover:hover {
+  background-color: #f1f5f9 !important;
+  border-color: #94a3b8 !important;
+}
+
+.btn-primary-hover:hover {
+  background-color: #1e293b !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.2) !important;
+}
+
+.view-all-btn-hover:hover {
+  background-color: #1e293b !important;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.25) !important;
+}
+

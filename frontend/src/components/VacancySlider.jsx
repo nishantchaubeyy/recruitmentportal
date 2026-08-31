@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiRequest } from '../utils/api';
 import InterestModal from './InterestModal';
@@ -8,10 +8,7 @@ function VacancySlider() {
   const [vacancies, setVacancies] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
-  const sliderRef = useRef(null);
-  const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(false);
+  const [activeTab, setActiveTab] = useState('ALL');
 
   // Interest Modal state
   const [interestModalOpen, setInterestModalOpen] = useState(false);
@@ -27,83 +24,124 @@ function VacancySlider() {
       const data = await apiRequest('/public/vacancies');
       setVacancies(data || []);
     } catch (err) {
-      console.error('Fetch slider vacancies error:', err);
+      console.error('Fetch vacancies error:', err);
       setError(err.message);
     } finally {
       setLoading(false);
     }
   };
 
-  const checkScrollButtons = () => {
-    if (sliderRef.current) {
-      const { scrollLeft, scrollWidth, clientWidth } = sliderRef.current;
-      setCanScrollLeft(scrollLeft > 10);
-      setCanScrollRight(scrollLeft + clientWidth < scrollWidth - 10);
-    }
+  // Helper to format system types (e.g. NON_TEACHING -> Non-Teaching)
+  const formatTypeLabel = (typeStr) => {
+    if (!typeStr) return 'General';
+    if (typeStr === 'TEACHING') return 'Teaching';
+    if (typeStr === 'NON_TEACHING') return 'Non-Teaching';
+    return typeStr.charAt(0).toUpperCase() + typeStr.slice(1).toLowerCase().replace('_', '-');
   };
 
-  useEffect(() => {
-    checkScrollButtons();
-    window.addEventListener('resize', checkScrollButtons);
-    return () => window.removeEventListener('resize', checkScrollButtons);
-  }, [vacancies]);
-
-  const slide = (direction) => {
-    if (sliderRef.current) {
-      const scrollAmount = 360;
-      sliderRef.current.scrollBy({
-        left: direction === 'left' ? -scrollAmount : scrollAmount,
-        behavior: 'smooth'
-      });
-      setTimeout(checkScrollButtons, 350);
-    }
-  };
+  const filteredVacancies = vacancies.filter((job) => {
+    if (activeTab === 'ALL') return true;
+    return job.type === activeTab;
+  });
 
   return (
-    <section style={{ backgroundColor: '#f8fafc', padding: '40px 0', borderTop: '1px solid #e2e8f0', borderBottom: '1px solid #e2e8f0' }}>
-      <div className="container" style={{ maxWidth: '1040px', padding: '0 24px' }}>
+    <section style={{ backgroundColor: '#ffffff', padding: '64px 0', borderTop: '1px solid #e2e8f0', borderBottom: '1px solid #e2e8f0' }}>
+      <div className="container" style={{ maxWidth: '1120px', padding: '0 24px', margin: '0 auto' }}>
         
-        {/* Section Title & Nav Controls */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '20px' }}>
-          <div>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', backgroundColor: '#dcfce7', color: '#166534', padding: '4px 12px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 800, marginBottom: '8px' }}>
-              CURRENTLY OPEN VACANCIES
-            </div>
-            <h2 style={{ margin: 0, color: '#0f3b46', fontSize: '1.75rem', fontWeight: 800, letterSpacing: '-0.3px' }}>
-              Explore Active Opportunities
-            </h2>
-            <p style={{ margin: '4px 0 0 0', color: '#64748b', fontSize: '0.92rem' }}>
-              Slide through all positions currently accepting applications at DYPIU
-            </p>
+        {/* 🎯 CENTER-ALIGNED SECTION HEADER */}
+        <div style={{ textAlign: 'center', marginBottom: '40px' }}>
+          
+          {/* Eyebrow Header: Micro-uppercase tracked text (NO pill bubble background) */}
+          <div style={{
+            fontSize: '0.75rem',
+            fontWeight: 800,
+            color: '#64748b',
+            textTransform: 'uppercase',
+            letterSpacing: '1.8px',
+            marginBottom: '10px'
+          }}>
+            CAREER OPPORTUNITIES
           </div>
 
-          {/* Slider Arrow Controls */}
+          {/* Crisp, Bold Header Title */}
+          <h2 style={{
+            margin: '0 0 12px 0',
+            color: '#0f172a',
+            fontSize: '2.25rem',
+            fontWeight: 800,
+            letterSpacing: '-0.6px',
+            lineHeight: 1.2
+          }}>
+            Explore Active Vacancies
+          </h2>
+
+          {/* Subtitle */}
+          <p style={{
+            margin: '0 auto',
+            color: '#475569',
+            fontSize: '1rem',
+            fontWeight: 500,
+            maxWidth: '640px',
+            lineHeight: 1.6
+          }}>
+            Discover your next role at DYPIU and contribute to world-class education and innovation.
+          </p>
+
+          {/* Filter Tabs (All / Teaching / Non-Teaching) */}
           {vacancies.length > 0 && (
-            <div style={{ display: 'flex', gap: '10px' }}>
+            <div style={{ display: 'inline-flex', gap: '8px', marginTop: '24px', backgroundColor: '#f8fafc', padding: '4px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
               <button
-                onClick={() => slide('left')}
-                disabled={!canScrollLeft}
+                onClick={() => setActiveTab('ALL')}
                 style={{
-                  ...arrowBtnStyle,
-                  opacity: canScrollLeft ? 1 : 0.4,
-                  cursor: canScrollLeft ? 'pointer' : 'default'
+                  padding: '7px 18px',
+                  borderRadius: '7px',
+                  fontSize: '0.84rem',
+                  fontWeight: 700,
+                  border: 'none',
+                  cursor: 'pointer',
+                  backgroundColor: activeTab === 'ALL' ? '#ffffff' : 'transparent',
+                  color: activeTab === 'ALL' ? '#0f172a' : '#64748b',
+                  boxShadow: activeTab === 'ALL' ? '0 1px 4px rgba(15,23,42,0.08)' : 'none',
+                  transition: 'all 0.2s ease'
                 }}
-                aria-label="Previous vacancy"
               >
-                ‹
+                All Vacancies ({vacancies.length})
               </button>
 
               <button
-                onClick={() => slide('right')}
-                disabled={!canScrollRight}
+                onClick={() => setActiveTab('TEACHING')}
                 style={{
-                  ...arrowBtnStyle,
-                  opacity: canScrollRight ? 1 : 0.4,
-                  cursor: canScrollRight ? 'pointer' : 'default'
+                  padding: '7px 18px',
+                  borderRadius: '7px',
+                  fontSize: '0.84rem',
+                  fontWeight: 700,
+                  border: 'none',
+                  cursor: 'pointer',
+                  backgroundColor: activeTab === 'TEACHING' ? '#ffffff' : 'transparent',
+                  color: activeTab === 'TEACHING' ? '#0f172a' : '#64748b',
+                  boxShadow: activeTab === 'TEACHING' ? '0 1px 4px rgba(15,23,42,0.08)' : 'none',
+                  transition: 'all 0.2s ease'
                 }}
-                aria-label="Next vacancy"
               >
-                ›
+                Teaching ({vacancies.filter(v => v.type === 'TEACHING').length})
+              </button>
+
+              <button
+                onClick={() => setActiveTab('NON_TEACHING')}
+                style={{
+                  padding: '7px 18px',
+                  borderRadius: '7px',
+                  fontSize: '0.84rem',
+                  fontWeight: 700,
+                  border: 'none',
+                  cursor: 'pointer',
+                  backgroundColor: activeTab === 'NON_TEACHING' ? '#ffffff' : 'transparent',
+                  color: activeTab === 'NON_TEACHING' ? '#0f172a' : '#64748b',
+                  boxShadow: activeTab === 'NON_TEACHING' ? '0 1px 4px rgba(15,23,42,0.08)' : 'none',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                Non-Teaching ({vacancies.filter(v => v.type === 'NON_TEACHING').length})
               </button>
             </div>
           )}
@@ -111,130 +149,179 @@ function VacancySlider() {
 
         {/* Loading State */}
         {loading ? (
-          <div style={{ textAlign: 'center', padding: '40px 0', color: '#64748b' }}>
+          <div style={{ textAlign: 'center', padding: '48px 0', color: '#64748b' }}>
             <div className="spinner" style={{ margin: '0 auto 12px auto' }}></div>
-            <p style={{ fontWeight: 600, fontSize: '0.9rem' }}>Loading active vacancy slider...</p>
+            <p style={{ fontWeight: 600, fontSize: '0.9rem' }}>Loading active vacancies...</p>
           </div>
         ) : error ? (
-          <div style={{ backgroundColor: '#fef2f2', border: '1px solid #fecaca', padding: '16px 20px', borderRadius: '12px', color: '#b91c1c', fontSize: '0.9rem' }}>
-            ⚠️ Failed to load open vacancies: {error}
+          <div style={{ backgroundColor: '#fef2f2', border: '1px solid #fecaca', padding: '16px 20px', borderRadius: '12px', color: '#b91c1c', fontSize: '0.9rem', textAlign: 'center' }}>
+            ⚠️ Failed to load active vacancies: {error}
           </div>
-        ) : vacancies.length === 0 ? (
+        ) : filteredVacancies.length === 0 ? (
           /* Empty State Card */
           <div style={{
-            backgroundColor: '#ffffff',
-            border: '1px border-dashed #cbd5e1',
+            backgroundColor: '#f8fafc',
+            border: '1px dashed #cbd5e1',
             borderRadius: '16px',
-            padding: '36px 24px',
-            textAlign: 'center'
+            padding: '44px 24px',
+            textAlign: 'center',
+            maxWidth: '580px',
+            margin: '0 auto'
           }}>
-            <h3 style={{ margin: '0 0 8px 0', color: '#0f3b46', fontSize: '1.2rem', fontWeight: 800 }}>
-              No vacancies are currently open.
+            <h3 style={{ margin: '0 0 8px 0', color: '#0f172a', fontSize: '1.15rem', fontWeight: 800 }}>
+              No vacancies currently available for this filter.
             </h3>
-            <p style={{ color: '#64748b', fontSize: '0.9rem', marginBottom: '20px' }}>
-              Would you like us to notify you when new teaching or non-teaching positions become available?
+            <p style={{ color: '#64748b', fontSize: '0.9rem', marginBottom: '22px' }}>
+              Would you like us to notify you as soon as new positions open up?
             </p>
             <button
               onClick={() => setInterestModalOpen(true)}
               style={{
-                backgroundColor: '#0f766e',
+                backgroundColor: '#0f172a',
                 color: '#ffffff',
                 border: 'none',
-                padding: '10px 22px',
+                padding: '10px 24px',
                 borderRadius: '8px',
                 fontWeight: 700,
-                cursor: 'pointer'
+                fontSize: '0.88rem',
+                cursor: 'pointer',
+                boxShadow: '0 2px 6px rgba(15,23,42,0.12)'
               }}
             >
               Notify Me When Open
             </button>
           </div>
         ) : (
-          /* SLIDER CONTAINER */
-          <div
-            ref={sliderRef}
-            onScroll={checkScrollButtons}
-            style={{
-              display: 'flex',
-              gap: '20px',
-              overflowX: 'auto',
-              scrollSnapType: 'x mandatory',
-              scrollBehavior: 'smooth',
-              paddingBottom: '12px',
-              scrollbarWidth: 'none', // Firefox
-              msOverflowStyle: 'none'  // IE/Edge
-            }}
-            className="no-scrollbar"
-          >
-            {vacancies.map((job) => (
+          /* 💳 RESPONSIVE 3-COLUMN CARD GRID (NO CAROUSEL SLIDER / NO CUTOFF) */
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(330px, 1fr))',
+            gap: '24px'
+          }}>
+            {filteredVacancies.map((job) => (
               <div
                 key={job.id}
                 style={{
-                  flex: '0 0 340px',
-                  scrollSnapAlign: 'start',
                   backgroundColor: '#ffffff',
                   border: '1px solid #e2e8f0',
                   borderRadius: '16px',
                   padding: '24px',
-                  boxShadow: '0 4px 14px rgba(15,23,42,0.04)',
+                  boxShadow: '0 2px 8px rgba(15,23,42,0.03)',
                   display: 'flex',
                   flexDirection: 'column',
-                  justifyContent: 'space-between',
-                  transition: 'transform 0.2s ease, box-shadow 0.2s ease'
+                  justify: 'space-between',
+                  transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+                  position: 'relative'
                 }}
+                className="vacancy-card-hover"
               >
                 <div>
-                  {/* Category Badge & Ref */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                  {/* TOP ROW: Minimalist Tag (Left) & Ref Code (Right) */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
                     <span style={{
-                      backgroundColor: job.type === 'TEACHING' ? '#ccfbf1' : '#e0e7ff',
-                      color: job.type === 'TEACHING' ? '#0f766e' : '#3730a3',
+                      border: '1px solid #e2e8f0',
+                      backgroundColor: '#f8fafc',
+                      color: '#475569',
                       padding: '3px 10px',
-                      borderRadius: '20px',
+                      borderRadius: '6px',
                       fontSize: '0.74rem',
-                      fontWeight: 800,
-                      letterSpacing: '0.5px'
+                      fontWeight: 600,
+                      letterSpacing: '0.2px'
                     }}>
-                      {job.type}
+                      {formatTypeLabel(job.type)}
                     </span>
-                    <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>
-                      {job.vacancyNumber || 'VAC-2026'}
+                    <span style={{ fontSize: '0.75rem', color: '#94a3b8', fontFamily: 'monospace' }}>
+                      {job.vacancyNumber || 'VAC-2026-001'}
                     </span>
                   </div>
 
-                  {/* Position Title */}
-                  <h3 style={{ margin: '0 0 8px 0', color: '#0f172a', fontSize: '1.18rem', fontWeight: 800, lineHeight: '1.3' }}>
+                  {/* JOB TITLE */}
+                  <h3
+                    onClick={() => navigate(`/jobs/${job.id}`)}
+                    style={{
+                      margin: '0 0 6px 0',
+                      color: '#0f172a',
+                      fontSize: '1.15rem',
+                      fontWeight: 800,
+                      lineHeight: '1.35',
+                      cursor: 'pointer',
+                      transition: 'color 0.2s ease'
+                    }}
+                    className="job-title-link"
+                  >
                     {job.position}
                   </h3>
 
-                  {/* Department */}
-                  <div style={{ fontSize: '0.85rem', color: '#475569', fontWeight: 600, marginBottom: '14px' }}>
-                    Department: {job.department}
+                  {/* DEPARTMENT */}
+                  <div style={{ fontSize: '0.88rem', color: '#64748b', fontWeight: 500, marginBottom: '18px' }}>
+                    {job.department || 'DYPIU Department'}
                   </div>
 
-                  {/* Quick details */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.82rem', color: '#64748b', marginBottom: '18px' }}>
-                    <div><strong>Location:</strong> {job.location || 'Pune'}</div>
-                    <div><strong>Type:</strong> {job.employmentType || 'Full Time'} ({job.numPositions} Opening{job.numPositions > 1 ? 's' : ''})</div>
-                    <div><strong>Deadline:</strong> {new Date(job.deadline).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
+                  {/* INLINE ICON METADATA (16px Outline Lucide SVGs) */}
+                  <div style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '10px',
+                    backgroundColor: '#f8fafc',
+                    border: '1px solid #f1f5f9',
+                    borderRadius: '10px',
+                    padding: '14px 16px',
+                    marginBottom: '20px',
+                    fontSize: '0.84rem',
+                    color: '#334155'
+                  }}>
+                    {/* Location Pin Icon */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                        <circle cx="12" cy="10" r="3"></circle>
+                      </svg>
+                      <span style={{ fontWeight: 500 }}>{job.location || 'Pune Campus'}</span>
+                    </div>
+
+                    {/* Briefcase Icon */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                        <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+                      </svg>
+                      <span style={{ fontWeight: 500 }}>
+                        {job.employmentType || 'Full Time'} ({job.numPositions || 1} Opening{job.numPositions > 1 ? 's' : ''})
+                      </span>
+                    </div>
+
+                    {/* Calendar Icon */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                        <line x1="16" y1="2" x2="16" y2="6"></line>
+                        <line x1="8" y1="2" x2="8" y2="6"></line>
+                        <line x1="3" y1="10" x2="21" y2="10"></line>
+                      </svg>
+                      <span style={{ fontWeight: 500 }}>
+                        Deadline: {job.deadline ? new Date(job.deadline).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Open until filled'}
+                      </span>
+                    </div>
                   </div>
                 </div>
 
-                {/* Actions */}
-                <div style={{ display: 'flex', gap: '10px', marginTop: 'auto', paddingTop: '16px', borderTop: '1px solid #f1f5f9' }}>
+                {/* FOOTER ACTIONS (Secondary Ghost/Border & Solid Primary CTA) */}
+                <div style={{ display: 'flex', gap: '10px', paddingTop: '16px', borderTop: '1px solid #f1f5f9' }}>
                   <button
                     onClick={() => navigate(`/jobs/${job.id}`)}
                     style={{
                       flex: 1,
                       backgroundColor: '#ffffff',
-                      border: '1.5px solid #cbd5e1',
+                      border: '1px solid #cbd5e1',
                       color: '#334155',
-                      padding: '9px 12px',
+                      padding: '9px 14px',
                       borderRadius: '8px',
-                      fontWeight: 700,
+                      fontWeight: 600,
                       fontSize: '0.84rem',
-                      cursor: 'pointer'
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease'
                     }}
+                    className="btn-secondary-hover"
                   >
                     View Details
                   </button>
@@ -243,23 +330,54 @@ function VacancySlider() {
                     onClick={() => navigate(`/apply?jobId=${job.id}`)}
                     style={{
                       flex: 1,
-                      backgroundColor: job.type === 'TEACHING' ? '#0f766e' : '#0f2b5c',
+                      backgroundColor: '#0f172a',
                       color: '#ffffff',
                       border: 'none',
-                      padding: '9px 12px',
+                      padding: '9px 16px',
                       borderRadius: '8px',
                       fontWeight: 700,
                       fontSize: '0.84rem',
-                      cursor: 'pointer'
+                      cursor: 'pointer',
+                      boxShadow: '0 2px 6px rgba(15,23,42,0.12)',
+                      transition: 'all 0.2s ease'
                     }}
+                    className="btn-primary-hover"
                   >
                     Apply Now
                   </button>
                 </div>
+
               </div>
             ))}
           </div>
         )}
+
+        {/* 🔻 SECTION FOOTER BUTTON: View All Openings → */}
+        <div style={{ textAlign: 'center', marginTop: '44px' }}>
+          <button
+            onClick={() => navigate('/teaching')}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              backgroundColor: '#0f172a',
+              color: '#ffffff',
+              border: 'none',
+              padding: '12px 28px',
+              borderRadius: '10px',
+              fontWeight: 700,
+              fontSize: '0.92rem',
+              cursor: 'pointer',
+              boxShadow: '0 4px 14px rgba(15,23,42,0.15)',
+              transition: 'all 0.2s ease'
+            }}
+            className="view-all-btn-hover"
+          >
+            <span>View All Openings</span>
+            <span>&rarr;</span>
+          </button>
+        </div>
+
       </div>
 
       <InterestModal
@@ -269,21 +387,5 @@ function VacancySlider() {
     </section>
   );
 }
-
-const arrowBtnStyle = {
-  width: '38px',
-  height: '38px',
-  borderRadius: '50%',
-  border: '1px solid #cbd5e1',
-  backgroundColor: '#ffffff',
-  color: '#0f172a',
-  fontSize: '1.4rem',
-  fontWeight: 'bold',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
-  lineHeight: 1
-};
 
 export default VacancySlider;
