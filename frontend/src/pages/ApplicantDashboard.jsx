@@ -59,7 +59,7 @@ function ApplicantDashboard() {
       {notifications.length > 0 && notifications.some(n => !n.isRead) && (
         <div style={{ border: '1px solid #bfdbfe', padding: '18px', backgroundColor: '#eff6ff', borderRadius: '12px', marginBottom: '28px' }}>
           <h3 style={{ marginTop: 0, color: '#1e40af', fontSize: '0.98rem', fontWeight: 800, borderBottom: '1px solid #bfdbfe', paddingBottom: '8px' }}>
-            🔔 Notifications & Status Updates
+            Notifications & Status Updates
           </h3>
           <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
             {notifications.filter(n => !n.isRead).map(notif => (

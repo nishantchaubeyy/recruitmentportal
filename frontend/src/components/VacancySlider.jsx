@@ -240,7 +240,7 @@ function VacancySlider() {
           </div>
         ) : error ? (
           <div style={{ backgroundColor: '#fef2f2', border: '1px solid #fecaca', padding: '16px 20px', borderRadius: '12px', color: '#b91c1c', fontSize: '0.9rem', textAlign: 'center' }}>
-            ⚠️ Failed to load active vacancies: {error}
+            Failed to load active vacancies: {error}
           </div>
         ) : filteredVacancies.length === 0 ? (
           /* Empty State Card */

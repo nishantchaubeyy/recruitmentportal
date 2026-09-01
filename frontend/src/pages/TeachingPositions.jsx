@@ -89,7 +89,7 @@ function TeachingPositions() {
         </div>
       ) : error ? (
         <div style={{ backgroundColor: '#fef2f2', border: '1px solid #fecaca', padding: '16px', borderRadius: '12px', color: '#b91c1c' }}>
-          ⚠️ Failed to load positions: {error}
+          Failed to load positions: {error}
         </div>
       ) : (
         /* Original Vertical Container with Teal Blocks */

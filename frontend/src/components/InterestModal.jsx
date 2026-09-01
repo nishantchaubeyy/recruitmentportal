@@ -95,7 +95,7 @@ function InterestModal({ isOpen, onClose, defaultCategory = 'TEACHING', defaultS
 
         {errorMsg && (
           <div style={{ backgroundColor: '#fef2f2', color: '#b91c1c', padding: '12px 16px', borderRadius: '8px', marginBottom: '16px', fontSize: '0.9rem' }}>
-            ⚠️ {errorMsg}
+            {errorMsg}
           </div>
         )}
 

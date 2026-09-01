@@ -95,6 +95,16 @@ function AdminDashboard() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      <style>{`
+        .admin-stat-card {
+          transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+        }
+        .admin-stat-card:hover {
+          transform: translateY(-3px);
+          box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08) !important;
+          border-color: #cbd5e1 !important;
+        }
+      `}</style>
       
       {error && (
         <div style={{ padding: '12px 16px', backgroundColor: '#FEE2E2', border: '1px solid #FECACA', color: '#991B1B', borderRadius: '8px', fontSize: '0.88rem', fontWeight: 600 }}>
@@ -112,7 +122,15 @@ function AdminDashboard() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: '18px' }}>
             
             {/* Metric 1: Total Vacancies */}
-            <div style={metricCardStyle}>
+            <div 
+              onClick={() => navigate('/admin/jobs')}
+              style={{ ...metricCardStyle, cursor: 'pointer' }}
+              className="admin-stat-card"
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => e.key === 'Enter' && navigate('/admin/jobs')}
+              title="Click to view all vacancies"
+            >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={metricLabelStyle}>Total Vacancies</span>
                 <IconBriefcase size={20} color="#64748B" />
@@ -125,7 +143,15 @@ function AdminDashboard() {
             </div>
 
             {/* Metric 2: Active Openings */}
-            <div style={metricCardStyle}>
+            <div 
+              onClick={() => navigate('/admin/jobs?status=PUBLISHED')}
+              style={{ ...metricCardStyle, cursor: 'pointer' }}
+              className="admin-stat-card"
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => e.key === 'Enter' && navigate('/admin/jobs?status=PUBLISHED')}
+              title="Click to view active published openings"
+            >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={metricLabelStyle}>Active Openings</span>
                 <IconUserCheck size={20} color="#64748B" />
@@ -137,7 +163,15 @@ function AdminDashboard() {
             </div>
 
             {/* Metric 3: Total Applications */}
-            <div style={metricCardStyle}>
+            <div 
+              onClick={() => navigate('/admin/applications')}
+              style={{ ...metricCardStyle, cursor: 'pointer' }}
+              className="admin-stat-card"
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => e.key === 'Enter' && navigate('/admin/applications')}
+              title="Click to view all applications"
+            >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={metricLabelStyle}>Total Applications</span>
                 <IconFileText size={20} color="#64748B" />
@@ -149,7 +183,15 @@ function AdminDashboard() {
             </div>
 
             {/* Metric 4: Applications Under Review */}
-            <div style={metricCardStyle}>
+            <div 
+              onClick={() => navigate('/admin/applications?status=UNDER_REVIEW')}
+              style={{ ...metricCardStyle, cursor: 'pointer' }}
+              className="admin-stat-card"
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => e.key === 'Enter' && navigate('/admin/applications?status=UNDER_REVIEW')}
+              title="Click to view applications under review"
+            >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={metricLabelStyle}>Under Review</span>
                 <IconCalendar size={20} color="#64748B" />

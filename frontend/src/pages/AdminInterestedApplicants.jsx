@@ -160,7 +160,7 @@ function AdminInterestedApplicants() {
           </div>
         ) : error ? (
           <div style={{ padding: '24px', textAlign: 'center', color: '#b91c1c', fontWeight: 600 }}>
-            ⚠️ {error}
+            Error: {error}
           </div>
         ) : interests.length === 0 ? (
           <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>

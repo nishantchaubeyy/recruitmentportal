@@ -95,7 +95,7 @@ function TrackApplication() {
           marginBottom: '25px',
           fontWeight: 600
         }}>
-          ⚠️ {error}
+          {error}
         </div>
       )}
 

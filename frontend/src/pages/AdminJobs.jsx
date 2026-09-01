@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { apiRequest } from '../utils/api';
 
 function AdminJobs() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const [vacancies, setVacancies] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -11,7 +12,7 @@ function AdminJobs() {
 
   // Filters
   const [typeFilter, setTypeFilter] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState(searchParams.get('status') || '');
   const [searchQuery, setSearchQuery] = useState('');
 
   // Action Menu open ID
@@ -161,7 +162,7 @@ function AdminJobs() {
           </div>
         ) : error ? (
           <div style={{ padding: '24px', textAlign: 'center', color: '#b91c1c', fontWeight: 600 }}>
-            ⚠️ {error}
+            Error: {error}
           </div>
         ) : vacancies.length === 0 ? (
           <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
@@ -214,7 +215,7 @@ function AdminJobs() {
                       style={{ fontWeight: 700, color: '#0f766e', textDecoration: 'none' }}
                       title="View interested candidates"
                     >
-                      🔔 {v.interestCount || 0}
+                      {v.interestCount || 0}
                     </Link>
                   </td>
                   <td style={tdStyle}>
@@ -247,29 +248,29 @@ function AdminJobs() {
                     {actionMenuOpenId === v.id && (
                       <div style={menuStyle}>
                         <div style={menuItemStyle} onClick={() => navigate(`/admin/jobs/${v.id}`)}>
-                          👁 View Details
+                          View Details
                         </div>
                         <div style={menuItemStyle} onClick={() => navigate(`/admin/jobs/edit/${v.id}`)}>
-                          ✏️ Edit Vacancy
+                          Edit Vacancy
                         </div>
                         {v.status !== 'PUBLISHED' && (
                           <div style={menuItemStyle} onClick={() => handleStatusChange(v.id, 'PUBLISHED')}>
-                            🚀 Publish
+                            Publish
                           </div>
                         )}
                         {v.status !== 'CLOSED' && (
                           <div style={menuItemStyle} onClick={() => handleStatusChange(v.id, 'CLOSED')}>
-                            🔒 Mark Closed
+                            Mark Closed
                           </div>
                         )}
                         {v.status !== 'ARCHIVED' && (
                           <div style={menuItemStyle} onClick={() => handleStatusChange(v.id, 'ARCHIVED')}>
-                            📦 Archive
+                            Archive
                           </div>
                         )}
                         <hr style={{ margin: '4px 0', border: 'none', borderTop: '1px solid #f1f5f9' }} />
                         <div style={{ ...menuItemStyle, color: '#0f766e' }} onClick={() => handleTriggerNotify(v.id, v.position)}>
-                          🔔 Notify Interested ({v.interestCount || 0})
+                          Notify Interested ({v.interestCount || 0})
                         </div>
                       </div>
                     )}

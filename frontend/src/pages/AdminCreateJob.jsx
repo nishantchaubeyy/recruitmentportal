@@ -261,7 +261,7 @@ function AdminCreateJob() {
 
       {errorMsg && (
         <div style={{ backgroundColor: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', padding: '14px 18px', borderRadius: '10px', marginBottom: '20px', fontSize: '0.9rem', fontWeight: 600 }}>
-          ⚠️ {errorMsg}
+          Error: {errorMsg}
         </div>
       )}
 

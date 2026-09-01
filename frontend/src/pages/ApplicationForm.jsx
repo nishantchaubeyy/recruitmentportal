@@ -666,7 +666,7 @@ function ApplicationForm() {
 
       {error && (
         <div style={{ backgroundColor: '#fef2f2', border: '1px solid #fecaca', color: '#991b1b', padding: '14px 18px', borderRadius: '10px', marginBottom: '20px', fontWeight: 600, fontSize: '0.9rem' }}>
-          ⚠️ {error}
+          {error}
         </div>
       )}
 
@@ -1155,7 +1155,6 @@ function ApplicationForm() {
               </div>
 
               <div style={{ border: '2px dashed #cbd5e1', borderRadius: '12px', padding: '20px', textAlign: 'center', backgroundColor: '#f8fafc' }}>
-                <div style={{ fontSize: '1.8rem', marginBottom: '6px' }}>🎓</div>
                 <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.92rem' }}>
                   {certificatesFile ? `Selected: ${certificatesFile.name}` : 'Upload Certificates (PDF)'}
                 </div>
@@ -1245,7 +1244,7 @@ function ApplicationForm() {
                 disabled={submitting}
                 style={{ backgroundColor: '#0f766e', color: '#ffffff', border: 'none', padding: '12px 32px', borderRadius: '10px', fontWeight: 800, fontSize: '0.98rem', cursor: 'pointer', boxShadow: '0 4px 14px rgba(15,118,110,0.2)' }}
               >
-                {submitting ? 'SUBMITTING APPLICATION...' : '✔️ SUBMIT APPLICATION'}
+                {submitting ? 'SUBMITTING APPLICATION...' : 'SUBMIT APPLICATION'}
               </button>
             </div>
           </div>
