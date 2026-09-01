@@ -76,7 +76,7 @@ function AdminReviewApplication() {
         });
       }
 
-      setStatusSuccess(`Application status changed to "${statusLabel(newStatus)}" successfully.`);
+      setStatusSuccess(`Application status updated to "${statusLabel(newStatus)}" successfully.`);
       setAdminComment('');
       fetchApplicationDetails();
     } catch (err) {
@@ -110,32 +110,34 @@ function AdminReviewApplication() {
 
   if (loading) {
     return (
-      <div className="container" style={{ padding: '40px 20px', textAlign: 'center' }}>
-        <p style={{ color: '#0f2b5c', fontWeight: 600 }}>Loading candidate dossier profile...</p>
+      <div style={{ backgroundColor: '#f4f4f2', minHeight: '100vh', padding: '60px 20px', textAlign: 'center' }}>
+        <p style={{ color: '#171717', fontWeight: 600, fontFamily: 'Inter, sans-serif' }}>Loading formal candidate dossier...</p>
       </div>
     );
   }
 
   if (error && !app) {
     return (
-      <div className="container" style={{ padding: '40px 20px' }}>
-        <div style={{ backgroundColor: '#fee2e2', border: '1px solid #fca5a5', color: '#991b1b', padding: '16px', borderRadius: '8px', marginBottom: '20px' }}>
-          ⚠️ Error: {error}
+      <div style={{ backgroundColor: '#f4f4f2', minHeight: '100vh', padding: '60px 20px' }}>
+        <div style={{ maxWidth: '900px', margin: '0 auto', backgroundColor: '#ffffff', border: '1px solid #e2e8f0', padding: '32px', borderRadius: '4px' }}>
+          <p style={{ color: '#991b1b', fontWeight: 700 }}>Error: {error}</p>
+          <Link to="/admin/applications" style={{ color: '#171717', fontWeight: 700, textDecoration: 'underline' }}>
+            &larr; Return to Applications List
+          </Link>
         </div>
-        <Link to="/admin/applications" style={{ color: '#0f2b5c', fontWeight: 700 }}>
-          &larr; Return to Applications List
-        </Link>
       </div>
     );
   }
 
   if (!app) {
     return (
-      <div className="container" style={{ padding: '40px 20px' }}>
-        <p>Application record not found.</p>
-        <Link to="/admin/applications" style={{ color: '#0f2b5c', fontWeight: 700 }}>
-          &larr; Return to Applications List
-        </Link>
+      <div style={{ backgroundColor: '#f4f4f2', minHeight: '100vh', padding: '60px 20px' }}>
+        <div style={{ maxWidth: '900px', margin: '0 auto', backgroundColor: '#ffffff', border: '1px solid #e2e8f0', padding: '32px', borderRadius: '4px' }}>
+          <p>Application record not found.</p>
+          <Link to="/admin/applications" style={{ color: '#171717', fontWeight: 700, textDecoration: 'underline' }}>
+            &larr; Return to Applications List
+          </Link>
+        </div>
       </div>
     );
   }
@@ -157,7 +159,6 @@ function AdminReviewApplication() {
   const experience = parseJsonField(app.experience || app.workExperience, []);
   const research = parseJsonField(app.researchDetails || app.phdDetails, {});
   const references = parseJsonField(app.references, []);
-  const skillsCertificates = parseJsonField(app.skillsCertificates, {});
 
   const displayTitle = (personal.title && personal.title !== 'Select' && personal.title !== 'Select Title' && personal.title !== 'Select...') ? personal.title : '';
   const formattedFullName = [displayTitle, personal.firstName, personal.middleName, personal.lastName].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim();
@@ -172,355 +173,476 @@ function AdminReviewApplication() {
   const statusHistory = Array.isArray(app.statusHistory) ? app.statusHistory : [];
 
   return (
-    <div className="container" style={{ maxWidth: '1100px', padding: '20px 15px' }}>
+    <div style={{ backgroundColor: '#f4f4f2', minHeight: '100vh', padding: '36px 16px 80px', fontFamily: "'Plus Jakarta Sans', Inter, -apple-system, BlinkMacSystemFont, sans-serif", color: '#171717' }}>
       
-      {/* Top Navigation */}
-      <div style={{ marginBottom: '20px' }}>
-        <Link to="/admin/applications" style={{ fontSize: '0.9rem', color: '#0891b2', fontWeight: 700, textDecoration: 'none' }}>
-          &larr; Back to Applications List
+      {/* Top Back Action Bar */}
+      <div style={{ maxWidth: '960px', margin: '0 auto 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Link 
+          to="/admin/applications" 
+          style={{ fontSize: '0.86rem', color: '#475569', fontWeight: 600, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+        >
+          <span>&larr;</span> Back to Applications List
         </Link>
+        <button
+          onClick={() => window.print()}
+          style={{
+            backgroundColor: '#ffffff',
+            border: '1px solid #d1d5db',
+            color: '#171717',
+            padding: '6px 14px',
+            borderRadius: '4px',
+            fontSize: '0.82rem',
+            fontWeight: 700,
+            cursor: 'pointer',
+          }}
+        >
+          Print / Save PDF
+        </button>
       </div>
 
-      {/* Candidate Dossier Header */}
-      <div style={{ backgroundColor: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '12px', padding: '24px', marginBottom: '25px', boxShadow: '0 2px 8px rgba(15,23,42,0.05)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '15px' }}>
-          <div>
-            <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700, letterSpacing: '0.5px' }}>
-              CANDIDATE DOSSIER REVIEW &bull; {app.applicationNumber || 'APP-2026-000001'}
-            </span>
-            <h1 style={{ color: '#0f2b5c', margin: '6px 0 6px 0', fontSize: '1.6rem', fontWeight: 800 }}>
-              {candidateName}
-            </h1>
-            <p style={{ color: '#475569', margin: 0, fontSize: '0.92rem', fontWeight: 600 }}>
-              Applied For: <strong style={{ color: '#0f2b5c' }}>{positionTitle}</strong> ({departmentName})
-            </p>
-            <div style={{ fontSize: '0.85rem', color: '#64748b', marginTop: '6px', display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
-              <span>📧 <strong>Email:</strong> {candidateEmail}</span>
-              <span>📱 <strong>Mobile:</strong> {candidateMobile}</span>
-              <span>📅 <strong>Applied On:</strong> {app.createdAt ? new Date(app.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Recent'}</span>
+      {/* 📄 MAIN FORMAL PAPER DOCUMENT CONTAINER */}
+      <main 
+        style={{
+          maxWidth: '960px',
+          margin: '0 auto',
+          backgroundColor: '#ffffff',
+          border: '1px solid #e5e7eb',
+          borderRadius: '4px',
+          boxShadow: '0 4px 24px rgba(0, 0, 0, 0.05)',
+          padding: 'clamp(28px, 5vw, 56px)',
+          boxSizing: 'border-box'
+        }}
+      >
+
+        {/* ─── DOCUMENT INSTITUTIONAL HEADER ─── */}
+        <header style={{ borderBottom: '2px solid #171717', paddingBottom: '24px', marginBottom: '32px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
+            
+            {/* University & Title */}
+            <div>
+              <div style={{ fontSize: '0.74rem', fontWeight: 800, letterSpacing: '1.8px', textTransform: 'uppercase', color: '#475569', marginBottom: '6px' }}>
+                D Y PATIL INTERNATIONAL UNIVERSITY &bull; PUNE
+              </div>
+              <div style={{ fontSize: '0.78rem', fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', color: '#171717', marginBottom: '14px' }}>
+                FORMAL RECRUITMENT APPLICATION DOSSIER
+              </div>
+
+              {/* Primary Candidate Name (Dominant Serif) */}
+              <h1 
+                style={{
+                  fontFamily: "'Playfair Display', 'Cormorant Garamond', 'Times New Roman', Georgia, serif",
+                  fontSize: 'clamp(2rem, 4vw, 2.6rem)',
+                  fontWeight: 800,
+                  color: '#111111',
+                  margin: '0 0 6px 0',
+                  lineHeight: 1.15,
+                  letterSpacing: '-0.3px'
+                }}
+              >
+                {candidateName}
+              </h1>
+
+              {/* Applied Position */}
+              <div style={{ fontSize: '1.05rem', color: '#171717', fontWeight: 600, marginBottom: '16px' }}>
+                Applied For: <span style={{ fontWeight: 800 }}>{positionTitle}</span> ({departmentName})
+              </div>
+
+              {/* Metadata details */}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', fontSize: '0.84rem', color: '#475569' }}>
+                <div>
+                  <span style={{ fontWeight: 600, color: '#64748b', textTransform: 'uppercase', fontSize: '0.72rem', display: 'block' }}>Application ID</span>
+                  <span style={{ fontWeight: 700, color: '#171717' }}>{app.applicationNumber || 'APP-2026-000001'}</span>
+                </div>
+                <div>
+                  <span style={{ fontWeight: 600, color: '#64748b', textTransform: 'uppercase', fontSize: '0.72rem', display: 'block' }}>Application Date</span>
+                  <span style={{ fontWeight: 700, color: '#171717' }}>
+                    {app.createdAt ? new Date(app.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' }) : '1 September 2026'}
+                  </span>
+                </div>
+                <div>
+                  <span style={{ fontWeight: 600, color: '#64748b', textTransform: 'uppercase', fontSize: '0.72rem', display: 'block' }}>Primary Email</span>
+                  <span style={{ fontWeight: 700, color: '#171717' }}>{candidateEmail}</span>
+                </div>
+                <div>
+                  <span style={{ fontWeight: 600, color: '#64748b', textTransform: 'uppercase', fontSize: '0.72rem', display: 'block' }}>Primary Mobile</span>
+                  <span style={{ fontWeight: 700, color: '#171717' }}>{candidateMobile}</span>
+                </div>
+              </div>
             </div>
-          </div>
 
-          <div style={{ textAlign: 'right' }}>
-            <span style={{ fontSize: '0.78rem', display: 'block', color: '#64748b', marginBottom: '4px', fontWeight: 700 }}>Current Status</span>
-            <span style={{
-              fontSize: '0.88rem',
-              padding: '6px 14px',
-              borderRadius: '20px',
-              fontWeight: 800,
-              display: 'inline-block',
-              backgroundColor: app.status === APPLICATION_STATUS.SHORTLISTED ? '#dcfce7' : app.status === APPLICATION_STATUS.UNDER_REVIEW ? '#cff4fc' : '#e0f2fe',
-              color: app.status === APPLICATION_STATUS.SHORTLISTED ? '#15803d' : app.status === APPLICATION_STATUS.UNDER_REVIEW ? '#0e7490' : '#0369a1',
-              border: '1px solid currentColor'
-            }}>
-              {statusLabel(app.status) || 'Application Submitted'}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* HR Action Box: Change Recruitment Status */}
-      <div style={{ backgroundColor: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '12px', padding: '22px', marginBottom: '30px' }}>
-        <h3 style={{ margin: '0 0 14px 0', color: '#0f2b5c', fontWeight: 800, fontSize: '1.1rem' }}>
-          ⚡ HR Recruitment Action Panel
-        </h3>
-        
-        {statusSuccess && (
-          <div style={{ padding: '12px 16px', backgroundColor: '#dcfce7', border: '1px solid #86efac', color: '#166534', borderRadius: '8px', marginBottom: '16px', fontSize: '0.88rem', fontWeight: 700 }}>
-            ✔️ {statusSuccess}
-          </div>
-        )}
-
-        <form onSubmit={handleStatusChangeSubmit} style={{ display: 'grid', gridTemplateColumns: '1fr 2fr auto', gap: '16px', alignItems: 'flex-end' }}>
-          <div className="form-group" style={{ margin: 0 }}>
-            <label style={{ fontWeight: 700, fontSize: '0.85rem', color: '#334155' }}>Update Status</label>
-            <select 
-              value={newStatus} 
-              onChange={(e) => setNewStatus(e.target.value)}
-              style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontWeight: 600 }}
-            >
-              {HR_STATUS_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="form-group" style={{ margin: 0 }}>
-            <label style={{ fontWeight: 700, fontSize: '0.85rem', color: '#334155' }}>Remarks / Interview Feedback</label>
-            <input 
-              type="text" 
-              value={adminComment} 
-              onChange={(e) => setAdminComment(e.target.value)} 
-              placeholder="e.g. Candidate profile shortlisted for Technical Interview round." 
-              style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
-            />
-          </div>
-
-          <button 
-            type="submit" 
-            style={{ backgroundColor: '#0f2b5c', color: '#ffffff', fontWeight: 700, border: 'none', padding: '10px 20px', borderRadius: '8px', cursor: 'pointer', fontSize: '0.88rem' }}
-            disabled={submitting}
-          >
-            {submitting ? 'Updating...' : 'Update Status'}
-          </button>
-
-          {newStatus === APPLICATION_STATUS.INTERVIEW_SCHEDULED && (
-            <div style={{ gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px', marginTop: '14px', paddingTop: '14px', borderTop: '1px solid #cbd5e1' }}>
-              <div className="form-group" style={{ margin: 0 }}>
-                <label style={{ fontWeight: 700, fontSize: '0.82rem', color: '#334155' }}>Interview Date *</label>
-                <input type="date" value={interviewDate} onChange={e => setInterviewDate(e.target.value)} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1' }} required />
+            {/* Current Application Status */}
+            <div style={{ textAlign: 'right', minWidth: '180px' }}>
+              <div style={{ fontSize: '0.72rem', fontWeight: 800, letterSpacing: '1px', textTransform: 'uppercase', color: '#64748b', marginBottom: '4px' }}>
+                APPLICATION STATUS
               </div>
-              <div className="form-group" style={{ margin: 0 }}>
-                <label style={{ fontWeight: 700, fontSize: '0.82rem', color: '#334155' }}>Interview Time</label>
-                <input type="text" value={interviewTime} onChange={e => setInterviewTime(e.target.value)} placeholder="10:00 AM" style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
+              <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#111111', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                {statusLabel(app.status) || 'Application Submitted'}
               </div>
-              <div className="form-group" style={{ margin: 0 }}>
-                <label style={{ fontWeight: 700, fontSize: '0.82rem', color: '#334155' }}>Interview Mode</label>
-                <select value={interviewMode} onChange={e => setInterviewMode(e.target.value)} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1' }}>
-                  <option value="IN_PERSON">In-Person (Campus)</option>
-                  <option value="ONLINE">Online Video Call</option>
-                </select>
-              </div>
-              <div className="form-group" style={{ margin: 0 }}>
-                <label style={{ fontWeight: 700, fontSize: '0.82rem', color: '#334155' }}>Venue / Meeting Link</label>
-                <input type="text" value={interviewVenue} onChange={e => setInterviewVenue(e.target.value)} placeholder="Conference Room A / Google Meet Link" style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
-              </div>
+            </div>
+
+          </div>
+        </header>
+
+        {/* ─── ADMINISTRATIVE ACTION PANEL (Clean Paper Form Style) ─── */}
+        <section style={{ border: '1px solid #d1d5db', backgroundColor: '#fafafa', padding: '24px', borderRadius: '4px', marginBottom: '40px' }}>
+          <div style={{ fontSize: '0.76rem', fontWeight: 800, letterSpacing: '1.2px', textTransform: 'uppercase', color: '#171717', marginBottom: '14px', borderBottom: '1px solid #e5e7eb', paddingBottom: '6px' }}>
+            HR / ADMINISTRATIVE REVIEW PANEL
+          </div>
+
+          {statusSuccess && (
+            <div style={{ padding: '10px 14px', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', color: '#166534', borderRadius: '4px', marginBottom: '16px', fontSize: '0.84rem', fontWeight: 600 }}>
+              {statusSuccess}
             </div>
           )}
-        </form>
-      </div>
 
-      {/* Candidate Dossier Profile Sections */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '25px' }}>
-        
-        {/* 1. Personal Information */}
-        <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '20px' }}>
-          <h3 style={{ margin: '0 0 15px 0', color: '#0f2b5c', fontSize: '1.1rem', fontWeight: 800, borderBottom: '2px solid #e2e8f0', paddingBottom: '8px' }}>
-            1. Personal Details
-          </h3>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
+          <form onSubmit={handleStatusChangeSubmit}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px', alignItems: 'flex-end' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', color: '#475569', marginBottom: '6px' }}>
+                  Update Status
+                </label>
+                <select 
+                  value={newStatus} 
+                  onChange={(e) => setNewStatus(e.target.value)}
+                  style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '4px', backgroundColor: '#ffffff', color: '#171717', fontSize: '0.88rem', fontWeight: 600 }}
+                >
+                  {HR_STATUS_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', color: '#475569', marginBottom: '6px' }}>
+                  Remarks / Interview Feedback
+                </label>
+                <input 
+                  type="text" 
+                  value={adminComment} 
+                  onChange={(e) => setAdminComment(e.target.value)} 
+                  placeholder="e.g. Candidate profile shortlisted for Technical Interview round." 
+                  style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '4px', backgroundColor: '#ffffff', color: '#171717', fontSize: '0.88rem', boxSizing: 'border-box' }}
+                />
+              </div>
+
+              <div>
+                <button 
+                  type="submit" 
+                  disabled={submitting}
+                  style={{
+                    backgroundColor: '#171717',
+                    color: '#ffffff',
+                    fontWeight: 700,
+                    border: 'none',
+                    padding: '9px 22px',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    fontSize: '0.86rem',
+                    letterSpacing: '0.3px',
+                    width: '100%'
+                  }}
+                >
+                  {submitting ? 'Updating...' : 'Update Status'}
+                </button>
+              </div>
+            </div>
+
+            {newStatus === APPLICATION_STATUS.INTERVIEW_SCHEDULED && (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px', marginTop: '18px', paddingTop: '16px', borderTop: '1px solid #e5e7eb' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, textTransform: 'uppercase', color: '#475569', marginBottom: '4px' }}>Interview Date *</label>
+                  <input type="date" value={interviewDate} onChange={e => setInterviewDate(e.target.value)} style={{ width: '100%', padding: '7px 10px', border: '1px solid #d1d5db', borderRadius: '4px' }} required />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, textTransform: 'uppercase', color: '#475569', marginBottom: '4px' }}>Interview Time</label>
+                  <input type="text" value={interviewTime} onChange={e => setInterviewTime(e.target.value)} placeholder="10:00 AM" style={{ width: '100%', padding: '7px 10px', border: '1px solid #d1d5db', borderRadius: '4px' }} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, textTransform: 'uppercase', color: '#475569', marginBottom: '4px' }}>Interview Mode</label>
+                  <select value={interviewMode} onChange={e => setInterviewMode(e.target.value)} style={{ width: '100%', padding: '7px 10px', border: '1px solid #d1d5db', borderRadius: '4px' }}>
+                    <option value="IN_PERSON">In-Person (Campus)</option>
+                    <option value="ONLINE">Online Video Call</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, textTransform: 'uppercase', color: '#475569', marginBottom: '4px' }}>Venue / Meeting Link</label>
+                  <input type="text" value={interviewVenue} onChange={e => setInterviewVenue(e.target.value)} placeholder="Conference Room A / Google Meet Link" style={{ width: '100%', padding: '7px 10px', border: '1px solid #d1d5db', borderRadius: '4px' }} />
+                </div>
+              </div>
+            )}
+          </form>
+        </section>
+
+        {/* ─── 01 PERSONAL INFORMATION ─── */}
+        <section style={{ marginBottom: '38px' }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px', borderBottom: '1px solid #171717', paddingBottom: '6px', marginBottom: '18px' }}>
+            <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#475569' }}>01</span>
+            <h2 style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: '1.25rem', fontWeight: 800, margin: 0, color: '#171717', letterSpacing: '0.3px', textTransform: 'uppercase' }}>
+              Personal Information
+            </h2>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px 24px' }}>
             <div>
-              <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700, display: 'block' }}>Full Name</span>
-              <strong style={{ color: '#0f2b5c' }}>{candidateName}</strong>
+              <span style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', color: '#64748b', display: 'block', marginBottom: '3px' }}>Full Name</span>
+              <span style={{ fontSize: '0.92rem', fontWeight: 700, color: '#171717' }}>{candidateName}</span>
             </div>
             <div>
-              <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700, display: 'block' }}>Date of Birth (Age)</span>
-              <strong>{personal.dob || 'N/A'} {personal.age ? `(${personal.age} Yrs)` : ''}</strong>
+              <span style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', color: '#64748b', display: 'block', marginBottom: '3px' }}>Date of Birth</span>
+              <span style={{ fontSize: '0.92rem', fontWeight: 700, color: '#171717' }}>{personal.dob || 'N/A'} {personal.age ? `(${personal.age} Years)` : ''}</span>
             </div>
             <div>
-              <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700, display: 'block' }}>Gender</span>
-              <strong>{personal.gender || 'N/A'}</strong>
+              <span style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', color: '#64748b', display: 'block', marginBottom: '3px' }}>Gender</span>
+              <span style={{ fontSize: '0.92rem', fontWeight: 700, color: '#171717' }}>{personal.gender || 'N/A'}</span>
             </div>
             <div>
-              <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700, display: 'block' }}>Marital Status</span>
-              <strong>{personal.maritalStatus || 'N/A'}</strong>
+              <span style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', color: '#64748b', display: 'block', marginBottom: '3px' }}>Marital Status</span>
+              <span style={{ fontSize: '0.92rem', fontWeight: 700, color: '#171717' }}>{personal.maritalStatus || 'N/A'}</span>
             </div>
             <div>
-              <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700, display: 'block' }}>Primary Email</span>
-              <strong>{candidateEmail}</strong>
+              <span style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', color: '#64748b', display: 'block', marginBottom: '3px' }}>Primary Email</span>
+              <span style={{ fontSize: '0.92rem', fontWeight: 700, color: '#171717' }}>{candidateEmail}</span>
             </div>
             <div>
-              <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700, display: 'block' }}>Alternate Email</span>
-              <strong>{personal.alternateEmail || 'N/A'}</strong>
+              <span style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', color: '#64748b', display: 'block', marginBottom: '3px' }}>Alternate Email</span>
+              <span style={{ fontSize: '0.92rem', fontWeight: 700, color: '#171717' }}>{personal.alternateEmail || 'N/A'}</span>
             </div>
           </div>
-        </div>
+        </section>
 
-        {/* 2. Contact & Location */}
-        <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '20px' }}>
-          <h3 style={{ margin: '0 0 15px 0', color: '#0f2b5c', fontSize: '1.1rem', fontWeight: 800, borderBottom: '2px solid #e2e8f0', paddingBottom: '8px' }}>
-            2. Location & Communication
-          </h3>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
+        {/* ─── 02 LOCATION & CONTACT ─── */}
+        <section style={{ marginBottom: '38px' }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px', borderBottom: '1px solid #171717', paddingBottom: '6px', marginBottom: '18px' }}>
+            <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#475569' }}>02</span>
+            <h2 style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: '1.25rem', fontWeight: 800, margin: 0, color: '#171717', letterSpacing: '0.3px', textTransform: 'uppercase' }}>
+              Location & Contact
+            </h2>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px 24px' }}>
             <div>
-              <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700, display: 'block' }}>Mobile Number</span>
-              <strong>{candidateMobile}</strong>
+              <span style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', color: '#64748b', display: 'block', marginBottom: '3px' }}>Mobile Number</span>
+              <span style={{ fontSize: '0.92rem', fontWeight: 700, color: '#171717' }}>{candidateMobile}</span>
             </div>
             <div>
-              <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700, display: 'block' }}>Alternate Mobile</span>
-              <strong>{contact.alternateMobile || 'N/A'}</strong>
+              <span style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', color: '#64748b', display: 'block', marginBottom: '3px' }}>Alternate Mobile</span>
+              <span style={{ fontSize: '0.92rem', fontWeight: 700, color: '#171717' }}>{contact.alternateMobile || 'N/A'}</span>
             </div>
             <div>
-              <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700, display: 'block' }}>State</span>
-              <strong>{contact.state || 'Maharashtra'}</strong>
+              <span style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', color: '#64748b', display: 'block', marginBottom: '3px' }}>State</span>
+              <span style={{ fontSize: '0.92rem', fontWeight: 700, color: '#171717' }}>{contact.state || 'Maharashtra'}</span>
             </div>
             <div>
-              <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700, display: 'block' }}>City</span>
-              <strong>{contact.city || 'Pune'}</strong>
+              <span style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', color: '#64748b', display: 'block', marginBottom: '3px' }}>City</span>
+              <span style={{ fontSize: '0.92rem', fontWeight: 700, color: '#171717' }}>{contact.city || 'Pune'}</span>
             </div>
           </div>
-        </div>
+        </section>
 
-        {/* 3. Academic Qualifications */}
-        <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '20px' }}>
-          <h3 style={{ margin: '0 0 15px 0', color: '#0f2b5c', fontSize: '1.1rem', fontWeight: 800, borderBottom: '2px solid #e2e8f0', paddingBottom: '8px' }}>
-            3. Academic Qualifications
-          </h3>
+        {/* ─── 03 ACADEMIC QUALIFICATIONS ─── */}
+        <section style={{ marginBottom: '38px' }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px', borderBottom: '1px solid #171717', paddingBottom: '6px', marginBottom: '18px' }}>
+            <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#475569' }}>03</span>
+            <h2 style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: '1.25rem', fontWeight: 800, margin: 0, color: '#171717', letterSpacing: '0.3px', textTransform: 'uppercase' }}>
+              Academic Qualifications
+            </h2>
+          </div>
+
           {qualifications.length === 0 ? (
-            <p style={{ color: '#64748b' }}>No qualification entries provided.</p>
+            <p style={{ color: '#64748b', fontStyle: 'italic' }}>No qualification entries recorded.</p>
           ) : (
             <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.88rem' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.86rem', textAlign: 'left' }}>
                 <thead>
-                  <tr style={{ backgroundColor: '#f1f5f9', textAlign: 'left' }}>
-                    <th style={{ padding: '8px 12px' }}>Degree Level</th>
-                    <th style={{ padding: '8px 12px' }}>Degree Name</th>
-                    <th style={{ padding: '8px 12px' }}>Institute / University</th>
-                    <th style={{ padding: '8px 12px' }}>Specialization</th>
-                    <th style={{ padding: '8px 12px' }}>Year</th>
-                    <th style={{ padding: '8px 12px' }}>CGPA / %</th>
-                    <th style={{ padding: '8px 12px' }}>Mode</th>
+                  <tr style={{ borderBottom: '1.5px solid #171717' }}>
+                    <th style={{ padding: '8px 10px', fontWeight: 700, color: '#171717', textTransform: 'uppercase', fontSize: '0.74rem' }}>Degree Level</th>
+                    <th style={{ padding: '8px 10px', fontWeight: 700, color: '#171717', textTransform: 'uppercase', fontSize: '0.74rem' }}>Degree Name</th>
+                    <th style={{ padding: '8px 10px', fontWeight: 700, color: '#171717', textTransform: 'uppercase', fontSize: '0.74rem' }}>Institute / University</th>
+                    <th style={{ padding: '8px 10px', fontWeight: 700, color: '#171717', textTransform: 'uppercase', fontSize: '0.74rem' }}>Specialization</th>
+                    <th style={{ padding: '8px 10px', fontWeight: 700, color: '#171717', textTransform: 'uppercase', fontSize: '0.74rem' }}>Year</th>
+                    <th style={{ padding: '8px 10px', fontWeight: 700, color: '#171717', textTransform: 'uppercase', fontSize: '0.74rem' }}>CGPA / %</th>
+                    <th style={{ padding: '8px 10px', fontWeight: 700, color: '#171717', textTransform: 'uppercase', fontSize: '0.74rem' }}>Mode</th>
                   </tr>
                 </thead>
                 <tbody>
                   {qualifications.map((q, idx) => (
-                    <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                      <td style={{ padding: '8px 12px', fontWeight: 700, color: '#0f2b5c' }}>{q.qualificationDegree || 'Degree'}</td>
-                      <td style={{ padding: '8px 12px' }}>{q.degreeName || 'N/A'}</td>
-                      <td style={{ padding: '8px 12px' }}>{q.instituteName || 'N/A'}</td>
-                      <td style={{ padding: '8px 12px' }}>{q.specialization || 'N/A'}</td>
-                      <td style={{ padding: '8px 12px' }}>{q.passingYear || 'N/A'}</td>
-                      <td style={{ padding: '8px 12px', fontWeight: 700 }}>{q.percentage || q.cgpa || 'N/A'}</td>
-                      <td style={{ padding: '8px 12px' }}>{q.studyMode || 'Full-Time'}</td>
+                    <tr key={idx} style={{ borderBottom: '1px solid #e5e7eb' }}>
+                      <td style={{ padding: '10px 10px', fontWeight: 700, color: '#171717' }}>{q.qualificationDegree || 'Degree'}</td>
+                      <td style={{ padding: '10px 10px' }}>{q.degreeName || 'N/A'}</td>
+                      <td style={{ padding: '10px 10px' }}>{q.instituteName || 'N/A'}</td>
+                      <td style={{ padding: '10px 10px' }}>{q.specialization || 'N/A'}</td>
+                      <td style={{ padding: '10px 10px' }}>{q.passingYear || 'N/A'}</td>
+                      <td style={{ padding: '10px 10px', fontWeight: 700 }}>{q.percentage || q.cgpa || 'N/A'}</td>
+                      <td style={{ padding: '10px 10px' }}>{q.studyMode || 'Full-Time'}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
           )}
-        </div>
+        </section>
 
-        {/* 4. Research / Ph.D. (Teaching Positions) */}
+        {/* ─── 04 RESEARCH & PROFESSIONAL PROFILE ─── */}
         {jobCategory === 'TEACHING' && (
-          <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '20px' }}>
-            <h3 style={{ margin: '0 0 15px 0', color: '#0f2b5c', fontSize: '1.1rem', fontWeight: 800, borderBottom: '2px solid #e2e8f0', paddingBottom: '8px' }}>
-              4. Ph.D. & Research Profile
-            </h3>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
+          <section style={{ marginBottom: '38px' }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px', borderBottom: '1px solid #171717', paddingBottom: '6px', marginBottom: '18px' }}>
+              <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#475569' }}>04</span>
+              <h2 style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: '1.25rem', fontWeight: 800, margin: 0, color: '#171717', letterSpacing: '0.3px', textTransform: 'uppercase' }}>
+                Research & Professional Profile
+              </h2>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px 24px', marginBottom: '16px' }}>
               <div>
-                <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700, display: 'block' }}>Ph.D. Status</span>
-                <strong>{research.phdStatus || 'N/A'}</strong>
+                <span style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', color: '#64748b', display: 'block', marginBottom: '3px' }}>Ph.D. Status</span>
+                <span style={{ fontSize: '0.92rem', fontWeight: 700, color: '#171717' }}>{research.phdStatus || 'N/A'}</span>
               </div>
               <div>
-                <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700, display: 'block' }}>University & Year</span>
-                <strong>{research.phdUniversity ? `${research.phdUniversity} (${research.phdYear || ''})` : 'N/A'}</strong>
+                <span style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', color: '#64748b', display: 'block', marginBottom: '3px' }}>University & Year</span>
+                <span style={{ fontSize: '0.92rem', fontWeight: 700, color: '#171717' }}>{research.phdUniversity ? `${research.phdUniversity} (${research.phdYear || ''})` : 'N/A'}</span>
               </div>
               <div>
-                <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700, display: 'block' }}>Scopus Publications</span>
-                <strong>{research.scopusCount || 0}</strong>
+                <span style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', color: '#64748b', display: 'block', marginBottom: '3px' }}>Scopus Publications</span>
+                <span style={{ fontSize: '0.92rem', fontWeight: 700, color: '#171717' }}>{research.scopusCount || 0}</span>
               </div>
               <div>
-                <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700, display: 'block' }}>Web of Science</span>
-                <strong>{research.wosCount || research.webOfScienceCount || 0}</strong>
+                <span style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', color: '#64748b', display: 'block', marginBottom: '3px' }}>Web of Science</span>
+                <span style={{ fontSize: '0.92rem', fontWeight: 700, color: '#171717' }}>{research.wosCount || research.webOfScienceCount || 0}</span>
               </div>
             </div>
 
-            <div style={{ marginTop: '16px', paddingTop: '12px', borderTop: '1px dashed #cbd5e1' }}>
-              <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 700 }}>Eligibility Exams: </span>
-              <span style={{ fontSize: '0.88rem', color: '#0f2b5c', fontWeight: 600 }}>
-                NET: {research.net?.cleared === 'Yes' || research.netCleared ? '✅ Yes' : '❌ No'} &bull; 
-                SET: {research.setExam?.cleared === 'Yes' || research.setCleared ? '✅ Yes' : '❌ No'} &bull; 
-                GATE: {research.gate?.cleared === 'Yes' || research.gateCleared ? '✅ Yes' : '❌ No'}
+            {/* Clean text for Eligibility Exams - NO emojis */}
+            <div style={{ padding: '12px 14px', backgroundColor: '#fafafa', border: '1px solid #e5e7eb', borderRadius: '4px', fontSize: '0.84rem' }}>
+              <span style={{ fontWeight: 700, color: '#171717', marginRight: '16px' }}>National Eligibility Exams:</span>
+              <span style={{ color: '#334155' }}>
+                NET: <strong>{research.net?.cleared === 'Yes' || research.netCleared ? 'Yes' : 'No'}</strong> &bull;{' '}
+                SET: <strong>{research.setExam?.cleared === 'Yes' || research.setCleared ? 'Yes' : 'No'}</strong> &bull;{' '}
+                GATE: <strong>{research.gate?.cleared === 'Yes' || research.gateCleared ? 'Yes' : 'No'}</strong>
               </span>
             </div>
-          </div>
+          </section>
         )}
 
-        {/* 5. Professional Work Experience */}
-        <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '20px' }}>
-          <h3 style={{ margin: '0 0 15px 0', color: '#0f2b5c', fontSize: '1.1rem', fontWeight: 800, borderBottom: '2px solid #e2e8f0', paddingBottom: '8px' }}>
-            {jobCategory === 'TEACHING' ? '5. Work Experience' : '4. Work Experience'}
-          </h3>
+        {/* ─── 05 WORK EXPERIENCE ─── */}
+        <section style={{ marginBottom: '38px' }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px', borderBottom: '1px solid #171717', paddingBottom: '6px', marginBottom: '18px' }}>
+            <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#475569' }}>{jobCategory === 'TEACHING' ? '05' : '04'}</span>
+            <h2 style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: '1.25rem', fontWeight: 800, margin: 0, color: '#171717', letterSpacing: '0.3px', textTransform: 'uppercase' }}>
+              Work Experience
+            </h2>
+          </div>
+
           {experience.length === 0 ? (
-            <p style={{ color: '#64748b' }}>No work experience recorded (Fresher Candidate).</p>
+            <p style={{ color: '#64748b', fontStyle: 'italic' }}>No professional experience recorded (Fresher Submission).</p>
           ) : (
             <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.88rem' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.86rem', textAlign: 'left' }}>
                 <thead>
-                  <tr style={{ backgroundColor: '#f1f5f9', textAlign: 'left' }}>
-                    <th style={{ padding: '8px 12px' }}>Organization</th>
-                    <th style={{ padding: '8px 12px' }}>Type</th>
-                    <th style={{ padding: '8px 12px' }}>Designation</th>
-                    <th style={{ padding: '8px 12px' }}>From</th>
-                    <th style={{ padding: '8px 12px' }}>To</th>
-                    <th style={{ padding: '8px 12px' }}>Salary</th>
-                    <th style={{ padding: '8px 12px' }}>Notice Period</th>
+                  <tr style={{ borderBottom: '1.5px solid #171717' }}>
+                    <th style={{ padding: '8px 10px', fontWeight: 700, color: '#171717', textTransform: 'uppercase', fontSize: '0.74rem' }}>Organization</th>
+                    <th style={{ padding: '8px 10px', fontWeight: 700, color: '#171717', textTransform: 'uppercase', fontSize: '0.74rem' }}>Type</th>
+                    <th style={{ padding: '8px 10px', fontWeight: 700, color: '#171717', textTransform: 'uppercase', fontSize: '0.74rem' }}>Designation</th>
+                    <th style={{ padding: '8px 10px', fontWeight: 700, color: '#171717', textTransform: 'uppercase', fontSize: '0.74rem' }}>From</th>
+                    <th style={{ padding: '8px 10px', fontWeight: 700, color: '#171717', textTransform: 'uppercase', fontSize: '0.74rem' }}>To</th>
+                    <th style={{ padding: '8px 10px', fontWeight: 700, color: '#171717', textTransform: 'uppercase', fontSize: '0.74rem' }}>Salary</th>
+                    <th style={{ padding: '8px 10px', fontWeight: 700, color: '#171717', textTransform: 'uppercase', fontSize: '0.74rem' }}>Notice Period</th>
                   </tr>
                 </thead>
                 <tbody>
                   {experience.map((e, idx) => (
-                    <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                      <td style={{ padding: '8px 12px', fontWeight: 700, color: '#0f2b5c' }}>{e.organization || 'N/A'}</td>
-                      <td style={{ padding: '8px 12px' }}>{e.type || e.experienceType || 'Teaching'}</td>
-                      <td style={{ padding: '8px 12px' }}>{e.designation || 'N/A'}</td>
-                      <td style={{ padding: '8px 12px' }}>{e.fromDate || 'N/A'}</td>
-                      <td style={{ padding: '8px 12px' }}>{e.isCurrent ? 'Present' : e.toDate || 'N/A'}</td>
-                      <td style={{ padding: '8px 12px' }}>{e.salary || 'N/A'}</td>
-                      <td style={{ padding: '8px 12px' }}>{e.noticePeriod || 'N/A'}</td>
+                    <tr key={idx} style={{ borderBottom: '1px solid #e5e7eb' }}>
+                      <td style={{ padding: '10px 10px', fontWeight: 700, color: '#171717' }}>{e.organization || 'N/A'}</td>
+                      <td style={{ padding: '10px 10px' }}>{e.type || e.experienceType || 'Teaching'}</td>
+                      <td style={{ padding: '10px 10px' }}>{e.designation || 'N/A'}</td>
+                      <td style={{ padding: '10px 10px' }}>{e.fromDate || 'N/A'}</td>
+                      <td style={{ padding: '10px 10px' }}>{e.isCurrent ? 'Present' : e.toDate || 'N/A'}</td>
+                      <td style={{ padding: '10px 10px' }}>{e.salary || 'N/A'}</td>
+                      <td style={{ padding: '10px 10px' }}>{e.noticePeriod || 'N/A'}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
           )}
-        </div>
+        </section>
 
-        {/* 6. Uploaded Documents */}
-        <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '20px' }}>
-          <h3 style={{ margin: '0 0 15px 0', color: '#0f2b5c', fontSize: '1.1rem', fontWeight: 800, borderBottom: '2px solid #e2e8f0', paddingBottom: '8px' }}>
-            📁 Uploaded Documents
-          </h3>
+        {/* ─── 06 DOCUMENTS ─── */}
+        <section style={{ marginBottom: '38px' }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px', borderBottom: '1px solid #171717', paddingBottom: '6px', marginBottom: '18px' }}>
+            <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#475569' }}>{jobCategory === 'TEACHING' ? '06' : '05'}</span>
+            <h2 style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: '1.25rem', fontWeight: 800, margin: 0, color: '#171717', letterSpacing: '0.3px', textTransform: 'uppercase' }}>
+              Attached Documents
+            </h2>
+          </div>
+
           {documents.length === 0 ? (
-            <p style={{ color: '#64748b' }}>CV / Resume attached in candidate submission.</p>
+            <p style={{ color: '#64748b', fontStyle: 'italic' }}>CV / Resume attached in candidate submission.</p>
           ) : (
-            <ul style={{ paddingLeft: '20px', margin: 0 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               {documents.map((doc) => (
-                <li key={doc.id} style={{ margin: '8px 0', fontSize: '0.9rem' }}>
-                  <span style={{ fontWeight: 700, textTransform: 'capitalize' }}>
-                    {doc.documentType === 'resume' ? 'CV / Resume' : doc.documentType}:
-                  </span>{' '}
-                  <a 
-                    href="#download" 
+                <div key={doc.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', border: '1px solid #e5e7eb', borderRadius: '4px', backgroundColor: '#fafafa' }}>
+                  <div>
+                    <span style={{ fontWeight: 700, color: '#171717', textTransform: 'capitalize', fontSize: '0.88rem' }}>
+                      {doc.documentType === 'resume' ? 'CV / Resume' : doc.documentType}:
+                    </span>{' '}
+                    <span style={{ color: '#475569', fontSize: '0.86rem' }}>{doc.originalName || 'Document.pdf'}</span>
+                  </div>
+                  <button 
                     onClick={(e) => handleDownloadFile(e, doc.id, doc.originalName)} 
-                    style={{ color: '#0891b2', fontWeight: 700, textDecoration: 'underline' }}
+                    style={{
+                      backgroundColor: '#ffffff',
+                      border: '1px solid #171717',
+                      color: '#171717',
+                      padding: '4px 12px',
+                      borderRadius: '4px',
+                      fontSize: '0.80rem',
+                      fontWeight: 700,
+                      cursor: 'pointer'
+                    }}
                   >
-                    {doc.originalName || 'Document.pdf'}
-                  </a>
-                </li>
+                    Download File
+                  </button>
+                </div>
               ))}
-            </ul>
+            </div>
           )}
-        </div>
+        </section>
 
-        {/* 7. Recruitment Timeline History */}
-        <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '20px' }}>
-          <h3 style={{ margin: '0 0 15px 0', color: '#0f2b5c', fontSize: '1.1rem', fontWeight: 800, borderBottom: '2px solid #e2e8f0', paddingBottom: '8px' }}>
-            📜 Recruitment Status History Timeline
-          </h3>
+        {/* ─── 07 RECRUITMENT STATUS HISTORY ─── */}
+        <section>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px', borderBottom: '1px solid #171717', paddingBottom: '6px', marginBottom: '18px' }}>
+            <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#475569' }}>{jobCategory === 'TEACHING' ? '07' : '06'}</span>
+            <h2 style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: '1.25rem', fontWeight: 800, margin: 0, color: '#171717', letterSpacing: '0.3px', textTransform: 'uppercase' }}>
+              Recruitment Status History
+            </h2>
+          </div>
+
           {statusHistory.length === 0 ? (
-            <p style={{ color: '#64748b', fontSize: '0.88rem' }}>Application submitted by candidate. No status updates logged yet.</p>
+            <p style={{ color: '#64748b', fontStyle: 'italic', fontSize: '0.86rem' }}>Application submitted by candidate. No status transitions logged yet.</p>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div style={{ borderLeft: '2px solid #171717', paddingLeft: '18px', marginLeft: '6px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
               {statusHistory.map((step, idx) => (
-                <div key={idx} style={{ padding: '12px 16px', backgroundColor: '#f8fafc', borderRadius: '8px', borderLeft: '4px solid #0f2b5c' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                    <strong style={{ color: '#0f2b5c' }}>{step.newStatus}</strong>
+                <div key={idx} style={{ position: 'relative' }}>
+                  <div style={{ position: 'absolute', left: '-23px', top: '4px', width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#171717' }} />
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: '8px' }}>
+                    <span style={{ fontWeight: 800, fontSize: '0.9rem', color: '#171717', textTransform: 'uppercase' }}>{step.newStatus}</span>
                     <span style={{ fontSize: '0.78rem', color: '#64748b' }}>
-                      {step.changedAt ? new Date(step.changedAt).toLocaleString('en-IN') : 'Recent'}
+                      {step.changedAt ? new Date(step.changedAt).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Recent'}
                     </span>
                   </div>
                   {step.comment && (
-                    <p style={{ margin: 0, fontSize: '0.85rem', color: '#475569', fontStyle: 'italic' }}>
-                      &ldquo;{step.comment}&rdquo;
+                    <p style={{ margin: '4px 0 0 0', fontSize: '0.84rem', color: '#475569' }}>
+                      {step.comment}
                     </p>
                   )}
                 </div>
               ))}
             </div>
           )}
-        </div>
+        </section>
 
-      </div>
+      </main>
+
     </div>
   );
 }
