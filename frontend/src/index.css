@@ -3,7 +3,7 @@
    OFFICIAL INSTITUTIONAL DESIGN SYSTEM & COLOR BRANDING
    ========================================================================== */
 
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
 :root {
   /* DYPIU Official 4-Color Brand System */
@@ -1244,56 +1244,61 @@ footer.footer-dypiu {
 
 .vertical-card-container {
   background: #ffffff;
-  border-radius: 14px;
-  padding: 32px 28px;
-  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.05);
-  margin-top: 25px;
+  border-radius: 10px;
+  padding: 30px 26px;
+  box-shadow: none;
+  margin-top: 15px;
+  border: 1px solid #111111;
 }
 
 .vertical-card-container.container-teaching {
-  border: 1.5px solid #0d9488;
+  border: 1px solid #111111;
 }
 
 .vertical-card-container.container-non-teaching {
-  border: 1.5px solid #0f2b5c;
+  border: 1px solid #111111;
 }
 
 .vertical-prompt-text {
-  font-size: 1.1rem;
-  font-weight: 700;
-  margin-bottom: 24px;
+  font-size: 0.95rem;
+  font-weight: 800;
+  margin-bottom: 20px;
+  color: #111111;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
 }
 
 .container-teaching .vertical-prompt-text {
-  color: #0f766e;
+  color: #111111;
 }
 
 .container-non-teaching .vertical-prompt-text {
-  color: #0f2b5c;
+  color: #111111;
 }
 
 .vertical-blocks-list {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 10px;
 }
 
 .vertical-block-item {
   color: #ffffff;
-  padding: 18px 24px;
-  border-radius: 8px;
+  padding: 16px 22px;
+  border-radius: 6px;
   font-weight: 700;
   font-size: 0.95rem;
   letter-spacing: 0.3px;
   cursor: pointer;
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: opacity 0.15s ease, background-color 0.15s ease;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   text-transform: uppercase;
+  box-shadow: none;
 }
 
-/* Teaching Positions: Teal Green */
+/* Teaching Positions: Subtle DYPIU Teal */
 .vertical-block-item.block-teal {
   background: #0d9488;
   border: 1px solid #0d9488;
@@ -1302,11 +1307,9 @@ footer.footer-dypiu {
 .vertical-block-item.block-teal:hover {
   background: #0f766e;
   border-color: #0f766e;
-  transform: translateX(4px);
-  box-shadow: 0 4px 14px rgba(13, 148, 136, 0.3);
 }
 
-/* Non-Teaching Positions: Deep Blue */
+/* Non-Teaching Positions: Subtle DYPIU Deep Blue */
 .vertical-block-item.block-blue {
   background: #0f2b5c;
   border: 1px solid #0f2b5c;
@@ -1315,65 +1318,60 @@ footer.footer-dypiu {
 .vertical-block-item.block-blue:hover {
   background: #071738;
   border-color: #071738;
-  transform: translateX(4px);
-  box-shadow: 0 4px 14px rgba(15, 43, 92, 0.3);
-}
-
-.vertical-block-item .block-arrow {
-  font-size: 1.25rem;
-  transition: transform 0.25s ease;
-}
-
-.vertical-block-item:hover .block-arrow {
-  transform: translateX(6px);
 }
 
 /* ==========================================================================
-   RETRO STYLE VACANCY CARDS (From Uiverse.io by gagan-gv)
+   FLAT PROFESSIONAL VACANCY CARDS (1px solid #111111, No 3D Shadows)
    ========================================================================== */
 .retro-vacancy-card {
   background: #ffffff;
-  border: 3px solid #000000;
-  border-radius: 0 !important;
-  box-shadow: 10px 10px 0 -2.5px #ffffff, 10px 10px 0 0 #000000;
-  padding: 18px 16px;
+  border: 1px solid #111111;
+  border-radius: 0px !important;
+  box-shadow: none !important;
+  padding: 20px 18px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  min-height: 210px;
+  min-height: 200px;
   box-sizing: border-box;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  transition: background-color 0.15s ease;
 }
 
 .retro-vacancy-card:hover {
-  transform: translate(-3px, -3px);
-  box-shadow: 14px 14px 0 -2.5px #ffffff, 14px 14px 0 0 #000000;
+  background-color: #fafafa;
+  transform: none !important;
+  box-shadow: none !important;
 }
 
 .retro-apply-btn {
   background-color: #0d9488;
   color: #ffffff;
-  border: 2px solid #000000;
-  border-radius: 0 !important;
-  padding: 9px 16px;
-  font-weight: 800;
+  border: none !important;
+  border-radius: 4px !important;
+  padding: 10px 16px;
+  font-weight: 700;
   font-size: 0.88rem;
   cursor: pointer;
   text-align: center;
-  box-shadow: 3px 3px 0 0 #000000;
-  transition: all 0.12s ease;
+  box-shadow: none !important;
+  transition: background-color 0.15s ease;
   width: 100%;
   box-sizing: border-box;
   display: block;
 }
 
 .retro-apply-btn:hover {
-  transform: translate(-1px, -1px);
-  box-shadow: 4px 4px 0 0 #000000;
+  background-color: #0f766e;
+  transform: none !important;
+  box-shadow: none !important;
 }
 
 .retro-apply-btn.btn-blue {
   background-color: #0f2b5c;
+}
+
+.retro-apply-btn.btn-blue:hover {
+  background-color: #071738;
 }
 
 /* General School Application Clean Button */

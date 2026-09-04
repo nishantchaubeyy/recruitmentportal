@@ -88,13 +88,18 @@ function NonTeachingPositions() {
         </Link>
       </div>
 
-      <div style={{ marginBottom: '25px' }}>
-        <h2 style={{ color: '#0f2b5c', margin: 0, fontSize: '1.8rem', fontWeight: 800, letterSpacing: '-0.3px' }}>
+      <div style={{ marginBottom: '28px' }}>
+        <h1 style={{
+          color: '#111111',
+          margin: 0,
+          fontSize: '2.3rem',
+          fontWeight: 700,
+          fontFamily: "'Playfair Display', 'Cormorant Garamond', 'Libre Baskerville', Georgia, serif",
+          letterSpacing: '-0.5px',
+          lineHeight: 1.15
+        }}>
           Non-Teaching Positions
-        </h2>
-        <p style={{ color: '#64748b', margin: '4px 0 0 0', fontSize: '0.95rem' }}>
-          Explore administrative, technical, and staff career opportunities at D Y Patil International University
-        </p>
+        </h1>
       </div>
 
       {loading ? (
@@ -107,7 +112,7 @@ function NonTeachingPositions() {
           Failed to load positions: {error}
         </div>
       ) : (
-        /* Original Vertical Container with Deep Blue Blocks */
+        /* Vertical Container with Deep Blue Blocks */
         <div className="vertical-card-container container-non-teaching">
           <div className="vertical-prompt-text">PLEASE CHOOSE DIVISION/DEPARTMENT BELOW:</div>
 
@@ -119,13 +124,12 @@ function NonTeachingPositions() {
 
               return (
                 <div key={div.id} style={{ marginBottom: '8px' }}>
-                  {/* Original Full-Width Deep Blue Block Button */}
+                  {/* Full-Width Deep Blue Block Button (Clean, no arrow) */}
                   <div
                     className="vertical-block-item block-blue"
                     onClick={() => handleToggleDivision(div.id)}
                   >
                     <span>{div.name}</span>
-                    <span className="block-arrow">{isExpanded ? '▲' : '→'}</span>
                   </div>
 
                   {/* Dropdown Content Directly Below Clicked Block */}
@@ -133,10 +137,10 @@ function NonTeachingPositions() {
                     <div style={{
                       padding: '24px',
                       backgroundColor: '#ffffff',
-                      border: '1.5px solid #0f2b5c',
+                      border: '1px solid #111111',
                       borderTop: 'none',
-                      borderRadius: '0 0 10px 10px',
-                      boxShadow: '0 4px 12px rgba(15,43,92,0.08)'
+                      borderRadius: '0 0 6px 6px',
+                      boxShadow: 'none'
                     }}>
 
                       {/* ── PRIORITY 1: POSTER EXISTS ── */}
@@ -158,7 +162,7 @@ function NonTeachingPositions() {
                             borderRadius: '10px',
                             border: '1px solid #e2e8f0',
                             padding: '12px',
-                            boxShadow: '0 4px 16px rgba(0,0,0,0.06)'
+                            boxShadow: 'none'
                           }}>
                             <img
                               src={getMediaUrl(posterUrl)}
@@ -182,7 +186,7 @@ function NonTeachingPositions() {
                         /* ── PRIORITY 2: NO POSTER & VACANCIES EXIST ── */
                         <>
                           <div style={{ marginBottom: '24px' }}>
-                            <h4 style={{ color: '#0f2b5c', fontSize: '0.92rem', fontWeight: 800, margin: '0 0 16px 0', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
+                            <h4 style={{ color: '#111111', fontSize: '0.92rem', fontWeight: 800, margin: '0 0 16px 0', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
                               Currently Active Vacancies ({divJobs.length}):
                             </h4>
 
@@ -193,20 +197,20 @@ function NonTeachingPositions() {
                                   className="retro-vacancy-card"
                                 >
                                   <div>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                                      <span style={{ backgroundColor: '#e0e7ff', color: '#3730a3', padding: '2px 8px', fontSize: '0.72rem', fontWeight: 800, border: '1.5px solid #000000' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                                      <span style={{ backgroundColor: '#eff6ff', color: '#1e40af', padding: '3px 8px', fontSize: '0.74rem', fontWeight: 700, border: '1px solid #bfdbfe', borderRadius: '3px' }}>
                                         {job.employmentType || 'Full Time'}
                                       </span>
-                                      <span style={{ fontSize: '0.75rem', color: '#000000', fontWeight: 800 }}>
+                                      <span style={{ fontSize: '0.75rem', color: '#111111', fontWeight: 700 }}>
                                         {job.vacancyNumber || 'VAC-2026'}
                                       </span>
                                     </div>
 
-                                    <h4 style={{ margin: '0 0 8px 0', color: '#000000', fontSize: '1.05rem', fontWeight: 900, lineHeight: 1.25 }}>
+                                    <h4 style={{ margin: '0 0 8px 0', color: '#111111', fontSize: '1.05rem', fontWeight: 800, lineHeight: 1.3 }}>
                                       {job.position}
                                     </h4>
 
-                                    <div style={{ fontSize: '0.8rem', color: '#1e40af', fontWeight: 800, marginBottom: '12px' }}>
+                                    <div style={{ fontSize: '0.82rem', color: '#1e40af', fontWeight: 700, marginBottom: '16px' }}>
                                       {job.numPositions > 1 ? `${job.numPositions} Openings` : '1 Opening'}
                                     </div>
                                   </div>

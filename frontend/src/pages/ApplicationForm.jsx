@@ -593,23 +593,72 @@ function ApplicationForm() {
   return (
     <div className="container" style={{ maxWidth: '1020px', padding: '24px 20px' }}>
       
-      {/* HEADER BANNER */}
-      <div style={{ backgroundColor: '#0f2b5c', color: '#ffffff', padding: '22px 28px', borderRadius: '14px', marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
-        <div>
-          <h1 style={{ margin: 0, fontSize: '1.45rem', fontWeight: 800, letterSpacing: '-0.3px' }}>RECRUITMENT APPLICATION</h1>
-          <div style={{ color: '#cbd5e1', fontSize: '0.86rem', marginTop: '3px' }}>
-            D Y Patil International University, Akurdi, Pune
+      {/* FORMAL UNIVERSITY APPLICATION FORM HEADER */}
+      <div style={{
+        backgroundColor: '#ffffff',
+        border: '1px solid #111111',
+        borderRadius: '12px',
+        padding: '24px 28px',
+        marginBottom: '24px',
+        boxShadow: 'none'
+      }}>
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '20px'
+        }}>
+          {/* Left: Official Logo + Title + University Location */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flexWrap: 'wrap' }}>
+            <img
+              src="/logo.dypiu.png"
+              alt="DYPIU Logo"
+              style={{ height: '54px', width: 'auto', objectFit: 'contain' }}
+            />
+            <div>
+              <h1 style={{
+                margin: 0,
+                fontSize: '1.55rem',
+                fontWeight: 800,
+                color: '#0f172a',
+                letterSpacing: '-0.3px',
+                lineHeight: 1.2
+              }}>
+                APPLICATION FORM
+              </h1>
+              <div style={{ color: '#475569', fontSize: '0.9rem', fontWeight: 600, marginTop: '3px' }}>
+                D Y Patil International University, Akurdi, Pune
+              </div>
+            </div>
+          </div>
+
+          {/* Right: Department & Post Applied For (Clean text, no pill/badge) */}
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '4px',
+            textAlign: 'left'
+          }}>
+            <div style={{ fontSize: '0.9rem', color: '#0f172a' }}>
+              <strong style={{ fontWeight: 700, color: '#0f172a' }}>Department:</strong>{' '}
+              <span style={{ color: '#334155', fontWeight: 500 }}>{selectedFaculty || loadedVacancy?.department || 'General Faculty'}</span>
+            </div>
+            {(postAppliedFor || loadedVacancy?.position) && (
+              <div style={{ fontSize: '0.9rem', color: '#0f172a' }}>
+                <strong style={{ fontWeight: 700, color: '#0f172a' }}>Post Applied For:</strong>{' '}
+                <span style={{ color: '#334155', fontWeight: 500 }}>{postAppliedFor || loadedVacancy?.position}</span>
+              </div>
+            )}
           </div>
         </div>
-        <div style={{ textAlign: 'right' }}>
-          <span style={{ backgroundColor: '#0f766e', color: '#ffffff', padding: '6px 14px', borderRadius: '20px', fontSize: '0.8rem', fontWeight: 700 }}>
-            {selectedFaculty}
-          </span>
-        </div>
+
+        {/* Subtle Horizontal Divider Line */}
+        <div style={{ borderTop: '1px solid #e2e8f0', marginTop: '18px' }} />
       </div>
 
       {/* STEP PROGRESS INDICATOR BAR */}
-      <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '18px 24px', marginBottom: '24px', boxShadow: '0 2px 8px rgba(0,0,0,0.03)' }}>
+      <div style={{ backgroundColor: '#ffffff', border: '1px solid #111111', borderRadius: '14px', padding: '18px 24px', marginBottom: '24px', boxShadow: 'none' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
           <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#0f172a' }}>
             Step {currentStep} of 7: <span style={{ color: '#0f766e' }}>{STEPS[currentStep - 1].title}</span>
@@ -671,7 +720,7 @@ function ApplicationForm() {
       )}
 
       {/* FORM BODY CONTAINER BY STEP */}
-      <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '28px', boxShadow: '0 2px 10px rgba(0,0,0,0.04)', marginBottom: '24px' }}>
+      <div style={{ backgroundColor: '#ffffff', border: '1px solid #111111', borderRadius: '14px', padding: '28px', boxShadow: 'none', marginBottom: '24px' }}>
 
         {/* STEP 1: PERSONAL INFORMATION */}
         {currentStep === 1 && (
