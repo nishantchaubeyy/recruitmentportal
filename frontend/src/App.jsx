@@ -33,6 +33,7 @@ import AdminUsers from './pages/AdminUsers';
 import AdminAuditLogs from './pages/AdminAuditLogs';
 import AdminReports from './pages/AdminReports';
 import AdminInterestedApplicants from './pages/AdminInterestedApplicants';
+import AdminSchools from './pages/AdminSchools';
 import CommitteeDashboard from './pages/CommitteeDashboard';
 
 /**
@@ -163,6 +164,14 @@ function App() {
             element={
               <AdminRoute>
                 <AdminJobs />
+              </AdminRoute>
+            } 
+          />
+          <Route 
+            path="/admin/schools" 
+            element={
+              <AdminRoute>
+                <AdminSchools />
               </AdminRoute>
             } 
           />

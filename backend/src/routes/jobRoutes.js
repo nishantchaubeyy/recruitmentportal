@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const jobController = require('../controllers/jobController');
 const { authenticateToken, requireAdmin } = require('../middleware/authMiddleware');
+const { imageUpload } = require('../middleware/uploadMiddleware');
 
 // ==========================================
 // PUBLIC VACANCY & STRUCTURE ENDPOINTS
@@ -22,7 +23,11 @@ router.get('/admin/vacancies/:id', authenticateToken, requireAdmin, jobControlle
 router.put('/admin/vacancies/:id', authenticateToken, requireAdmin, jobController.updateJob);
 router.patch('/admin/vacancies/:id/status', authenticateToken, requireAdmin, jobController.updateJobStatus);
 
+// Admin School & Poster Endpoints
 router.get('/admin/schools', authenticateToken, requireAdmin, jobController.getSchools);
+router.put('/admin/schools/:id', authenticateToken, requireAdmin, jobController.updateSchool);
+router.post('/admin/schools/:id/poster', authenticateToken, requireAdmin, imageUpload.single('poster'), jobController.uploadSchoolPoster);
+router.delete('/admin/schools/:id/poster', authenticateToken, requireAdmin, jobController.deleteSchoolPoster);
 router.get('/admin/schools/:id/departments', authenticateToken, requireAdmin, jobController.getSchoolDepartments);
 router.get('/admin/departments/:id/positions', authenticateToken, requireAdmin, jobController.getDepartmentPositions);
 
@@ -31,3 +36,4 @@ router.get('/jobs', jobController.getPublicVacancies);
 router.get('/jobs/:id', jobController.getPublicVacancyById);
 
 module.exports = router;
+

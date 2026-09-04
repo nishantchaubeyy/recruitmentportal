@@ -70,8 +70,50 @@ async function deleteFile(fileKey) {
   }
 }
 
+/**
+ * Saves a recruitment poster image to local storage:
+ * uploads/posters/:schoolId/poster-timestamp-filename.ext
+ * 
+ * @param {Object} file - Multer file object
+ * @param {string} schoolId - School ID
+ * @returns {Promise<Object>} Object containing fileKey, webUrl, etc.
+ */
+async function savePosterFile(file, schoolId) {
+  const relativeDir = path.join('posters', schoolId);
+  const destDir = path.join(UPLOAD_ROOT, relativeDir);
+
+  if (!fs.existsSync(destDir)) {
+    fs.mkdirSync(destDir, { recursive: true });
+  }
+
+  const timestamp = Date.now();
+  const safeName = `${timestamp}-${file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+  const destPath = path.join(destDir, safeName);
+  const fileKey = path.join(relativeDir, safeName).replace(/\\/g, '/');
+  const webUrl = `/uploads/${fileKey}`;
+
+  if (file.path) {
+    fs.renameSync(file.path, destPath);
+  } else if (file.buffer) {
+    fs.writeFileSync(destPath, file.buffer);
+  } else {
+    throw new Error('Invalid file format. Cannot save poster.');
+  }
+
+  return {
+    fileKey,
+    webUrl,
+    absolutePath: path.resolve(destPath),
+    originalName: file.originalname,
+    mimeType: file.mimetype,
+    size: file.size
+  };
+}
+
 module.exports = {
   saveFile,
+  savePosterFile,
   getFileLocation,
   deleteFile
 };
+

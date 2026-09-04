@@ -1329,6 +1329,92 @@ footer.footer-dypiu {
 }
 
 /* ==========================================================================
+   RETRO STYLE VACANCY CARDS (From Uiverse.io by gagan-gv)
+   ========================================================================== */
+.retro-vacancy-card {
+  background: #ffffff;
+  border: 3px solid #000000;
+  border-radius: 0 !important;
+  box-shadow: 10px 10px 0 -2.5px #ffffff, 10px 10px 0 0 #000000;
+  padding: 18px 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 210px;
+  box-sizing: border-box;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.retro-vacancy-card:hover {
+  transform: translate(-3px, -3px);
+  box-shadow: 14px 14px 0 -2.5px #ffffff, 14px 14px 0 0 #000000;
+}
+
+.retro-apply-btn {
+  background-color: #0d9488;
+  color: #ffffff;
+  border: 2px solid #000000;
+  border-radius: 0 !important;
+  padding: 9px 16px;
+  font-weight: 800;
+  font-size: 0.88rem;
+  cursor: pointer;
+  text-align: center;
+  box-shadow: 3px 3px 0 0 #000000;
+  transition: all 0.12s ease;
+  width: 100%;
+  box-sizing: border-box;
+  display: block;
+}
+
+.retro-apply-btn:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0 0 #000000;
+}
+
+.retro-apply-btn.btn-blue {
+  background-color: #0f2b5c;
+}
+
+/* General School Application Clean Button */
+.general-apply-btn {
+  background-color: #0d9488;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 24px;
+  font-weight: 800;
+  font-size: 0.92rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  box-shadow: 0 2px 6px rgba(13, 148, 136, 0.25);
+  transition: all 0.2s ease;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.general-apply-btn:hover {
+  background-color: #0f766e;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(13, 148, 136, 0.35);
+}
+
+.general-apply-btn.btn-blue {
+  background-color: #0f2b5c;
+  box-shadow: 0 2px 6px rgba(15, 43, 92, 0.25);
+}
+
+.general-apply-btn.btn-blue:hover {
+  background-color: #071738;
+  box-shadow: 0 4px 12px rgba(15, 43, 92, 0.35);
+}
+
+
+
+/* ==========================================================================
    ADMIN PORTAL REDESIGN: LEFT SIDEBAR & TOP HEADER LAYOUT SYSTEM
    ========================================================================== */
 

@@ -1,5 +1,6 @@
 const prisma = require('../services/prisma');
 const { matchAndNotifyInterestedApplicants } = require('../services/interestMatchingService');
+const storageService = require('../services/storageService');
 
 /**
  * Generate unique Vacancy Reference Number (e.g. VAC-2026-001)
@@ -428,7 +429,7 @@ async function updateJobStatus(req, res) {
 }
 
 /**
- * Dynamic Dropdowns APIs
+ * Dynamic Dropdowns & School Management APIs
  */
 async function getSchools(req, res) {
   const { type } = req.query;
@@ -455,9 +456,132 @@ async function getSchools(req, res) {
       },
       orderBy: { name: 'asc' }
     });
-    return res.json(schools);
+
+    // Provide recruitmentPosterUrl alias alongside posterUrl
+    const formatted = schools.map((s) => ({
+      ...s,
+      recruitmentPosterUrl: s.posterUrl || null
+    }));
+
+    return res.json(formatted);
   } catch (error) {
+    console.error('Failed to retrieve schools:', error);
     return res.status(500).json({ error: 'Failed to retrieve schools.' });
+  }
+}
+
+async function uploadSchoolPoster(req, res) {
+  const { id } = req.params;
+
+  if (!req.file) {
+    return res.status(400).json({ error: 'No poster image file provided. Please upload a JPG, JPEG, PNG, or WebP file.' });
+  }
+
+  try {
+    const school = await prisma.school.findUnique({ where: { id } });
+    if (!school) {
+      return res.status(404).json({ error: 'School/Faculty not found.' });
+    }
+
+    // Save new poster file
+    const saved = await storageService.savePosterFile(req.file, school.id);
+
+    // If there was an existing local poster file, clean it up
+    if (school.posterUrl && school.posterUrl.startsWith('/uploads/')) {
+      const oldKey = school.posterUrl.replace('/uploads/', '');
+      storageService.deleteFile(oldKey).catch((e) => console.warn('Could not delete old poster file:', e.message));
+    }
+
+    // Update school record
+    const updated = await prisma.school.update({
+      where: { id },
+      data: {
+        posterUrl: saved.webUrl,
+        updatedAt: new Date()
+      }
+    });
+
+    return res.json({
+      message: 'Recruitment poster uploaded successfully.',
+      school: {
+        ...updated,
+        recruitmentPosterUrl: updated.posterUrl
+      }
+    });
+  } catch (error) {
+    console.error('Upload poster error:', error);
+    return res.status(500).json({ error: error.message || 'Failed to upload recruitment poster.' });
+  }
+}
+
+async function deleteSchoolPoster(req, res) {
+  const { id } = req.params;
+
+  try {
+    const school = await prisma.school.findUnique({ where: { id } });
+    if (!school) {
+      return res.status(404).json({ error: 'School/Faculty not found.' });
+    }
+
+    // Clean up local file if stored locally
+    if (school.posterUrl && school.posterUrl.startsWith('/uploads/')) {
+      const oldKey = school.posterUrl.replace('/uploads/', '');
+      await storageService.deleteFile(oldKey).catch((e) => console.warn('Could not delete old poster file:', e.message));
+    }
+
+    const updated = await prisma.school.update({
+      where: { id },
+      data: {
+        posterUrl: null,
+        updatedAt: new Date()
+      }
+    });
+
+    return res.json({
+      message: 'Recruitment poster removed successfully.',
+      school: {
+        ...updated,
+        recruitmentPosterUrl: null
+      }
+    });
+  } catch (error) {
+    console.error('Delete poster error:', error);
+    return res.status(500).json({ error: 'Failed to remove recruitment poster.' });
+  }
+}
+
+async function updateSchool(req, res) {
+  const { id } = req.params;
+  const { name, code, type, description, bannerUrl, posterUrl } = req.body;
+
+  try {
+    const school = await prisma.school.findUnique({ where: { id } });
+    if (!school) {
+      return res.status(404).json({ error: 'School/Faculty not found.' });
+    }
+
+    const updated = await prisma.school.update({
+      where: { id },
+      data: {
+        ...(name && { name }),
+        ...(code !== undefined && { code }),
+        ...(type && { type }),
+        ...(description !== undefined && { description }),
+        ...(bannerUrl !== undefined && { bannerUrl }),
+        ...(posterUrl !== undefined && { posterUrl })
+      }
+    });
+
+    return res.json({
+      message: 'School updated successfully.',
+      school: {
+        ...updated,
+        recruitmentPosterUrl: updated.posterUrl
+      }
+    });
+  } catch (error) {
+    console.error('Update school error:', error);
+    return res.status(500).json({ error: 'Failed to update school.' });
   }
 }
 
@@ -498,6 +622,10 @@ module.exports = {
   updateJob,
   updateJobStatus,
   getSchools,
+  uploadSchoolPoster,
+  deleteSchoolPoster,
+  updateSchool,
   getSchoolDepartments,
   getDepartmentPositions
 };
+

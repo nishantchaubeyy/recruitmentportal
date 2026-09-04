@@ -16,24 +16,62 @@ import {
 const delay = (ms = 120) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // ── Reference data ────────────────────────────────────────────
-const SCHOOLS = [
-  { id: 'sch-1', name: 'School of Computing', type: 'TEACHING' },
-  { id: 'sch-2', name: 'School of Management', type: 'TEACHING' },
-  { id: 'sch-3', name: 'School of Architecture & Design', type: 'TEACHING' },
-  { id: 'sch-4', name: 'University Administration & Operations', type: 'NON_TEACHING' },
-  { id: 'sch-5', name: 'Systems & IT Infrastructure', type: 'NON_TEACHING' }
+const DEFAULT_SCHOOLS = [
+  { id: 'sch-1', name: 'School of Computing', type: 'TEACHING', code: 'SOC', posterUrl: null },
+  { id: 'sch-2', name: 'School of Management', type: 'TEACHING', code: 'SOM', posterUrl: null },
+  { id: 'sch-3', name: 'School of Biosciences & Bioengineering', type: 'TEACHING', code: 'SOB', posterUrl: null },
+  { id: 'sch-4', name: 'School of Architecture & Design', type: 'TEACHING', code: 'SOA', posterUrl: null },
+  { id: 'sch-5', name: 'School of Media & Communication', type: 'TEACHING', code: 'SOMC', posterUrl: null },
+  { id: 'sch-6', name: 'School of Pharmacy', type: 'TEACHING', code: 'SOP', posterUrl: null },
+  { id: 'sch-7', name: 'School of Humanities & Social Sciences', type: 'TEACHING', code: 'SOH', posterUrl: null },
+  { id: 'sch-8', name: 'Research & Innovation Centres', type: 'TEACHING', code: 'RIC', posterUrl: null },
+  { id: 'sch-9', name: 'University Administration & Operations', type: 'NON_TEACHING', code: 'ADM', posterUrl: null },
+  { id: 'sch-10', name: 'Systems & IT Infrastructure', type: 'NON_TEACHING', code: 'IT', posterUrl: null },
+  { id: 'sch-11', name: 'Technical & Laboratory Services', type: 'NON_TEACHING', code: 'LAB', posterUrl: null },
+  { id: 'sch-12', name: 'Finance & Accounts', type: 'NON_TEACHING', code: 'FIN', posterUrl: null },
+  { id: 'sch-13', name: 'Library & Information Services', type: 'NON_TEACHING', code: 'LIB', posterUrl: null },
+  { id: 'sch-14', name: 'Branding, Media & Promotion', type: 'NON_TEACHING', code: 'BMP', posterUrl: null },
+  { id: 'sch-15', name: 'Estate & Civil Engineering', type: 'NON_TEACHING', code: 'ECE', posterUrl: null }
 ];
+
+const getStoredSchools = () => {
+  try {
+    const stored = localStorage.getItem('MOCK_SCHOOLS_PERSIST');
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch (e) {
+    console.error('Failed to parse stored schools:', e);
+  }
+  return JSON.parse(JSON.stringify(DEFAULT_SCHOOLS));
+};
+
+let schools = getStoredSchools();
+
+const saveSchools = () => {
+  try {
+    localStorage.setItem('MOCK_SCHOOLS_PERSIST', JSON.stringify(schools));
+  } catch (e) {
+    console.error('Failed to persist schools:', e);
+  }
+};
+
 const DEPARTMENTS = {
   'sch-1': [{ id: 'dep-1', name: 'Computer Science & Engineering' }, { id: 'dep-2', name: 'AI & Data Science' }],
   'sch-2': [{ id: 'dep-3', name: 'Business Administration' }],
-  'sch-3': [{ id: 'dep-4', name: 'Graphic & Visual Communication Design' }],
-  'sch-4': [{ id: 'dep-5', name: 'University Administrative Services' }],
-  'sch-5': [{ id: 'dep-6', name: 'Campus IT & Network Systems' }]
+  'sch-3': [{ id: 'dep-4', name: 'Biotechnology & Bioengineering' }],
+  'sch-4': [{ id: 'dep-5', name: 'Graphic & Visual Communication Design' }],
+  'sch-5': [{ id: 'dep-6', name: 'Journalism & Mass Media' }],
+  'sch-9': [{ id: 'dep-7', name: 'Registrar & Secretarial Office' }, { id: 'dep-8', name: 'University Administrative Services' }],
+  'sch-10': [{ id: 'dep-9', name: 'Campus IT & Network Systems' }],
+  'sch-14': [{ id: 'dep-10', name: 'Media Studio & Photography' }],
+  'sch-15': [{ id: 'dep-11', name: 'Civil Infrastructure & Planning' }]
 };
 const POSITIONS = {
   'dep-1': [{ id: 'pos-1', title: 'Assistant Professor' }, { id: 'pos-2', title: 'Associate Professor' }],
   'dep-3': [{ id: 'pos-3', title: 'Assistant Professor' }],
-  'dep-6': [{ id: 'pos-4', title: 'Systems Administrator' }]
+  'dep-9': [{ id: 'pos-4', title: 'Systems Administrator' }]
 };
 
 // ── In-memory state ───────────────────────────────────────────
@@ -588,6 +626,100 @@ async function mockGetReports() {
   }));
 }
 
+// ── SCHOOLS & RECRUITMENT POSTERS ────────────────────────────
+async function mockGetSchools(params) {
+  await delay();
+  schools = getStoredSchools();
+  jobs = getStoredJobs();
+  const type = params.get('type');
+  const filtered = type ? schools.filter((s) => s.type === type) : schools;
+  return filtered.map((s) => {
+    const activeJobs = jobs.filter((j) => {
+      const matchSchool = (j.department || '').toLowerCase().includes(s.name.toLowerCase()) ||
+        (j.school?.name || '').toLowerCase().includes(s.name.toLowerCase()) ||
+        (j.schoolId === s.id);
+      return matchSchool && j.status === 'PUBLISHED';
+    });
+    return {
+      ...s,
+      recruitmentPosterUrl: s.posterUrl || null,
+      _count: {
+        jobs: activeJobs.length
+      }
+    };
+  });
+}
+
+async function mockUploadSchoolPoster(schoolId, formData) {
+  await delay(200);
+  schools = getStoredSchools();
+  const school = schools.find((s) => s.id === schoolId);
+  if (!school) throw new Error('School/Faculty not found.');
+
+  let posterUrl = null;
+  if (formData instanceof FormData) {
+    const file = formData.get('poster');
+    if (file && typeof file === 'object' && file.name) {
+      posterUrl = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(new Error('Failed to read image file'));
+        reader.readAsDataURL(file);
+      });
+    }
+  } else if (formData && formData.posterUrl) {
+    posterUrl = formData.posterUrl;
+  }
+
+  if (!posterUrl) {
+    throw new Error('No valid poster image file uploaded.');
+  }
+
+  school.posterUrl = posterUrl;
+  school.recruitmentPosterUrl = posterUrl;
+  school.updatedAt = new Date().toISOString();
+  saveSchools();
+
+  return {
+    message: 'Recruitment poster uploaded successfully.',
+    school
+  };
+}
+
+async function mockDeleteSchoolPoster(schoolId) {
+  await delay(150);
+  schools = getStoredSchools();
+  const school = schools.find((s) => s.id === schoolId);
+  if (!school) throw new Error('School/Faculty not found.');
+
+  school.posterUrl = null;
+  school.recruitmentPosterUrl = null;
+  school.updatedAt = new Date().toISOString();
+  saveSchools();
+
+  return {
+    message: 'Recruitment poster removed successfully.',
+    school
+  };
+}
+
+async function mockUpdateSchool(schoolId, body) {
+  await delay(150);
+  schools = getStoredSchools();
+  const school = schools.find((s) => s.id === schoolId);
+  if (!school) throw new Error('School/Faculty not found.');
+
+  Object.assign(school, body);
+  school.recruitmentPosterUrl = school.posterUrl;
+  school.updatedAt = new Date().toISOString();
+  saveSchools();
+
+  return {
+    message: 'School updated successfully.',
+    school
+  };
+}
+
 // ── MAIN DISPATCHER ───────────────────────────────────────────
 export async function mockApiRequest(endpoint, options = {}) {
   const method = options.method || 'GET';
@@ -611,9 +743,14 @@ export async function mockApiRequest(endpoint, options = {}) {
     if (method === 'GET') return mockGetVacancyById(parts[2] || parts[1]);
   }
   if ((path === '/public/schools' || path === '/admin/schools') && method === 'GET') {
-    await delay();
-    const type = params.get('type');
-    return type ? SCHOOLS.filter((s) => s.type === type) : SCHOOLS;
+    return mockGetSchools(params);
+  }
+  if (parts[0] === 'admin' && parts[1] === 'schools' && parts.length === 3 && method === 'PUT') {
+    return mockUpdateSchool(parts[2], body);
+  }
+  if (parts[0] === 'admin' && parts[1] === 'schools' && parts[3] === 'poster') {
+    if (method === 'POST') return mockUploadSchoolPoster(parts[2], options.body);
+    if (method === 'DELETE') return mockDeleteSchoolPoster(parts[2]);
   }
   if (parts[1] === 'schools' && parts[3] === 'departments' && method === 'GET') {
     await delay();

@@ -80,6 +80,9 @@ try {
   console.warn('Notice: Could not create upload directory:', err.message);
 }
 
+// Static file serving for uploads (recruitment posters, documents, etc.)
+app.use('/uploads', express.static(path.resolve(uploadRoot)));
+
 // Health check endpoint
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', environment: process.env.NODE_ENV || 'development', time: new Date() });
@@ -104,15 +107,21 @@ app.use('/api', jobRoutes);
 app.use((err, req, res, next) => {
   console.error('Unhandled Server Error:', err);
   
-  if (err.message === 'Only PDF files are accepted.' || err.code === 'LIMIT_FILE_SIZE') {
+  if (
+    err.message === 'Only PDF files are accepted.' ||
+    err.message === 'Only JPEG, JPG, PNG, and WebP image files are accepted.' ||
+    err.code === 'LIMIT_FILE_SIZE'
+  ) {
     const message = err.code === 'LIMIT_FILE_SIZE' 
-      ? 'File size exceeds the 5MB limit.' 
+      ? 'File size exceeds the allowed limit.' 
       : err.message;
     return res.status(400).json({ error: message });
   }
 
   res.status(500).json({
-    error: 'An internal server error occurred.'
+    error: err.message || 'An internal server error occurred.'
+  });
+});
   });
 });
 

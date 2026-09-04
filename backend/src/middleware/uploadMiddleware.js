@@ -12,13 +12,26 @@ const fileFilter = (req, file, cb) => {
   }
 };
 
-// Multer upload middleware configuration (Max size: 5MB)
-const upload = multer({
+// File filter to restrict uploads to image files (JPEG, JPG, PNG, WebP)
+const imageFileFilter = (req, file, cb) => {
+  const allowedMimeTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+  if (allowedMimeTypes.includes(file.mimetype.toLowerCase())) {
+    cb(null, true);
+  } else {
+    cb(new Error('Only JPEG, JPG, PNG, and WebP image files are accepted.'), false);
+  }
+};
+
+// Multer upload middleware configuration for poster images (Max size: 10MB)
+const imageUpload = multer({
   storage: storage,
-  fileFilter: fileFilter,
+  fileFilter: imageFileFilter,
   limits: {
-    fileSize: 5 * 1024 * 1024 // 5 MB in bytes
+    fileSize: 10 * 1024 * 1024 // 10 MB in bytes
   }
 });
 
 module.exports = upload;
+module.exports.upload = upload;
+module.exports.imageUpload = imageUpload;
+

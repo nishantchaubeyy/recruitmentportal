@@ -56,4 +56,19 @@ async function apiRequest(endpoint, options = {}) {
   return data;
 }
 
+/**
+ * Resolves a media / poster path to a fully accessible URL.
+ * Handles data URIs, absolute URLs, and relative upload paths.
+ */
+export function getMediaUrl(path) {
+  if (!path) return '';
+  if (path.startsWith('data:') || path.startsWith('blob:') || path.startsWith('http://') || path.startsWith('https://')) {
+    return path;
+  }
+  const backendBase = API_URL.replace(/\/api\/?$/, '');
+  const cleanPath = path.startsWith('/') ? path : `/${path}`;
+  return `${backendBase}${cleanPath}`;
+}
+
 export { apiRequest };
+
