@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { apiRequest, API_URL } from '../utils/api';
 import { HR_STATUS_OPTIONS, statusLabel, APPLICATION_STATUS } from '../utils/status';
+import DossierPrintDocument from '../components/DossierPrintDocument';
+import { viewCandidateDocument, downloadCandidateDocument } from '../utils/pdfHelper';
 
 function AdminReviewApplication() {
   const { id } = useParams();
@@ -86,28 +88,6 @@ function AdminReviewApplication() {
     }
   };
 
-  const handleDownloadFile = async (e, docId, filename) => {
-    e.preventDefault();
-    const token = localStorage.getItem('token');
-    try {
-      const response = await fetch(`${API_URL}/applications/${app?.id}/documents/${docId}/download`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (!response.ok) throw new Error('Failed to retrieve file.');
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      window.URL.revokeObjectURL(url);
-    } catch (err) {
-      alert(err.message || 'File download failed.');
-    }
-  };
-
   if (loading) {
     return (
       <div style={{ backgroundColor: '#f4f4f2', minHeight: '100vh', padding: '60px 20px', textAlign: 'center' }}>
@@ -172,33 +152,62 @@ function AdminReviewApplication() {
   const documents = Array.isArray(app.documents) ? app.documents : [];
   const statusHistory = Array.isArray(app.statusHistory) ? app.statusHistory : [];
 
+  const handleViewFile = async (e, doc) => {
+    e.preventDefault();
+    await viewCandidateDocument(doc, candidateName, app?.id);
+  };
+
+  const handleDownloadFile = async (e, doc) => {
+    e.preventDefault();
+    await downloadCandidateDocument(doc, candidateName, app?.id);
+  };
+
+  const getFormattedApplicationDate = () => {
+    if (app?.submittedAt) {
+      return new Date(app.submittedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
+    }
+    const submitItem = statusHistory.find((h) => h.newStatus === 'SUBMITTED');
+    if (submitItem?.changedAt) {
+      return new Date(submitItem.changedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
+    }
+    if (app?.status && app.status !== 'DRAFT' && app?.updatedAt) {
+      return new Date(app.updatedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
+    }
+    return new Date(app?.createdAt || Date.now()).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
+  };
+
+  const formattedAppDate = getFormattedApplicationDate();
+
   return (
-    <div style={{ backgroundColor: '#f4f4f2', minHeight: '100vh', padding: '36px 16px 80px', fontFamily: "'Plus Jakarta Sans', Inter, -apple-system, BlinkMacSystemFont, sans-serif", color: '#171717' }}>
-      
-      {/* Top Back Action Bar */}
-      <div style={{ maxWidth: '960px', margin: '0 auto 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Link 
-          to="/admin/applications" 
-          style={{ fontSize: '0.86rem', color: '#475569', fontWeight: 600, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
-        >
-          <span>&larr;</span> Back to Applications List
-        </Link>
-        <button
-          onClick={() => window.print()}
-          style={{
-            backgroundColor: '#ffffff',
-            border: '1px solid #d1d5db',
-            color: '#171717',
-            padding: '6px 14px',
-            borderRadius: '4px',
-            fontSize: '0.82rem',
-            fontWeight: 700,
-            cursor: 'pointer',
-          }}
-        >
-          Print / Save PDF
-        </button>
-      </div>
+    <>
+      {/* 🖥️ SCREEN-ONLY ADMIN REVIEW WORKSPACE */}
+      <div className="screen-only" style={{ backgroundColor: '#f4f4f2', minHeight: '100vh', padding: '36px 16px 80px', fontFamily: "'Plus Jakarta Sans', Inter, -apple-system, BlinkMacSystemFont, sans-serif", color: '#171717' }}>
+        
+        {/* Top Back Action Bar */}
+        <div className="action-bar no-print" style={{ maxWidth: '960px', margin: '0 auto 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Link 
+            to="/admin/applications" 
+            style={{ fontSize: '0.86rem', color: '#475569', fontWeight: 600, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+          >
+            <span>&larr;</span> Back to Applications List
+          </Link>
+          <button
+            type="button"
+            onClick={() => window.print()}
+            style={{
+              backgroundColor: '#ffffff',
+              border: '1px solid #d1d5db',
+              color: '#171717',
+              padding: '6px 14px',
+              borderRadius: '4px',
+              fontSize: '0.82rem',
+              fontWeight: 700,
+              cursor: 'pointer',
+            }}
+          >
+            Print / Save PDF
+          </button>
+        </div>
 
       {/* 📄 MAIN FORMAL PAPER DOCUMENT CONTAINER */}
       <main 
@@ -256,7 +265,7 @@ function AdminReviewApplication() {
                 <div>
                   <span style={{ fontWeight: 600, color: '#64748b', textTransform: 'uppercase', fontSize: '0.72rem', display: 'block' }}>Application Date</span>
                   <span style={{ fontWeight: 700, color: '#171717' }}>
-                    {app.createdAt ? new Date(app.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' }) : '1 September 2026'}
+                    {formattedAppDate}
                   </span>
                 </div>
                 <div>
@@ -284,7 +293,7 @@ function AdminReviewApplication() {
         </header>
 
         {/* ─── ADMINISTRATIVE ACTION PANEL (Clean Paper Form Style) ─── */}
-        <section style={{ border: '1px solid #d1d5db', backgroundColor: '#fafafa', padding: '24px', borderRadius: '4px', marginBottom: '40px' }}>
+        <section className="admin-review-panel no-print" style={{ border: '1px solid #d1d5db', backgroundColor: '#fafafa', padding: '24px', borderRadius: '4px', marginBottom: '40px' }}>
           <div style={{ fontSize: '0.76rem', fontWeight: 800, letterSpacing: '1.2px', textTransform: 'uppercase', color: '#171717', marginBottom: '14px', borderBottom: '1px solid #e5e7eb', paddingBottom: '6px' }}>
             HR / ADMINISTRATIVE REVIEW PANEL
           </div>
@@ -587,54 +596,40 @@ function AdminReviewApplication() {
                     </span>{' '}
                     <span style={{ color: '#475569', fontSize: '0.86rem' }}>{doc.originalName || 'Document.pdf'}</span>
                   </div>
-                  <button 
-                    onClick={(e) => handleDownloadFile(e, doc.id, doc.originalName)} 
-                    style={{
-                      backgroundColor: '#ffffff',
-                      border: '1px solid #171717',
-                      color: '#171717',
-                      padding: '4px 12px',
-                      borderRadius: '4px',
-                      fontSize: '0.80rem',
-                      fontWeight: 700,
-                      cursor: 'pointer'
-                    }}
-                  >
-                    Download File
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
-
-        {/* ─── 07 RECRUITMENT STATUS HISTORY ─── */}
-        <section>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px', borderBottom: '1px solid #171717', paddingBottom: '6px', marginBottom: '18px' }}>
-            <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#475569' }}>{jobCategory === 'TEACHING' ? '07' : '06'}</span>
-            <h2 style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: '1.25rem', fontWeight: 800, margin: 0, color: '#171717', letterSpacing: '0.3px', textTransform: 'uppercase' }}>
-              Recruitment Status History
-            </h2>
-          </div>
-
-          {statusHistory.length === 0 ? (
-            <p style={{ color: '#64748b', fontStyle: 'italic', fontSize: '0.86rem' }}>Application submitted by candidate. No status transitions logged yet.</p>
-          ) : (
-            <div style={{ borderLeft: '2px solid #171717', paddingLeft: '18px', marginLeft: '6px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              {statusHistory.map((step, idx) => (
-                <div key={idx} style={{ position: 'relative' }}>
-                  <div style={{ position: 'absolute', left: '-23px', top: '4px', width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#171717' }} />
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: '8px' }}>
-                    <span style={{ fontWeight: 800, fontSize: '0.9rem', color: '#171717', textTransform: 'uppercase' }}>{step.newStatus}</span>
-                    <span style={{ fontSize: '0.78rem', color: '#64748b' }}>
-                      {step.changedAt ? new Date(step.changedAt).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Recent'}
-                    </span>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button 
+                      type="button"
+                      onClick={(e) => handleViewFile(e, doc)} 
+                      style={{
+                        backgroundColor: '#0f766e',
+                        border: 'none',
+                        color: '#ffffff',
+                        padding: '6px 14px',
+                        borderRadius: '4px',
+                        fontSize: '0.80rem',
+                        fontWeight: 700,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      View Document
+                    </button>
+                    <button 
+                      type="button"
+                      onClick={(e) => handleDownloadFile(e, doc)} 
+                      style={{
+                        backgroundColor: '#ffffff',
+                        border: '1px solid #171717',
+                        color: '#171717',
+                        padding: '6px 14px',
+                        borderRadius: '4px',
+                        fontSize: '0.80rem',
+                        fontWeight: 700,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Download File
+                    </button>
                   </div>
-                  {step.comment && (
-                    <p style={{ margin: '4px 0 0 0', fontSize: '0.84rem', color: '#475569' }}>
-                      {step.comment}
-                    </p>
-                  )}
                 </div>
               ))}
             </div>
@@ -643,7 +638,13 @@ function AdminReviewApplication() {
 
       </main>
 
-    </div>
+      </div>
+
+      {/* 🖨️ PRINT-ONLY DEDICATED OFFICIAL RECRUITMENT APPLICATION DOSSIER */}
+      <div className="print-only">
+        <DossierPrintDocument app={app} />
+      </div>
+    </>
   );
 }
 

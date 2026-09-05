@@ -451,39 +451,6 @@ function ApplicantApplicationDetails() {
           )}
         </section>
 
-        {/* ─── 07 RECRUITMENT STATUS HISTORY ─── */}
-        <section>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px', borderBottom: '1px solid #171717', paddingBottom: '6px', marginBottom: '18px' }}>
-            <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#475569' }}>{jobCategory === 'TEACHING' ? '07' : '06'}</span>
-            <h2 style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: '1.25rem', fontWeight: 800, margin: 0, color: '#171717', letterSpacing: '0.3px', textTransform: 'uppercase' }}>
-              Recruitment Status History
-            </h2>
-          </div>
-
-          {statusHistory.length === 0 ? (
-            <p style={{ color: '#64748b', fontStyle: 'italic', fontSize: '0.86rem' }}>Application submitted by candidate. No status transitions logged yet.</p>
-          ) : (
-            <div style={{ borderLeft: '2px solid #171717', paddingLeft: '18px', marginLeft: '6px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              {statusHistory.map((step, idx) => (
-                <div key={idx} style={{ position: 'relative' }}>
-                  <div style={{ position: 'absolute', left: '-23px', top: '4px', width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#171717' }} />
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: '8px' }}>
-                    <span style={{ fontWeight: 800, fontSize: '0.9rem', color: '#171717', textTransform: 'uppercase' }}>{step.newStatus}</span>
-                    <span style={{ fontSize: '0.78rem', color: '#64748b' }}>
-                      {step.changedAt ? new Date(step.changedAt).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Recent'}
-                    </span>
-                  </div>
-                  {step.comment && (
-                    <p style={{ margin: '4px 0 0 0', fontSize: '0.84rem', color: '#475569' }}>
-                      {step.comment}
-                    </p>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
-
       </main>
 
     </div>

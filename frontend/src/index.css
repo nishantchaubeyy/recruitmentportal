@@ -2068,3 +2068,111 @@ footer.footer-dypiu {
   box-shadow: 0 6px 18px rgba(15, 23, 42, 0.25) !important;
 }
 
+/* ==========================================================================
+   FORMAL UNIVERSITY APPLICATION DOSSIER — PRINT & PDF STYLES
+   ========================================================================== */
+
+.print-only {
+  display: none !important;
+}
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 14mm 14mm 14mm 14mm;
+  }
+
+  /* 1. COMPLETELY HIDE ALL ADMIN / DASHBOARD NAVIGATION & CONTROLS */
+  .no-print,
+  .screen-only,
+  aside,
+  header.admin-topbar,
+  .admin-sidebar,
+  .admin-topbar,
+  .admin-review-panel,
+  .action-bar,
+  button,
+  input[type="button"],
+  nav,
+  footer {
+    display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* 2. ACTIVATE DEDICATED PRINT DOSSIER */
+  .print-only {
+    display: block !important;
+    visibility: visible !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    color: #111111 !important;
+  }
+
+  /* 3. RESET PARENT LAYOUT CONTAINERS & OFFSETS */
+  html, body {
+    background-color: #ffffff !important;
+    background: #ffffff !important;
+    color: #111111 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    font-size: 10pt !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  #root,
+  .admin-layout-container,
+  .admin-main-wrapper,
+  main,
+  .admin-content-area {
+    margin: 0 !important;
+    margin-left: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    border: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    background-color: #ffffff !important;
+  }
+
+  /* 4. NATURAL A4 PAGE-BREAK & PAGINATION CONTROL */
+  .print-page-break {
+    page-break-before: always !important;
+    break-before: page !important;
+  }
+
+  .print-section {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    margin-bottom: 20px !important;
+  }
+
+  table {
+    page-break-inside: auto;
+    width: 100% !important;
+    border-collapse: collapse !important;
+  }
+
+  tr {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  thead {
+    display: table-header-group;
+  }
+
+  /* Prevent awkward heading orphans */
+  h1, h2, h3, h4, h5, h6 {
+    page-break-after: avoid !important;
+    break-after: avoid !important;
+  }
+}
+

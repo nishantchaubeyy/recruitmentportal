@@ -30,7 +30,7 @@ function AdminTopBar() {
   };
 
   return (
-    <header style={headerContainerStyle}>
+    <header className="admin-topbar no-print" style={headerContainerStyle}>
       {/* 1. PAGE TITLE & BREADCRUMB */}
       <div>
         <h1 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: '#0F172A', letterSpacing: '-0.3px' }}>

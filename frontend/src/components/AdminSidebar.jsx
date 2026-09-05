@@ -42,7 +42,7 @@ function AdminSidebar() {
   ];
 
   return (
-    <aside style={sidebarContainerStyle}>
+    <aside className="admin-sidebar no-print" style={sidebarContainerStyle}>
       {/* 1. TOP BRANDING */}
       <div style={{ padding: '20px 20px 18px 20px', borderBottom: '1px solid #E2E8F0' }}>
         <Link to="/admin/dashboard" style={{ display: 'flex', alignItems: 'center', gap: '12px', textDecoration: 'none' }}>

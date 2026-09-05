@@ -369,8 +369,12 @@ async function mockGetMyApplications() {
 async function mockGetApplicationById(id) {
   await delay();
   applications = getStoredApplications();
-  const app = applications.find((a) => a.id === id);
+  const app = applications.find((a) => a.id === id || a.applicationNumber === id);
   if (!app) throw new Error('Application not found.');
+  if (app.status !== 'DRAFT' && !app.submittedAt) {
+    const submitHistory = app.statusHistory?.find((h) => h.newStatus === 'SUBMITTED');
+    app.submittedAt = submitHistory?.changedAt || app.updatedAt || new Date().toISOString();
+  }
   return app;
 }
 
@@ -463,16 +467,43 @@ async function mockSubmitApplication(id, body = {}) {
 
 async function mockUploadDocument(id, formData) {
   await delay(200);
-  const idx = applications.findIndex((a) => a.id === id);
-  if (idx === -1) throw new Error('Application not found.');
-  const docType = formData.get('documentType');
-  const file = formData.get('file');
+  let idx = applications.findIndex((a) => a.id === id);
+  if (idx === -1) {
+    const draft = {
+      id: id || 'app-' + Date.now(),
+      applicationNumber: 'DRAFT-' + Date.now(),
+      status: 'DRAFT',
+      documents: [],
+      createdAt: new Date().toISOString()
+    };
+    applications.unshift(draft);
+    idx = 0;
+  }
+  const docType = (formData && typeof formData.get === 'function') ? formData.get('documentType') : (formData?.documentType || 'document');
+  const file = (formData && typeof formData.get === 'function') ? formData.get('file') : (formData?.file);
+  let fileData = (formData && typeof formData.get === 'function') ? formData.get('fileData') : (formData?.fileData);
+
+  if (!fileData && file && typeof file === 'object' && file.name) {
+    try {
+      fileData = await new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => resolve(null);
+        reader.readAsDataURL(file);
+      });
+    } catch (e) {
+      fileData = null;
+    }
+  }
+
   applications[idx].documents = (applications[idx].documents || []).filter((d) => d.documentType !== docType);
   const doc = {
     id: 'doc-' + Date.now(),
     documentType: docType,
     originalName: file?.name || 'document.pdf',
     fileSize: file?.size || 100000,
+    fileData: fileData || null,
+    url: fileData || null,
     uploadedAt: new Date().toISOString()
   };
   applications[idx].documents.push(doc);
@@ -736,6 +767,14 @@ export async function mockApiRequest(endpoint, options = {}) {
   if (path === '/auth/login' && method === 'POST') return mockLogin(body);
   if (path === '/auth/register' && method === 'POST') return mockRegister(body);
   if (path === '/auth/me' && method === 'GET') return mockGetMe();
+  if ((path === '/auth/send-otp' || path === '/applicant/auth/send-otp') && method === 'POST') {
+    await delay();
+    return { success: true, message: `Verification code sent to ${body.email || 'your email'}.`, demoOTP: '123456' };
+  }
+  if ((path === '/auth/verify-otp' || path === '/applicant/auth/verify-otp') && method === 'POST') {
+    await delay();
+    return { success: true, token: 'mock-jwt-token-verified', message: 'Email verified successfully.' };
+  }
 
   // PUBLIC VACANCIES & STRUCTURE
   if ((path === '/public/vacancies' || path === '/jobs') && method === 'GET') return mockGetPublicVacancies(params);
