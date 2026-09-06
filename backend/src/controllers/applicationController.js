@@ -71,7 +71,8 @@ async function generateApplicationNumber() {
  * Allows authenticated applicants or direct guest applicants filling the form.
  */
 async function createApplicationDraft(req, res) {
-  const { jobId, email, name, mobile } = req.body;
+  try {
+    const { jobId, email, name, mobile } = req.body;
   let applicantId = req.user?.applicantId;
 
   let job = null;
