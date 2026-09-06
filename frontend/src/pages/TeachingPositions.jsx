@@ -144,47 +144,43 @@ function TeachingPositions() {
                       boxShadow: 'none'
                     }}>
 
-                      {/* ── PRIORITY 1: POSTER EXISTS ── */}
-                      {posterUrl ? (
+                      {/* Optional Advertisement Notice Banner if poster exists */}
+                      {posterUrl && (
                         <div style={{
+                          backgroundColor: '#eff6ff',
+                          border: '1px solid #bfdbfe',
+                          borderRadius: '8px',
+                          padding: '12px 16px',
+                          marginBottom: '20px',
                           display: 'flex',
-                          justifyContent: 'center',
+                          justifyContent: 'space-between',
                           alignItems: 'center',
-                          padding: '8px 0'
+                          flexWrap: 'wrap',
+                          gap: '12px'
                         }}>
-                          {/* Recruitment Poster Image Container */}
-                          <div style={{
-                            maxWidth: '720px',
-                            width: '100%',
-                            display: 'flex',
-                            justifyContent: 'center',
-                            alignItems: 'center',
-                            backgroundColor: '#f8fafc',
-                            borderRadius: '10px',
-                            border: '1px solid #e2e8f0',
-                            padding: '12px',
-                            boxShadow: 'none'
-                          }}>
-                            <img
-                              src={getMediaUrl(posterUrl)}
-                              alt={`Recruitment poster for ${fac.name}`}
-                              style={{
-                                width: '100%',
-                                height: 'auto',
-                                maxHeight: '900px',
-                                objectFit: 'contain',
-                                borderRadius: '8px',
-                                display: 'block'
-                              }}
-                              onError={(e) => {
-                                console.error('Failed to load poster image:', posterUrl);
-                                e.target.style.display = 'none';
-                              }}
-                            />
-                          </div>
+                          <span style={{ fontSize: '0.88rem', color: '#1e40af', fontWeight: 600 }}>
+                            🖼️ Official Recruitment Poster for {fac.name} is published under Vacancy Advertisements.
+                          </span>
+                          <button
+                            onClick={() => navigate('/advertisments')}
+                            style={{
+                              backgroundColor: '#1e40af',
+                              color: '#ffffff',
+                              border: 'none',
+                              padding: '6px 16px',
+                              borderRadius: '6px',
+                              fontSize: '0.82rem',
+                              fontWeight: 700,
+                              cursor: 'pointer'
+                            }}
+                          >
+                            View Poster on Advertisements &rarr;
+                          </button>
                         </div>
-                      ) : schoolJobs.length > 0 ? (
-                        /* ── PRIORITY 2: NO POSTER & VACANCIES EXIST ── */
+                      )}
+
+                      {schoolJobs.length > 0 ? (
+                        /* ── ACTIVE VACANCIES EXIST ── */
                         <>
                           <div style={{ marginBottom: '24px' }}>
                             <h4 style={{ color: '#111111', fontSize: '0.92rem', fontWeight: 800, margin: '0 0 16px 0', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
@@ -227,7 +223,7 @@ function TeachingPositions() {
                             </div>
                           </div>
 
-                          {/* Simple Clean Row: General Application (NO BOX, NO BORDER) */}
+                          {/* Simple Clean Row: General Application */}
                           <div style={{
                             display: 'flex',
                             justifyContent: 'space-between',

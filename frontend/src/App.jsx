@@ -13,6 +13,7 @@ import JobDetails from './pages/JobDetails';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import TrackApplication from './pages/TrackApplication';
+import Advertisments from './pages/Advertisments';
 
 // Applicant Pages
 import ApplicantDashboard from './pages/ApplicantDashboard';
@@ -98,6 +99,8 @@ function App() {
           <Route path="/apply/:jobId" element={<PublicLayout><ApplicationForm /></PublicLayout>} />
           <Route path="/teaching" element={<PublicLayout><TeachingPositions /></PublicLayout>} />
           <Route path="/non-teaching" element={<PublicLayout><NonTeachingPositions /></PublicLayout>} />
+          <Route path="/advertisments" element={<PublicLayout><Advertisments /></PublicLayout>} />
+          <Route path="/advertisements" element={<Navigate to="/advertisments" replace />} />
           <Route path="/jobs/:id" element={<PublicLayout><JobDetails /></PublicLayout>} />
           <Route path="/login" element={<PublicLayout><Login /></PublicLayout>} />
           <Route path="/register" element={<PublicLayout><Register /></PublicLayout>} />

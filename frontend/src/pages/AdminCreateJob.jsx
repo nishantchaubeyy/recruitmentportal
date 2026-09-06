@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
-import { apiRequest } from '../utils/api';
+import { apiRequest, getMediaUrl } from '../utils/api';
 
 function AdminCreateJob() {
   const { id } = useParams(); // If id exists, it's Edit mode
@@ -25,6 +25,7 @@ function AdminCreateJob() {
     description: '',
     eligibilityCriteria: '',
     requiredDocuments: 'CV/Resume, Educational Certificates, Experience Letters',
+    posterUrl: '',
     openingDate: new Date().toISOString().split('T')[0],
     deadline: '',
     status: 'DRAFT'
@@ -119,6 +120,7 @@ function AdminCreateJob() {
           description: data.description || '',
           eligibilityCriteria: data.eligibilityCriteria || '',
           requiredDocuments: data.requiredDocuments || '',
+          posterUrl: data.posterUrl || '',
           openingDate: data.openingDate ? data.openingDate.split('T')[0] : new Date().toISOString().split('T')[0],
           deadline: data.deadline ? data.deadline.split('T')[0] : '',
           status: data.status || 'DRAFT'
@@ -496,6 +498,114 @@ function AdminCreateJob() {
                   value={formData.requiredDocuments}
                   onChange={(e) => setFormData({ ...formData, requiredDocuments: e.target.value })}
                 />
+              </div>
+            </div>
+          </div>
+
+          {/* SECTION 4: RECRUITMENT POSTER CONFIGURATION */}
+          <div style={sectionBoxStyle}>
+            <h4 style={sectionTitleStyle}>4. Vacancy Advertisement Poster Configuration</h4>
+            <p style={{ fontSize: '0.85rem', color: '#64748b', margin: '-8px 0 16px 0' }}>
+              Configure a dedicated recruitment poster image for this vacancy. If left blank, the portal will automatically generate a dynamic HTML/CSS advertisement poster from the vacancy details above.
+            </p>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', alignItems: 'start' }}>
+              <div>
+                <div style={formGroupStyle}>
+                  <label style={labelStyle}>Poster Image URL or Path</label>
+                  <input
+                    type="text"
+                    placeholder="https://example.com/poster.png or /uploads/posters/vacancy-1.jpg"
+                    style={inputStyle}
+                    value={formData.posterUrl}
+                    onChange={(e) => setFormData({ ...formData, posterUrl: e.target.value })}
+                  />
+                  <span style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '4px', display: 'block' }}>
+                    Paste a direct image URL or select a local image file below.
+                  </span>
+                </div>
+
+                <div style={{ ...formGroupStyle, marginTop: '16px' }}>
+                  <label style={labelStyle}>Upload Poster Image File</label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        const reader = new FileReader();
+                        reader.onloadend = () => {
+                          setFormData((prev) => ({ ...prev, posterUrl: reader.result }));
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                    }}
+                    style={{ fontSize: '0.88rem', padding: '6px 0' }}
+                  />
+                </div>
+
+                {formData.posterUrl && (
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, posterUrl: '' })}
+                    style={{
+                      marginTop: '12px',
+                      backgroundColor: '#fef2f2',
+                      color: '#b91c1c',
+                      border: '1px solid #fecaca',
+                      padding: '6px 14px',
+                      borderRadius: '6px',
+                      fontSize: '0.82rem',
+                      fontWeight: 700,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Clear Poster Image (Use Generated Template)
+                  </button>
+                )}
+              </div>
+
+              {/* Live Preview Box */}
+              <div>
+                <label style={labelStyle}>Poster Preview</label>
+                <div
+                  style={{
+                    backgroundColor: '#ffffff',
+                    border: '1px solid #cbd5e1',
+                    borderRadius: '10px',
+                    padding: '16px',
+                    textAlign: 'center',
+                    minHeight: '180px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                >
+                  {formData.posterUrl ? (
+                    <div>
+                      <img
+                        src={getMediaUrl(formData.posterUrl)}
+                        alt="Poster Preview"
+                        style={{ maxHeight: '220px', maxWidth: '100%', objectFit: 'contain', borderRadius: '6px' }}
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                        }}
+                      />
+                      <div style={{ fontSize: '0.78rem', color: '#047857', fontWeight: 700, marginTop: '8px' }}>
+                        Custom Poster Image Active
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{ color: '#94a3b8', fontSize: '0.85rem' }}>
+                      <div style={{ fontSize: '1.8rem', marginBottom: '4px' }}>📜</div>
+                      <strong>No Custom Poster Uploaded</strong>
+                      <p style={{ margin: '4px 0 0', fontSize: '0.78rem' }}>
+                        The portal will render the auto-generated recruitment poster template.
+                      </p>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
