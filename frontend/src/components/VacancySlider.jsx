@@ -82,7 +82,7 @@ function VacancySlider() {
       <div className="container" style={{ maxWidth: '1200px', padding: '0 24px', margin: '0 auto' }}>
         
         {/* 🎯 CENTER-ALIGNED SECTION HEADER */}
-        <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+        <div style={{ textAlign: 'center', marginBottom: '28px' }}>
           <h2 style={{
             margin: 0,
             color: '#0f172a',
@@ -92,11 +92,8 @@ function VacancySlider() {
             textTransform: 'uppercase',
             lineHeight: 1.15
           }}>
-            RECRUITMENT ADVERTISEMENTS
+            RECRUITMENTS
           </h2>
-          <p style={{ margin: '8px 0 0 0', color: '#64748b', fontSize: '1rem', fontWeight: 500 }}>
-            Explore active recruitment notices and official vacancy announcements
-          </p>
         </div>
 
         {/* Loading State */}
