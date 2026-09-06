@@ -9,29 +9,35 @@ cd "$PROJECT_DIR"
 
 # 2. Check backend environment configuration
 if [ ! -f "$PROJECT_DIR/backend/.env" ]; then
-    echo "⚠️ Warning: backend/.env not found! Copying backend/.env.example if available..."
+    echo "⚠️ Warning: backend/.env not found! Copying backend/.env.example..."
     if [ -f "$PROJECT_DIR/backend/.env.example" ]; then
         cp "$PROJECT_DIR/backend/.env.example" "$PROJECT_DIR/backend/.env"
     fi
 fi
 
-# 3. Install Root, Backend, and Frontend Dependencies
+# 3. Install Root, Backend, and Frontend Dependencies (include devDependencies for build tools like Vite)
 echo "📦 Installing root dependencies..."
-npm install --no-audit --no-fund
+npm install --include=dev --no-audit --no-fund
 
 echo "📦 Installing backend dependencies..."
 cd "$PROJECT_DIR/backend"
-npm install --no-audit --no-fund
+npm install --include=dev --no-audit --no-fund
 
 echo "📦 Installing frontend dependencies..."
 cd "$PROJECT_DIR/frontend"
-npm install --no-audit --no-fund
+npm install --include=dev --no-audit --no-fund
 
-# 4. Generate Prisma Client & Push Database Schema
+# 4. Generate Prisma Client & Sync Database Schema
 echo "🗄️ Generating Prisma Client & Syncing Database Schema..."
 cd "$PROJECT_DIR/backend"
 npx prisma generate --schema=../prisma/schema.prisma || true
-npx prisma db push --schema=../prisma/schema.prisma --skip-generate || true
+
+# Try database sync; if DB is offline, print helpful warning rather than stopping build
+if npx prisma db push --schema=../prisma/schema.prisma --skip-generate; then
+    echo "✅ Database schema synced successfully."
+else
+    echo "⚠️ Warning: Could not connect to PostgreSQL database. Please ensure PostgreSQL service is running on Ubuntu ('sudo systemctl start postgresql')."
+fi
 
 # 5. Build Frontend SPA for Production
 echo "🏗️ Building Frontend React Application..."
