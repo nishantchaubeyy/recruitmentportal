@@ -47,10 +47,24 @@ async function apiRequest(endpoint, options = {}) {
     throw new Error('Session expired. Please log in again.');
   }
 
-  const data = await response.json();
+  const contentType = response.headers.get('content-type') || '';
+  let data;
+  if (contentType.includes('application/json')) {
+    data = await response.json();
+  } else {
+    const text = await response.text();
+    if (!response.ok) {
+      throw new Error(`Server API Error (${response.status}: ${response.statusText}). Please check server logs.`);
+    }
+    try {
+      data = JSON.parse(text);
+    } catch {
+      data = text;
+    }
+  }
 
   if (!response.ok) {
-    throw new Error(data.error || 'An error occurred. Please try again.');
+    throw new Error(typeof data === 'object' && data.error ? data.error : `Request failed with status ${response.status}`);
   }
 
   return data;

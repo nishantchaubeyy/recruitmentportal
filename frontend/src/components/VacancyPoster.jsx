@@ -136,25 +136,6 @@ const VacancyPoster = ({ job, school, style = {} }) => {
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  navigate(isTeaching ? '/teaching' : '/non-teaching');
-                }}
-                style={{
-                  backgroundColor: 'transparent',
-                  color: '#ffffff',
-                  border: '1px solid #94a3b8',
-                  padding: '10px 18px',
-                  borderRadius: '8px',
-                  fontWeight: 600,
-                  fontSize: '0.9rem',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease'
-                }}
-              >
-                View Positions List
-              </button>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
                   navigate(`/apply?faculty=${encodeURIComponent(school.name)}&type=${school.type}`);
                 }}
                 style={{
@@ -330,22 +311,6 @@ const VacancyPoster = ({ job, school, style = {} }) => {
             </div>
             <div style={{ display: 'flex', gap: '12px' }}>
               <button
-                onClick={handleDetailsClick}
-                style={{
-                  backgroundColor: 'transparent',
-                  color: '#ffffff',
-                  border: '1px solid #94a3b8',
-                  padding: '10px 18px',
-                  borderRadius: '8px',
-                  fontWeight: 600,
-                  fontSize: '0.9rem',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease'
-                }}
-              >
-                View Details
-              </button>
-              <button
                 onClick={handleApplyClick}
                 style={{
                   backgroundColor: '#d97706',
@@ -508,23 +473,6 @@ const VacancyPoster = ({ job, school, style = {} }) => {
             </div>
 
             <div style={{ display: 'flex', gap: '12px' }}>
-              <button
-                onClick={handleDetailsClick}
-                style={{
-                  backgroundColor: '#ffffff',
-                  color: '#0f2b5c',
-                  border: '1.5px solid #0f2b5c',
-                  padding: '10px 20px',
-                  borderRadius: '8px',
-                  fontWeight: 700,
-                  fontSize: '0.9rem',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease'
-                }}
-              >
-                View Details
-              </button>
-
               <button
                 onClick={handleApplyClick}
                 style={{
