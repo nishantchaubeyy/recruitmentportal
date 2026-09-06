@@ -9,7 +9,6 @@ function VacancySlider() {
   const [vacancies, setVacancies] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [activeTab, setActiveTab] = useState('ALL');
 
   // Slider reference and state
   const sliderRef = useRef(null);
@@ -37,11 +36,6 @@ function VacancySlider() {
       setLoading(false);
     }
   };
-
-  const filteredVacancies = vacancies.filter((job) => {
-    if (activeTab === 'ALL') return true;
-    return job.type === activeTab;
-  });
 
   const checkScroll = () => {
     if (!sliderRef.current) return;
@@ -81,165 +75,41 @@ function VacancySlider() {
 
   useEffect(() => {
     checkScroll();
-  }, [filteredVacancies]);
+  }, [vacancies]);
 
   return (
     <section style={{ backgroundColor: '#f8fafc', padding: '64px 0 64px' }}>
       <div className="container" style={{ maxWidth: '1200px', padding: '0 24px', margin: '0 auto' }}>
         
         {/* 🎯 CENTER-ALIGNED SECTION HEADER */}
-        <div style={{ textAlign: 'center', marginBottom: '28px' }}>
+        <div style={{ textAlign: 'center', marginBottom: '24px' }}>
           <h2 style={{
             margin: 0,
             color: '#0f172a',
-            fontSize: 'clamp(2rem, 4.5vw, 2.75rem)',
+            fontSize: 'clamp(1.8rem, 4vw, 2.5rem)',
             fontWeight: 900,
             letterSpacing: '0.5px',
             textTransform: 'uppercase',
             lineHeight: 1.15
           }}>
-            VACANCIES OPENED
+            RECRUITMENT ADVERTISEMENTS
           </h2>
-
-          {/* Filter Tabs & Carousel Navigation Controls */}
-          {vacancies.length > 0 && (
-            <div style={{
-              display: 'flex',
-              flexWrap: 'wrap',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: '16px',
-              marginTop: '28px'
-            }}>
-              {/* Filter Tabs */}
-              <div style={{
-                display: 'inline-flex',
-                gap: '6px',
-                backgroundColor: '#ffffff',
-                padding: '5px',
-                borderRadius: '12px',
-                border: '1px solid #cbd5e1',
-                boxShadow: '0 2px 6px rgba(15,23,42,0.04)'
-              }}>
-                <button
-                  onClick={() => setActiveTab('ALL')}
-                  style={{
-                    padding: '8px 20px',
-                    borderRadius: '8px',
-                    fontSize: '0.88rem',
-                    fontWeight: 700,
-                    border: 'none',
-                    cursor: 'pointer',
-                    backgroundColor: activeTab === 'ALL' ? '#0f2b5c' : 'transparent',
-                    color: activeTab === 'ALL' ? '#ffffff' : '#64748b',
-                    transition: 'all 0.2s ease'
-                  }}
-                >
-                  All Posters ({vacancies.length})
-                </button>
-
-                <button
-                  onClick={() => setActiveTab('TEACHING')}
-                  style={{
-                    padding: '8px 20px',
-                    borderRadius: '8px',
-                    fontSize: '0.88rem',
-                    fontWeight: 700,
-                    border: 'none',
-                    cursor: 'pointer',
-                    backgroundColor: activeTab === 'TEACHING' ? '#0f2b5c' : 'transparent',
-                    color: activeTab === 'TEACHING' ? '#ffffff' : '#64748b',
-                    transition: 'all 0.2s ease'
-                  }}
-                >
-                  Teaching ({vacancies.filter(v => v.type === 'TEACHING').length})
-                </button>
-
-                <button
-                  onClick={() => setActiveTab('NON_TEACHING')}
-                  style={{
-                    padding: '8px 20px',
-                    borderRadius: '8px',
-                    fontSize: '0.88rem',
-                    fontWeight: 700,
-                    border: 'none',
-                    cursor: 'pointer',
-                    backgroundColor: activeTab === 'NON_TEACHING' ? '#0f2b5c' : 'transparent',
-                    color: activeTab === 'NON_TEACHING' ? '#ffffff' : '#64748b',
-                    transition: 'all 0.2s ease'
-                  }}
-                >
-                  Non-Teaching ({vacancies.filter(v => v.type === 'NON_TEACHING').length})
-                </button>
-              </div>
-
-              {/* Slider Prev / Next Arrow Controls */}
-              {filteredVacancies.length > 1 && (
-                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                  <button
-                    onClick={slideLeft}
-                    disabled={!canScrollLeft}
-                    aria-label="Previous Poster"
-                    style={{
-                      width: '44px',
-                      height: '44px',
-                      borderRadius: '50%',
-                      border: '1px solid #cbd5e1',
-                      backgroundColor: '#ffffff',
-                      color: canScrollLeft ? '#0f172a' : '#cbd5e1',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      cursor: canScrollLeft ? 'pointer' : 'default',
-                      boxShadow: canScrollLeft ? '0 4px 12px rgba(15,23,42,0.1)' : 'none',
-                      transition: 'all 0.2s ease'
-                    }}
-                  >
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="15 18 9 12 15 6"></polyline>
-                    </svg>
-                  </button>
-
-                  <button
-                    onClick={slideRight}
-                    disabled={!canScrollRight}
-                    aria-label="Next Poster"
-                    style={{
-                      width: '44px',
-                      height: '44px',
-                      borderRadius: '50%',
-                      border: '1px solid #cbd5e1',
-                      backgroundColor: '#ffffff',
-                      color: canScrollRight ? '#0f172a' : '#cbd5e1',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      cursor: canScrollRight ? 'pointer' : 'default',
-                      boxShadow: canScrollRight ? '0 4px 12px rgba(15,23,42,0.1)' : 'none',
-                      transition: 'all 0.2s ease'
-                    }}
-                  >
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="9 18 15 12 9 6"></polyline>
-                    </svg>
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
+          <p style={{ margin: '8px 0 0 0', color: '#64748b', fontSize: '1rem', fontWeight: 500 }}>
+            Explore active recruitment notices and official vacancy announcements
+          </p>
         </div>
 
         {/* Loading State */}
         {loading ? (
           <div style={{ textAlign: 'center', padding: '64px 0', color: '#64748b' }}>
             <div className="spinner" style={{ margin: '0 auto 12px auto' }}></div>
-            <p style={{ fontWeight: 600, fontSize: '0.95rem' }}>Loading active recruitment advertisement posters...</p>
+            <p style={{ fontWeight: 600, fontSize: '0.95rem' }}>Loading active recruitment advertisements...</p>
           </div>
         ) : error ? (
           <div style={{ backgroundColor: '#fef2f2', border: '1px solid #fecaca', padding: '16px 20px', borderRadius: '12px', color: '#b91c1c', fontSize: '0.9rem', textAlign: 'center' }}>
             Failed to load active vacancies: {error}
           </div>
-        ) : filteredVacancies.length === 0 ? (
+        ) : vacancies.length === 0 ? (
           /* Empty State Card */
           <div style={{
             backgroundColor: '#ffffff',
@@ -251,7 +121,7 @@ function VacancySlider() {
             margin: '0 auto'
           }}>
             <h3 style={{ margin: '0 0 8px 0', color: '#0f172a', fontSize: '1.15rem', fontWeight: 800 }}>
-              No recruitment advertisements currently available for this category.
+              No recruitment advertisements currently available.
             </h3>
             <p style={{ color: '#64748b', fontSize: '0.9rem', marginBottom: '22px' }}>
               Would you like us to notify you as soon as new positions open up?
@@ -274,8 +144,73 @@ function VacancySlider() {
             </button>
           </div>
         ) : (
-          /* 🎠 HERO POSTER SLIDER TRACK */
-          <div style={{ position: 'relative', marginTop: '16px' }}>
+          /* 🎠 HERO POSTER SLIDER TRACK WITH FLOATING CONTROLS */
+          <div style={{ position: 'relative', marginTop: '24px' }}>
+            {/* Slider Navigation Arrows (Left / Right) */}
+            {vacancies.length > 1 && (
+              <>
+                <button
+                  onClick={slideLeft}
+                  disabled={!canScrollLeft}
+                  aria-label="Previous Poster"
+                  style={{
+                    position: 'absolute',
+                    left: '-18px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    zIndex: 10,
+                    width: '46px',
+                    height: '46px',
+                    borderRadius: '50%',
+                    border: '1px solid #cbd5e1',
+                    backgroundColor: '#ffffff',
+                    color: canScrollLeft ? '#0f172a' : '#cbd5e1',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: canScrollLeft ? 'pointer' : 'default',
+                    boxShadow: canScrollLeft ? '0 4px 14px rgba(15,23,42,0.15)' : 'none',
+                    transition: 'all 0.2s ease',
+                    opacity: canScrollLeft ? 1 : 0.4
+                  }}
+                >
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="15 18 9 12 15 6"></polyline>
+                  </svg>
+                </button>
+
+                <button
+                  onClick={slideRight}
+                  disabled={!canScrollRight}
+                  aria-label="Next Poster"
+                  style={{
+                    position: 'absolute',
+                    right: '-18px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    zIndex: 10,
+                    width: '46px',
+                    height: '46px',
+                    borderRadius: '50%',
+                    border: '1px solid #cbd5e1',
+                    backgroundColor: '#ffffff',
+                    color: canScrollRight ? '#0f172a' : '#cbd5e1',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: canScrollRight ? 'pointer' : 'default',
+                    boxShadow: canScrollRight ? '0 4px 14px rgba(15,23,42,0.15)' : 'none',
+                    transition: 'all 0.2s ease',
+                    opacity: canScrollRight ? 1 : 0.4
+                  }}
+                >
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                  </svg>
+                </button>
+              </>
+            )}
+
             <div
               ref={sliderRef}
               onScroll={checkScroll}
@@ -285,13 +220,13 @@ function VacancySlider() {
                 overflowX: 'auto',
                 scrollSnapType: 'x mandatory',
                 scrollBehavior: 'smooth',
-                padding: '16px 8px 32px',
+                padding: '12px 4px 24px',
                 scrollbarWidth: 'none',
                 msOverflowStyle: 'none'
               }}
               className="vacancy-poster-track"
             >
-              {filteredVacancies.map((job) => (
+              {vacancies.map((job) => (
                 <div
                   key={job.id}
                   style={{
@@ -307,9 +242,9 @@ function VacancySlider() {
             </div>
 
             {/* Slider Dots Indicator */}
-            {filteredVacancies.length > 1 && (
+            {vacancies.length > 1 && (
               <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginTop: '12px' }}>
-                {filteredVacancies.map((_, i) => (
+                {vacancies.map((_, i) => (
                   <button
                     key={i}
                     onClick={() => scrollToIndex(i)}
@@ -331,8 +266,8 @@ function VacancySlider() {
           </div>
         )}
 
-        {/* 🔻 SECTION FOOTER BUTTON: View All Openings → navigates to /advertisments */}
-        <div style={{ textAlign: 'center', marginTop: '40px' }}>
+        {/* 🔻 SECTION FOOTER BUTTON: View All Advertisements → */}
+        <div style={{ textAlign: 'center', marginTop: '36px' }}>
           <button
             onClick={() => navigate('/advertisments')}
             style={{
