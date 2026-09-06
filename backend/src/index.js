@@ -122,8 +122,6 @@ app.use((err, req, res, next) => {
     error: err.message || 'An internal server error occurred.'
   });
 });
-  });
-});
 
 // Server Initialization (Only listen when running directly, not on Vercel)
 if (process.env.NODE_ENV !== 'test' && !process.env.VERCEL) {

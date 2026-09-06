@@ -12,10 +12,19 @@ const fileFilter = (req, file, cb) => {
   }
 };
 
+// Multer upload middleware configuration for PDF application attachments (Max size: 10MB)
+const upload = multer({
+  storage: storage,
+  fileFilter: fileFilter,
+  limits: {
+    fileSize: 10 * 1024 * 1024 // 10 MB in bytes
+  }
+});
+
 // File filter to restrict uploads to image files (JPEG, JPG, PNG, WebP)
 const imageFileFilter = (req, file, cb) => {
   const allowedMimeTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
-  if (allowedMimeTypes.includes(file.mimetype.toLowerCase())) {
+  if (allowedMimeTypes.includes(file.mimetype?.toLowerCase() || '')) {
     cb(null, true);
   } else {
     cb(new Error('Only JPEG, JPG, PNG, and WebP image files are accepted.'), false);
@@ -34,4 +43,3 @@ const imageUpload = multer({
 module.exports = upload;
 module.exports.upload = upload;
 module.exports.imageUpload = imageUpload;
-
