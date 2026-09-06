@@ -1,0 +1,28 @@
+name: Deploy DYPIU Recruitment Portal to Ubuntu Server
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    name: Build & Deploy on Self-Hosted Ubuntu Runner
+    runs-on: self-hosted
+
+    steps:
+      - name: 1. Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 2. Setup Node.js environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: 'npm'
+
+      - name: 3. Make deploy script executable & run deployment
+        env:
+          NODE_ENV: production
+        run: |
+          chmod +x ./deploy.sh
+          ./deploy.sh
