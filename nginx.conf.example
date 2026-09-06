@@ -1,6 +1,6 @@
 # Nginx Virtual Host Configuration for DYPIU Recruitment Portal
 # File location on Ubuntu: /etc/nginx/sites-available/recruitment-portal
-# Link to active sites: sudo ln -s /etc/nginx/sites-available/recruitment-portal /etc/nginx/sites-enabled/
+# Link to active sites: sudo ln -sf /etc/nginx/sites-available/recruitment-portal /etc/nginx/sites-enabled/
 
 server {
     listen 80;
@@ -28,13 +28,7 @@ server {
         alias /var/www/recruitment-portal/uploads/;
         expires 30d;
         add_header Cache-Control "public, no-transform";
-        try_files $uri @backend_uploads;
-    }
-
-    location @backend_uploads {
-        proxy_pass http://127.0.0.1:5000/uploads/;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
+        try_files $uri @backend;
     }
 
     # 3. Backend Express API Proxy
@@ -48,6 +42,15 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_cache_bypass $http_upgrade;
+    }
+
+    # 4. Fallback Backend Proxy (Named location must NOT contain trailing URI path)
+    location @backend {
+        proxy_pass http://127.0.0.1:5000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
     }
 
     # Custom Error Pages
