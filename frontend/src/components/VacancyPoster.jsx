@@ -6,7 +6,7 @@ import { getMediaUrl } from '../utils/api';
  * VacancyPoster Component
  * Displays either:
  * 1. A School/Faculty poster (if `school` prop is passed)
- * 2. An uploaded job poster image (job.posterUrl) or an auto-generated HTML/CSS recruitment advertisement poster.
+ * 2. An uploaded job poster image (job.posterUrl) or a clean dossier-style (resume/application form format) recruitment advertisement.
  */
 const VacancyPoster = ({ job, school, style = {} }) => {
   const navigate = useNavigate();
@@ -219,9 +219,9 @@ const VacancyPoster = ({ job, school, style = {} }) => {
         margin: '0 auto',
         borderRadius: '16px',
         overflow: 'hidden',
-        boxShadow: '0 12px 36px rgba(15, 23, 42, 0.15), 0 2px 8px rgba(15, 23, 42, 0.08)',
+        boxShadow: '0 12px 36px rgba(15, 23, 42, 0.12), 0 2px 8px rgba(15, 23, 42, 0.06)',
         backgroundColor: '#ffffff',
-        border: '1px solid #e2e8f0',
+        border: '1px solid #cbd5e1',
         display: 'flex',
         flexDirection: 'column',
         position: 'relative',
@@ -229,54 +229,54 @@ const VacancyPoster = ({ job, school, style = {} }) => {
         ...style
       }}
     >
-      {/* Top Header Badge / Strip */}
-      <div
-        style={{
-          background: 'linear-gradient(135deg, #0f2b5c 0%, #1e3a8a 100%)',
-          color: '#ffffff',
-          padding: '12px 24px',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          borderBottom: '3px solid #d97706'
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <span
-            style={{
-              fontSize: '0.75rem',
-              fontWeight: 800,
-              letterSpacing: '1px',
-              textTransform: 'uppercase',
-              backgroundColor: isTeaching ? '#3b82f6' : '#10b981',
-              color: '#ffffff',
-              padding: '4px 10px',
-              borderRadius: '20px'
-            }}
-          >
-            {isTeaching ? 'Teaching Faculty' : 'Non-Teaching Staff'}
-          </span>
-          <span style={{ fontSize: '0.85rem', color: '#e2e8f0', fontWeight: 600 }}>
-            DYPATIL INTERNATIONAL UNIVERSITY, PUNE
-          </span>
-        </div>
-        <span
-          style={{
-            fontSize: '0.8rem',
-            fontWeight: 700,
-            backgroundColor: 'rgba(255, 255, 255, 0.15)',
-            padding: '4px 12px',
-            borderRadius: '6px',
-            letterSpacing: '0.5px'
-          }}
-        >
-          {job.vacancyNumber || `VAC-${job.id?.slice(0, 6)}`}
-        </span>
-      </div>
-
       {/* If Uploaded Poster Image Exists */}
       {posterImgSrc ? (
         <div style={{ position: 'relative', backgroundColor: '#0f172a', flex: 1, display: 'flex', flexDirection: 'column' }}>
+          {/* Top Header Badge */}
+          <div
+            style={{
+              background: 'linear-gradient(135deg, #0f2b5c 0%, #1e3a8a 100%)',
+              color: '#ffffff',
+              padding: '12px 24px',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              borderBottom: '3px solid #d97706'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span
+                style={{
+                  fontSize: '0.75rem',
+                  fontWeight: 800,
+                  letterSpacing: '1px',
+                  textTransform: 'uppercase',
+                  backgroundColor: isTeaching ? '#3b82f6' : '#10b981',
+                  color: '#ffffff',
+                  padding: '4px 10px',
+                  borderRadius: '20px'
+                }}
+              >
+                {isTeaching ? 'Teaching Faculty' : 'Non-Teaching Staff'}
+              </span>
+              <span style={{ fontSize: '0.85rem', color: '#e2e8f0', fontWeight: 600 }}>
+                DYPATIL INTERNATIONAL UNIVERSITY, PUNE
+              </span>
+            </div>
+            <span
+              style={{
+                fontSize: '0.8rem',
+                fontWeight: 700,
+                backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                padding: '4px 12px',
+                borderRadius: '6px',
+                letterSpacing: '0.5px'
+              }}
+            >
+              {job.vacancyNumber || `VAC-${job.id?.slice(0, 6)}`}
+            </span>
+          </div>
+
           <div
             style={{
               position: 'relative',
@@ -366,200 +366,131 @@ const VacancyPoster = ({ job, school, style = {} }) => {
           </div>
         </div>
       ) : (
-        /* Generated HTML/CSS Recruitment Poster Template */
-        <div style={{ padding: '28px 32px', display: 'flex', flexDirection: 'column', flex: 1, backgroundColor: '#f8fafc' }}>
-          {/* Institution Header */}
-          <div
-            style={{
-              textAlign: 'center',
-              borderBottom: '2px dashed #cbd5e1',
-              paddingBottom: '20px',
-              marginBottom: '24px'
-            }}
-          >
-            <div
-              style={{
-                fontSize: '0.85rem',
-                fontWeight: 800,
-                color: '#d97706',
-                letterSpacing: '2px',
-                textTransform: 'uppercase',
-                marginBottom: '4px'
-              }}
-            >
-              ★ Official Recruitment Announcement ★
-            </div>
-            <h2
-              style={{
-                margin: 0,
-                color: '#0f2b5c',
-                fontSize: 'clamp(1.5rem, 3.5vw, 2.2rem)',
-                fontWeight: 900,
-                letterSpacing: '-0.5px',
-                lineHeight: 1.2
-              }}
-            >
-              {job.position}
-            </h2>
-            <div style={{ marginTop: '8px', fontSize: '1rem', color: '#475569', fontWeight: 600 }}>
-              {job.department || job.school?.name || 'D Y Patil International University, Akurdi, Pune'}
-            </div>
-          </div>
+        /* Generated Dossier-Style Recruitment Advertisement Poster (Resume / Application Form Format) */
+        <div style={{ padding: '36px 40px', display: 'flex', flexDirection: 'column', flex: 1, backgroundColor: '#ffffff' }}>
+          {/* Header Section: Logo on Top Left + Document Title */}
+          <div style={{ borderBottom: '2px solid #111111', paddingBottom: '16px', marginBottom: '20px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px', marginBottom: '14px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <img
+                  src="/logo.dypiu.png"
+                  alt="DYPIU Logo"
+                  style={{ height: '54px', width: 'auto', objectFit: 'contain' }}
+                  onError={(e) => {
+                    e.target.style.display = 'none';
+                  }}
+                />
+                <div>
+                  <h2 style={{ margin: 0, fontSize: '1.35rem', fontWeight: 900, color: '#0f172a', letterSpacing: '-0.3px', textTransform: 'uppercase' }}>
+                    RECRUITMENT ADVERTISEMENT
+                  </h2>
+                  <div style={{ fontSize: '0.92rem', fontWeight: 600, color: '#334155', marginTop: '2px' }}>
+                    D Y Patil International University, Akurdi, Pune
+                  </div>
+                </div>
+              </div>
 
-          {/* Key Vacancy Details Grid */}
-          <div
-            style={{
+              <div style={{ textAlign: 'right', fontSize: '0.88rem', color: '#1e293b' }}>
+                <div><strong>Vacancy Ref:</strong> {job.vacancyNumber || `VAC-${job.id?.slice(0, 6)}`}</div>
+                <div style={{ marginTop: '3px' }}><strong>Category:</strong> {isTeaching ? 'Teaching Faculty' : 'Non-Teaching Staff'}</div>
+              </div>
+            </div>
+
+            <div style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-              gap: '16px',
-              marginBottom: '24px'
-            }}
-          >
-            <div
-              style={{
-                backgroundColor: '#ffffff',
-                padding: '14px 18px',
-                borderRadius: '10px',
-                border: '1px solid #e2e8f0',
-                borderLeft: '4px solid #0f2b5c'
-              }}
-            >
-              <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>
-                Positions / Openings
-              </div>
-              <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>
-                {job.numPositions ? `${job.numPositions} Opening${job.numPositions > 1 ? 's' : ''}` : 'Multiple'}
-              </div>
-            </div>
-
-            <div
-              style={{
-                backgroundColor: '#ffffff',
-                padding: '14px 18px',
-                borderRadius: '10px',
-                border: '1px solid #e2e8f0',
-                borderLeft: '4px solid #3b82f6'
-              }}
-            >
-              <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>
-                Employment Type
-              </div>
-              <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>
-                {job.employmentType || 'Full Time'}
-              </div>
-            </div>
-
-            <div
-              style={{
-                backgroundColor: '#ffffff',
-                padding: '14px 18px',
-                borderRadius: '10px',
-                border: '1px solid #e2e8f0',
-                borderLeft: '4px solid #10b981'
-              }}
-            >
-              <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>
-                Location
-              </div>
-              <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>
-                {job.location || 'Akurdi, Pune'}
-              </div>
-            </div>
-
-            <div
-              style={{
-                backgroundColor: '#ffffff',
-                padding: '14px 18px',
-                borderRadius: '10px',
-                border: '1px solid #e2e8f0',
-                borderLeft: '4px solid #ef4444'
-              }}
-            >
-              <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>
-                Application Deadline
-              </div>
-              <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#dc2626', marginTop: '2px' }}>
-                {formatDate(job.deadline)}
-              </div>
-            </div>
-          </div>
-
-          {/* Qualification & Experience Section */}
-          <div
-            style={{
-              backgroundColor: '#ffffff',
-              borderRadius: '12px',
-              padding: '20px',
-              border: '1px solid #e2e8f0',
-              marginBottom: '24px'
-            }}
-          >
-            <div style={{ marginBottom: '14px' }}>
-              <span
-                style={{
-                  fontSize: '0.8rem',
-                  fontWeight: 800,
-                  color: '#0f2b5c',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.5px',
-                  display: 'inline-block',
-                  borderBottom: '2px solid #d97706',
-                  paddingBottom: '2px'
-                }}
-              >
-                Required Qualifications & Eligibility
-              </span>
-              <p style={{ margin: '8px 0 0', color: '#334155', fontSize: '0.95rem', lineHeight: '1.5' }}>
-                {job.qualification || 'As per UGC / University AICTE norms.'}
-              </p>
-            </div>
-
-            {job.experience && (
-              <div style={{ marginBottom: '14px' }}>
-                <span
-                  style={{
-                    fontSize: '0.8rem',
-                    fontWeight: 800,
-                    color: '#0f2b5c',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px',
-                    display: 'inline-block',
-                    borderBottom: '2px solid #d97706',
-                    paddingBottom: '2px'
-                  }}
-                >
-                  Experience
-                </span>
-                <p style={{ margin: '8px 0 0', color: '#334155', fontSize: '0.95rem', lineHeight: '1.5' }}>
-                  {job.experience}
-                </p>
-              </div>
-            )}
-
-            {job.requiredDocuments && (
+              gridTemplateColumns: '1.5fr 1fr',
+              gap: '12px',
+              fontSize: '0.92rem',
+              color: '#111111',
+              paddingTop: '12px',
+              borderTop: '1px solid #e2e8f0'
+            }}>
               <div>
-                <span
-                  style={{
-                    fontSize: '0.8rem',
-                    fontWeight: 800,
-                    color: '#0f2b5c',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px',
-                    display: 'inline-block',
-                    borderBottom: '2px solid #d97706',
-                    paddingBottom: '2px'
-                  }}
-                >
-                  Required Documents
-                </span>
-                <p style={{ margin: '8px 0 0', color: '#475569', fontSize: '0.9rem', lineHeight: '1.5' }}>
-                  {job.requiredDocuments}
-                </p>
+                <div><strong>Department / School:</strong> {job.department || job.school?.name || 'DYPIU Campus'}</div>
+                <div style={{ marginTop: '4px' }}><strong>Post Title:</strong> <span style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0f2b5c' }}>{job.position}</span></div>
               </div>
-            )}
+              <div style={{ textAlign: 'right' }}>
+                <div><strong>Opening Date:</strong> {formatDate(job.openingDate)}</div>
+                <div style={{ marginTop: '4px', color: '#dc2626' }}><strong>Application Deadline:</strong> <strong>{formatDate(job.deadline)}</strong></div>
+              </div>
+            </div>
           </div>
 
-          {/* Bottom Action Footer */}
+          {/* 01. VACANCY DETAILS & TERMS */}
+          <div style={{ marginBottom: '22px' }}>
+            <div style={{ fontSize: '0.95rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.5px', color: '#0f172a', marginBottom: '6px' }}>
+              01. POSITION DETAILS & TERMS
+            </div>
+            <div style={{ borderTop: '1.5px solid #111111', paddingTop: '10px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px 16px', fontSize: '0.9rem' }}>
+                <div>
+                  <span style={{ color: '#64748b', display: 'block', fontSize: '0.78rem', textTransform: 'uppercase', fontWeight: 700 }}>Number of Openings</span>
+                  <strong style={{ fontSize: '1rem', color: '#0f172a' }}>{job.numPositions ? `${job.numPositions} Opening${job.numPositions > 1 ? 's' : ''}` : 'Multiple'}</strong>
+                </div>
+                <div>
+                  <span style={{ color: '#64748b', display: 'block', fontSize: '0.78rem', textTransform: 'uppercase', fontWeight: 700 }}>Employment Type</span>
+                  <strong style={{ fontSize: '1rem', color: '#0f172a' }}>{job.employmentType || 'Full Time'}</strong>
+                </div>
+                <div>
+                  <span style={{ color: '#64748b', display: 'block', fontSize: '0.78rem', textTransform: 'uppercase', fontWeight: 700 }}>Job Location</span>
+                  <strong style={{ fontSize: '1rem', color: '#0f172a' }}>{job.location || 'Akurdi, Pune'}</strong>
+                </div>
+                <div>
+                  <span style={{ color: '#64748b', display: 'block', fontSize: '0.78rem', textTransform: 'uppercase', fontWeight: 700 }}>Salary / Pay Scale</span>
+                  <strong style={{ fontSize: '0.95rem', color: '#047857' }}>{job.salaryScale || 'As per UGC / University Norms'}</strong>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 02. REQUIRED QUALIFICATIONS & ELIGIBILITY */}
+          <div style={{ marginBottom: '22px' }}>
+            <div style={{ fontSize: '0.95rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.5px', color: '#0f172a', marginBottom: '6px' }}>
+              02. REQUIRED QUALIFICATIONS & ELIGIBILITY
+            </div>
+            <div style={{ borderTop: '1.5px solid #111111', paddingTop: '10px' }}>
+              <div style={{ fontSize: '0.92rem', color: '#1e293b', lineHeight: 1.6 }}>
+                <div><strong>Qualification:</strong> {job.qualification || 'As per UGC / AICTE / University norms.'}</div>
+                {job.eligibilityCriteria && (
+                  <div style={{ marginTop: '8px' }}><strong>Eligibility Criteria:</strong> {job.eligibilityCriteria}</div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* 03. EXPERIENCE & RESPONSIBILITIES */}
+          <div style={{ marginBottom: '22px' }}>
+            <div style={{ fontSize: '0.95rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.5px', color: '#0f172a', marginBottom: '6px' }}>
+              03. EXPERIENCE & DUTIES
+            </div>
+            <div style={{ borderTop: '1.5px solid #111111', paddingTop: '10px' }}>
+              <div style={{ fontSize: '0.92rem', color: '#1e293b', lineHeight: 1.6 }}>
+                {job.experience && (
+                  <div><strong>Required Experience:</strong> {job.experience}</div>
+                )}
+                {job.skills && (
+                  <div style={{ marginTop: '6px' }}><strong>Skills & Competencies:</strong> {job.skills}</div>
+                )}
+                {job.description && (
+                  <div style={{ marginTop: '8px' }}><strong>Description & Key Duties:</strong> {job.description}</div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* 04. REQUIRED DOCUMENTS & INSTRUCTIONS */}
+          <div style={{ marginBottom: '24px' }}>
+            <div style={{ fontSize: '0.95rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.5px', color: '#0f172a', marginBottom: '6px' }}>
+              04. REQUIRED DOCUMENTS & INSTRUCTIONS
+            </div>
+            <div style={{ borderTop: '1.5px solid #111111', paddingTop: '10px' }}>
+              <div style={{ fontSize: '0.9rem', color: '#334155', lineHeight: 1.5 }}>
+                {job.requiredDocuments || 'CV/Resume, Educational Certificates, Experience Letters, ID Proof'}
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom Action Bar */}
           <div
             style={{
               marginTop: 'auto',
@@ -568,12 +499,12 @@ const VacancyPoster = ({ job, school, style = {} }) => {
               justifyContent: 'space-between',
               alignItems: 'center',
               gap: '16px',
-              paddingTop: '16px',
-              borderTop: '1px solid #cbd5e1'
+              paddingTop: '18px',
+              borderTop: '2px solid #111111'
             }}
           >
-            <div style={{ fontSize: '0.85rem', color: '#64748b' }}>
-              Interested candidates should apply online prior to the specified deadline.
+            <div style={{ fontSize: '0.85rem', color: '#475569', fontWeight: 600 }}>
+              Official DYPIU Recruitment Notice. Interested candidates must submit their application prior to the deadline.
             </div>
 
             <div style={{ display: 'flex', gap: '12px' }}>
@@ -591,7 +522,7 @@ const VacancyPoster = ({ job, school, style = {} }) => {
                   transition: 'all 0.2s ease'
                 }}
               >
-                View Full Details
+                View Details
               </button>
 
               <button
