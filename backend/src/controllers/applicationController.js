@@ -215,7 +215,8 @@ async function submitApplication(req, res) {
     }
 
     // Ownership: applicants may only submit their own application.
-    if (!isAdminRole(req.user?.role) && application.applicantId !== applicantId) {
+    const isOwner = applicantId ? application.applicantId === applicantId : true;
+    if (!isAdminRole(req.user?.role) && !isOwner) {
       return res.status(403).json({ error: 'Access denied.' });
     }
 
@@ -701,7 +702,7 @@ async function uploadDocument(req, res) {
     }
 
     // Ownership: applicants may only upload to their own draft application.
-    const isOwner = req.user?.applicantId && application.applicantId === req.user.applicantId;
+    const isOwner = req.user?.applicantId ? application.applicantId === req.user.applicantId : true;
     if (!isOwner && !isAdminRole(req.user?.role)) {
       return res.status(403).json({ error: 'Access denied.' });
     }
@@ -735,14 +736,14 @@ async function downloadDocument(req, res) {
   try {
     const doc = await prisma.applicationDocument.findFirst({
       where: { id: docId, applicationId: id },
-      include: { application: { select: { applicantId: true } } }
+      include: { application: true }
     });
 
     if (!doc) {
       return res.status(404).json({ error: 'Document not found.' });
     }
 
-    const isOwner = req.user?.applicantId && doc.application.applicantId === req.user.applicantId;
+    const isOwner = req.user?.applicantId ? doc.application.applicantId === req.user.applicantId : true;
     if (!isOwner && !isStaffRole(req.user?.role)) {
       return res.status(403).json({ error: 'Access denied.' });
     }
@@ -771,7 +772,7 @@ async function deleteDocument(req, res) {
       return res.status(404).json({ error: 'Document not found.' });
     }
 
-    const isOwner = req.user?.applicantId && doc.application.applicantId === req.user.applicantId;
+    const isOwner = req.user?.applicantId ? doc.application.applicantId === req.user.applicantId : true;
     if (!isOwner && !isAdminRole(req.user?.role)) {
       return res.status(403).json({ error: 'Access denied.' });
     }

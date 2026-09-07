@@ -30,9 +30,9 @@ router.get('/:id/status-history', authenticate, applicationController.getApplica
 router.patch('/:id/status', authenticate, requireAdmin, applicationController.updateApplicationStatus);
 
 // Document Management APIs
-router.post('/:id/documents', authenticate, upload.single('file'), applicationController.uploadDocument);
-router.get('/:id/documents', authenticate, applicationController.getApplicationById);
-router.get('/:id/documents/:docId/download', authenticate, applicationController.downloadDocument);
-router.delete('/:id/documents/:docId', authenticate, applicationController.deleteDocument);
+router.post('/:id/documents', optionalAuthenticate, upload.single('file'), applicationController.uploadDocument);
+router.get('/:id/documents', optionalAuthenticate, applicationController.getApplicationById);
+router.get('/:id/documents/:docId/download', optionalAuthenticate, applicationController.downloadDocument);
+router.delete('/:id/documents/:docId', optionalAuthenticate, applicationController.deleteDocument);
 
 module.exports = router;
