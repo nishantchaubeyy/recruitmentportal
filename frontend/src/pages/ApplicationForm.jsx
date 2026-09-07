@@ -151,7 +151,7 @@ function ApplicationForm() {
   const [subjectAppliedFor, setSubjectAppliedFor] = useState('');
 
   // STEP 4: Work Experience
-  const [isFresher, setIsFresher] = useState(false);
+  const [isFresher, setIsFresher] = useState(true);
   const [experiences, setExperiences] = useState([
     { organization: '', type: 'Teaching', designation: '', isCurrent: false, fromDate: '', toDate: '', salary: '', noticePeriod: '30 Days' }
   ]);
@@ -319,6 +319,11 @@ function ApplicationForm() {
           qualifications,
           phdDetails: { phdStatus, phdUniversity, phdYear, scopusCount, scopusId, conferencePaper, wosCount, wosId, net, setExam, slet, gate },
           workExperience: isFresher ? [] : experiences,
+          experience: {
+            experienceType: isFresher ? 'fresher' : 'experienced',
+            isFresher,
+            records: experiences
+          },
           declaration
         };
 
@@ -366,6 +371,14 @@ function ApplicationForm() {
       }
       if (!city || !state) {
         setError('City and State are required.');
+        return;
+      }
+    }
+
+    if (currentStep === 4 && !isFresher) {
+      const hasValidExp = experiences.some(e => e.organization && e.designation);
+      if (!hasValidExp) {
+        setError('Please fill in your Organization and Designation details, or select "FRESHER".');
         return;
       }
     }
@@ -578,6 +591,11 @@ function ApplicationForm() {
         qualifications,
         phdDetails: { phdStatus, phdUniversity, phdYear, scopusCount, scopusId, conferencePaper, wosCount, wosId, net, setExam, slet, gate },
         workExperience: isFresher ? [] : experiences,
+        experience: {
+          experienceType: isFresher ? 'fresher' : 'experienced',
+          isFresher,
+          records: experiences
+        },
         declaration: true
       };
 
@@ -1011,88 +1029,123 @@ function ApplicationForm() {
               STEP 4 — Work Experience
             </h3>
 
-            <div style={{ marginBottom: '18px' }}>
-              <button
-                type="button"
-                onClick={() => setIsFresher(!isFresher)}
-                style={{
-                  backgroundColor: isFresher ? '#0f766e' : '#f1f5f9',
-                  color: isFresher ? '#ffffff' : '#475569',
-                  border: '1px solid #cbd5e1',
-                  padding: '8px 18px',
-                  borderRadius: '20px',
-                  fontWeight: 700,
-                  fontSize: '0.84rem',
-                  cursor: 'pointer'
-                }}
-              >
-                {isFresher ? '✓ Marking as Fresher (No Experience)' : 'Mark as Fresher'}
-              </button>
+            <div style={{ marginBottom: '22px' }}>
+              <label style={{ display: 'block', fontWeight: 700, fontSize: '0.9rem', color: '#1e293b', marginBottom: '10px' }}>
+                Are you a Fresher or Experienced Professional?
+              </label>
+
+              <div style={{ display: 'inline-flex', gap: '12px', width: '100%', maxWidth: '380px' }}>
+                <button
+                  type="button"
+                  onClick={() => setIsFresher(true)}
+                  style={{
+                    flex: 1,
+                    height: '42px',
+                    backgroundColor: isFresher ? '#006652' : '#ffffff',
+                    color: isFresher ? '#ffffff' : '#334155',
+                    border: isFresher ? '1.5px solid #006652' : '1px solid #cbd5e1',
+                    borderRadius: '6px',
+                    fontWeight: 700,
+                    fontSize: '0.88rem',
+                    letterSpacing: '0.04em',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  FRESHER
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setIsFresher(false)}
+                  style={{
+                    flex: 1,
+                    height: '42px',
+                    backgroundColor: !isFresher ? '#006652' : '#ffffff',
+                    color: !isFresher ? '#ffffff' : '#334155',
+                    border: !isFresher ? '1.5px solid #006652' : '1px solid #cbd5e1',
+                    borderRadius: '6px',
+                    fontWeight: 700,
+                    fontSize: '0.88rem',
+                    letterSpacing: '0.04em',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  EXPERIENCED
+                </button>
+              </div>
             </div>
 
-            {!isFresher && experiences.map((exp, idx) => (
-              <div key={idx} style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', padding: '18px', marginBottom: '16px', borderRadius: '10px' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '15px', marginBottom: '12px' }}>
-                  <div className="form-group" style={{ marginBottom: 0 }}>
-                    <label style={{ fontWeight: 700, fontSize: '0.82rem' }}>Organization / University</label>
-                    <input type="text" placeholder="Organization" value={exp.organization} onChange={(e) => handleExpChange(idx, 'organization', e.target.value)} />
-                  </div>
-
-                  <div className="form-group" style={{ marginBottom: 0 }}>
-                    <label style={{ fontWeight: 700, fontSize: '0.82rem' }}>Domain</label>
-                    <select value={exp.type} onChange={(e) => handleExpChange(idx, 'type', e.target.value)}>
-                      <option value="Teaching">Teaching</option>
-                      <option value="Industry">Industry</option>
-                      <option value="Research">Research</option>
-                    </select>
-                  </div>
-
-                  <div className="form-group" style={{ marginBottom: 0 }}>
-                    <label style={{ fontWeight: 700, fontSize: '0.82rem' }}>Designation / Post</label>
-                    <input type="text" placeholder="Designation" value={exp.designation} onChange={(e) => handleExpChange(idx, 'designation', e.target.value)} />
-                  </div>
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '15px' }}>
-                  <div className="form-group" style={{ marginBottom: 0 }}>
-                    <label style={{ fontWeight: 700, fontSize: '0.82rem' }}>From Date</label>
-                    <input type="date" value={exp.fromDate} onChange={(e) => handleExpChange(idx, 'fromDate', e.target.value)} />
-                  </div>
-
-                  <div className="form-group" style={{ marginBottom: 0 }}>
-                    <label style={{ fontWeight: 700, fontSize: '0.82rem' }}>To Date</label>
-                    <input type="date" disabled={exp.isCurrent} value={exp.isCurrent ? '' : exp.toDate} onChange={(e) => handleExpChange(idx, 'toDate', e.target.value)} />
-                  </div>
-
-                  <div className="form-group" style={{ marginBottom: 0 }}>
-                    <label style={{ fontWeight: 700, fontSize: '0.82rem' }}>Gross Salary p.m.</label>
-                    <input type="text" placeholder="Salary" value={exp.salary} onChange={(e) => handleExpChange(idx, 'salary', e.target.value)} />
-                  </div>
-
-                  <div className="form-group" style={{ marginBottom: 0 }}>
-                    <label style={{ fontWeight: 700, fontSize: '0.82rem' }}>Notice Period</label>
-                    <select value={exp.noticePeriod} onChange={(e) => handleExpChange(idx, 'noticePeriod', e.target.value)}>
-                      <option value="Immediate">Immediate</option>
-                      <option value="15 Days">15 Days</option>
-                      <option value="30 Days">30 Days</option>
-                      <option value="60 Days">60 Days</option>
-                      <option value="90 Days">90 Days</option>
-                    </select>
-                  </div>
-                </div>
+            {isFresher ? (
+              <div style={{ padding: '16px 20px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', color: '#475569', fontSize: '0.9rem', fontWeight: 500 }}>
+                I am a fresher and do not have prior work experience.
               </div>
-            ))}
+            ) : (
+              <div>
+                {experiences.map((exp, idx) => (
+                  <div key={idx} style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', padding: '18px', marginBottom: '16px', borderRadius: '8px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '15px', marginBottom: '12px' }}>
+                      <div className="form-group" style={{ marginBottom: 0 }}>
+                        <label style={{ fontWeight: 700, fontSize: '0.82rem' }}>Organization / University</label>
+                        <input type="text" placeholder="Organization" value={exp.organization} onChange={(e) => handleExpChange(idx, 'organization', e.target.value)} />
+                      </div>
 
-            {!isFresher && (
-              <div style={{ display: 'flex', gap: '10px' }}>
-                <button type="button" onClick={handleAddExperience} style={{ backgroundColor: '#ffffff', border: '1.5px solid #0f766e', color: '#0f766e', padding: '8px 16px', borderRadius: '8px', fontWeight: 700, cursor: 'pointer', fontSize: '0.85rem' }}>
-                  + Add Experience Row
-                </button>
-                {experiences.length > 1 && (
-                  <button type="button" onClick={() => handleRemoveExperience(experiences.length - 1)} style={{ backgroundColor: '#ffffff', border: '1.5px solid #ef4444', color: '#ef4444', padding: '8px 16px', borderRadius: '8px', fontWeight: 700, cursor: 'pointer', fontSize: '0.85rem' }}>
-                    Remove Row
+                      <div className="form-group" style={{ marginBottom: 0 }}>
+                        <label style={{ fontWeight: 700, fontSize: '0.82rem' }}>Domain</label>
+                        <select value={exp.type} onChange={(e) => handleExpChange(idx, 'type', e.target.value)}>
+                          <option value="Teaching">Teaching</option>
+                          <option value="Industry">Industry</option>
+                          <option value="Research">Research</option>
+                        </select>
+                      </div>
+
+                      <div className="form-group" style={{ marginBottom: 0 }}>
+                        <label style={{ fontWeight: 700, fontSize: '0.82rem' }}>Designation / Post</label>
+                        <input type="text" placeholder="Designation" value={exp.designation} onChange={(e) => handleExpChange(idx, 'designation', e.target.value)} />
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '15px' }}>
+                      <div className="form-group" style={{ marginBottom: 0 }}>
+                        <label style={{ fontWeight: 700, fontSize: '0.82rem' }}>From Date</label>
+                        <input type="date" value={exp.fromDate} onChange={(e) => handleExpChange(idx, 'fromDate', e.target.value)} />
+                      </div>
+
+                      <div className="form-group" style={{ marginBottom: 0 }}>
+                        <label style={{ fontWeight: 700, fontSize: '0.82rem' }}>To Date</label>
+                        <input type="date" disabled={exp.isCurrent} value={exp.isCurrent ? '' : exp.toDate} onChange={(e) => handleExpChange(idx, 'toDate', e.target.value)} />
+                      </div>
+
+                      <div className="form-group" style={{ marginBottom: 0 }}>
+                        <label style={{ fontWeight: 700, fontSize: '0.82rem' }}>Gross Salary p.m.</label>
+                        <input type="text" placeholder="Salary" value={exp.salary} onChange={(e) => handleExpChange(idx, 'salary', e.target.value)} />
+                      </div>
+
+                      <div className="form-group" style={{ marginBottom: 0 }}>
+                        <label style={{ fontWeight: 700, fontSize: '0.82rem' }}>Notice Period</label>
+                        <select value={exp.noticePeriod} onChange={(e) => handleExpChange(idx, 'noticePeriod', e.target.value)}>
+                          <option value="Immediate">Immediate</option>
+                          <option value="15 Days">15 Days</option>
+                          <option value="30 Days">30 Days</option>
+                          <option value="60 Days">60 Days</option>
+                          <option value="90 Days">90 Days</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button type="button" onClick={handleAddExperience} style={{ backgroundColor: '#ffffff', border: '1.5px solid #006652', color: '#006652', padding: '8px 16px', borderRadius: '6px', fontWeight: 700, cursor: 'pointer', fontSize: '0.85rem' }}>
+                    + Add Experience Row
                   </button>
-                )}
+                  {experiences.length > 1 && (
+                    <button type="button" onClick={() => handleRemoveExperience(experiences.length - 1)} style={{ backgroundColor: '#ffffff', border: '1.5px solid #ef4444', color: '#ef4444', padding: '8px 16px', borderRadius: '6px', fontWeight: 700, cursor: 'pointer', fontSize: '0.85rem' }}>
+                      Remove Row
+                    </button>
+                  )}
+                </div>
               </div>
             )}
           </div>

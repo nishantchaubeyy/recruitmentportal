@@ -214,9 +214,9 @@ async function submitApplication(req, res) {
       return res.status(404).json({ error: 'Application not found.' });
     }
 
-    // Ownership: applicants may only submit their own application.
-    const isOwner = applicantId ? application.applicantId === applicantId : true;
-    if (!isAdminRole(req.user?.role) && !isOwner) {
+    // Ownership: applicants may only submit their own application or guest draft.
+    const isOwner = !applicantId || !application.applicantId || application.applicantId === applicantId || isAdminRole(req.user?.role);
+    if (!isOwner) {
       return res.status(403).json({ error: 'Access denied.' });
     }
 
@@ -268,6 +268,46 @@ async function submitApplication(req, res) {
           comment: 'Application submitted by candidate.'
         }
       });
+
+      // Synchronize candidate email/name to Applicant account if needed
+      if (app.applicantId && payload) {
+        try {
+          const p = typeof payload.personalInfo === 'object' ? payload.personalInfo : JSON.parse(payload.personalInfo || '{}');
+          const c = typeof payload.contactDetails === 'object' ? payload.contactDetails : JSON.parse(payload.contactDetails || '{}');
+          const candidateEmail = (c?.email || p?.email || '').toLowerCase().trim();
+          const candidateName = `${p?.firstName || ''} ${p?.lastName || ''}`.trim() || c?.name;
+          const candidateMobile = c?.mobile;
+
+          if (candidateEmail && candidateEmail.includes('@')) {
+            const existingUser = await tx.user.findUnique({ where: { email: candidateEmail }, include: { applicant: true } });
+            if (existingUser && existingUser.applicant) {
+              await tx.application.update({
+                where: { id },
+                data: { applicantId: existingUser.applicant.id }
+              });
+            } else if (!existingUser) {
+              const applicantRecord = await tx.applicant.findUnique({ where: { id: app.applicantId } });
+              if (applicantRecord && applicantRecord.userId) {
+                await tx.user.update({
+                  where: { id: applicantRecord.userId },
+                  data: { email: candidateEmail }
+                });
+                if (candidateName || candidateMobile) {
+                  await tx.applicant.update({
+                    where: { id: app.applicantId },
+                    data: {
+                      name: candidateName || undefined,
+                      mobile: candidateMobile || undefined
+                    }
+                  });
+                }
+              }
+            }
+          }
+        } catch (syncErr) {
+          console.warn('[Submit] Candidate profile sync warning:', syncErr.message);
+        }
+      }
 
       return app;
     });
