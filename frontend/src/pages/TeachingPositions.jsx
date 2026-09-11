@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { apiRequest, getMediaUrl } from '../utils/api';
+import { apiRequest } from '../utils/api';
 
 const TEACHING_FACULTIES = [
   { id: 'cs-engg', name: 'SCHOOL OF COMPUTING', keyword: 'Computer Computing' },
@@ -53,14 +53,13 @@ function TeachingPositions() {
     }
   };
 
-  const getSchoolPoster = (fac) => {
-    const matched = schoolsData.find((s) => {
+  const getMatchedSchool = (fac) => {
+    return schoolsData.find((s) => {
       if (s.id === fac.id) return true;
       const sName = (s.name || '').toLowerCase().trim();
       const fName = (fac.name || '').toLowerCase().trim();
       return sName === fName || sName.includes(fName) || fName.includes(sName);
     });
-    return matched?.posterUrl || matched?.recruitmentPosterUrl || null;
   };
 
   const getSchoolVacancies = (fac) => {
@@ -120,7 +119,6 @@ function TeachingPositions() {
           <div className="vertical-blocks-list">
             {TEACHING_FACULTIES.map((fac) => {
               const isExpanded = expandedSchoolId === fac.id;
-              const posterUrl = getSchoolPoster(fac);
               const schoolJobs = getSchoolVacancies(fac);
 
               return (
@@ -143,41 +141,6 @@ function TeachingPositions() {
                       borderRadius: '0 0 6px 6px',
                       boxShadow: 'none'
                     }}>
-
-                      {/* Optional Advertisement Notice Banner if poster exists */}
-                      {posterUrl && (
-                        <div style={{
-                          backgroundColor: '#eff6ff',
-                          border: '1px solid #bfdbfe',
-                          borderRadius: '8px',
-                          padding: '12px 16px',
-                          marginBottom: '20px',
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
-                          flexWrap: 'wrap',
-                          gap: '12px'
-                        }}>
-                          <span style={{ fontSize: '0.88rem', color: '#1e40af', fontWeight: 600 }}>
-                            🖼️ Official Recruitment Poster for {fac.name} is published under Vacancy Advertisements.
-                          </span>
-                          <button
-                            onClick={() => navigate('/advertisments')}
-                            style={{
-                              backgroundColor: '#1e40af',
-                              color: '#ffffff',
-                              border: 'none',
-                              padding: '6px 16px',
-                              borderRadius: '6px',
-                              fontSize: '0.82rem',
-                              fontWeight: 700,
-                              cursor: 'pointer'
-                            }}
-                          >
-                            View Poster on Advertisements &rarr;
-                          </button>
-                        </div>
-                      )}
 
                       {schoolJobs.length > 0 ? (
                         /* ── ACTIVE VACANCIES EXIST ── */
@@ -252,7 +215,7 @@ function TeachingPositions() {
                           </div>
                         </>
                       ) : (
-                        /* ── PRIORITY 3: NO POSTER & NO ACTIVE VACANCIES ── */
+                        /* ── NO ACTIVE VACANCIES ── */
                         <div>
                           <div style={{
                             padding: '8px 0 16px 0',
@@ -263,7 +226,7 @@ function TeachingPositions() {
                             No active openings currently available for this school.
                           </div>
 
-                          {/* Simple Clean Row: General Application (NO BOX, NO BORDER) */}
+                          {/* Simple Clean Row: General Application */}
                           <div style={{
                             display: 'flex',
                             justifyContent: 'space-between',

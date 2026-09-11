@@ -27,8 +27,15 @@ function VacancySlider() {
     setLoading(true);
     setError(null);
     try {
-      const data = await apiRequest('/public/vacancies');
-      setVacancies(data || []);
+      const [vacanciesData, schoolsData] = await Promise.all([
+        apiRequest('/public/vacancies').catch(() => []),
+        apiRequest('/public/schools').catch(() => [])
+      ]);
+      
+      const schoolPosters = (Array.isArray(schoolsData) ? schoolsData : []).filter(s => Boolean(s.posterUrl || s.recruitmentPosterUrl)).map(s => ({ isSchool: true, ...s }));
+      const jobPosters = (Array.isArray(vacanciesData) ? vacanciesData : []).filter(j => Boolean(j.posterUrl)).map(j => ({ isJob: true, ...j }));
+      
+      setVacancies([...schoolPosters, ...jobPosters]);
     } catch (err) {
       console.error('Fetch vacancies error:', err);
       setError(err.message);
@@ -223,9 +230,9 @@ function VacancySlider() {
               }}
               className="vacancy-poster-track"
             >
-              {vacancies.map((job) => (
+              {vacancies.map((item) => (
                 <div
-                  key={job.id}
+                  key={item.id}
                   style={{
                     flex: '0 0 clamp(300px, 90vw, 850px)',
                     maxWidth: '850px',
@@ -233,7 +240,7 @@ function VacancySlider() {
                     margin: '0 auto'
                   }}
                 >
-                  <VacancyPoster job={job} />
+                  {item.isSchool ? <VacancyPoster school={item} hideApplyButton={true} /> : <VacancyPoster job={item} hideApplyButton={true} />}
                 </div>
               ))}
             </div>

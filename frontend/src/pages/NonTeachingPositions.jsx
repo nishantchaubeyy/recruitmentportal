@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { apiRequest, getMediaUrl } from '../utils/api';
+import { apiRequest } from '../utils/api';
 
 const NON_TEACHING_DIVISIONS = [
   { id: 'admin-registrar', name: 'University Administration & Operations', keyword: 'Admin Administrative Operations Registrar' },
@@ -52,14 +52,13 @@ function NonTeachingPositions() {
     }
   };
 
-  const getDivisionPoster = (div) => {
-    const matched = schoolsData.find((s) => {
+  const getMatchedDivision = (div) => {
+    return schoolsData.find((s) => {
       if (s.id === div.id) return true;
       const sName = (s.name || '').toLowerCase().trim();
       const dName = (div.name || '').toLowerCase().trim();
       return sName === dName || sName.includes(dName) || dName.includes(sName);
     });
-    return matched?.posterUrl || matched?.recruitmentPosterUrl || null;
   };
 
   const getDivisionVacancies = (div) => {
@@ -119,7 +118,6 @@ function NonTeachingPositions() {
           <div className="vertical-blocks-list">
             {NON_TEACHING_DIVISIONS.map((div) => {
               const isExpanded = expandedDivId === div.id;
-              const posterUrl = getDivisionPoster(div);
               const divJobs = getDivisionVacancies(div);
 
               return (
@@ -142,41 +140,6 @@ function NonTeachingPositions() {
                       borderRadius: '0 0 6px 6px',
                       boxShadow: 'none'
                     }}>
-
-                      {/* Optional Advertisement Notice Banner if poster exists */}
-                      {posterUrl && (
-                        <div style={{
-                          backgroundColor: '#eff6ff',
-                          border: '1px solid #bfdbfe',
-                          borderRadius: '8px',
-                          padding: '12px 16px',
-                          marginBottom: '20px',
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
-                          flexWrap: 'wrap',
-                          gap: '12px'
-                        }}>
-                          <span style={{ fontSize: '0.88rem', color: '#1e40af', fontWeight: 600 }}>
-                            🖼️ Official Recruitment Poster for {div.name} is published under Vacancy Advertisements.
-                          </span>
-                          <button
-                            onClick={() => navigate('/advertisments')}
-                            style={{
-                              backgroundColor: '#1e40af',
-                              color: '#ffffff',
-                              border: 'none',
-                              padding: '6px 16px',
-                              borderRadius: '6px',
-                              fontSize: '0.82rem',
-                              fontWeight: 700,
-                              cursor: 'pointer'
-                            }}
-                          >
-                            View Poster on Advertisements &rarr;
-                          </button>
-                        </div>
-                      )}
 
                       {divJobs.length > 0 ? (
                         /* ── ACTIVE VACANCIES EXIST ── */
@@ -251,7 +214,7 @@ function NonTeachingPositions() {
                           </div>
                         </>
                       ) : (
-                        /* ── PRIORITY 3: NO POSTER & NO ACTIVE VACANCIES ── */
+                        /* ── NO ACTIVE VACANCIES ── */
                         <div>
                           <div style={{
                             padding: '8px 0 16px 0',
@@ -262,7 +225,7 @@ function NonTeachingPositions() {
                             No active openings currently available for this division.
                           </div>
 
-                          {/* Simple Clean Row: General Application (NO BOX, NO BORDER) */}
+                          {/* Simple Clean Row: General Application */}
                           <div style={{
                             display: 'flex',
                             justifyContent: 'space-between',

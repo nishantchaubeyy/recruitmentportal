@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { apiRequest } from '../utils/api';
 import VacancyPoster from '../components/VacancyPoster';
 
 function Advertisments() {
+  const navigate = useNavigate();
   const [vacancies, setVacancies] = useState([]);
   const [schools, setSchools] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -30,9 +32,10 @@ function Advertisments() {
     }
   };
 
-  // Filter School Posters with active images
-  const schoolPosters = schools.filter(s => s.posterUrl || s.recruitmentPosterUrl);
-  const hasAnyPosters = schoolPosters.length > 0 || vacancies.length > 0;
+  // Filter School Posters and Job Posters with active uploaded images
+  const schoolPosters = schools.filter(s => Boolean(s.posterUrl || s.recruitmentPosterUrl));
+  const jobPosters = vacancies.filter(j => Boolean(j.posterUrl));
+  const hasAnyPosters = schoolPosters.length > 0 || jobPosters.length > 0;
 
   return (
     <div style={{ backgroundColor: '#ffffff', minHeight: '100vh', paddingBottom: '80px' }}>
@@ -100,25 +103,64 @@ function Advertisments() {
             }}
           >
             <h3 style={{ margin: '0 0 10px 0', color: '#111111', fontSize: '1.3rem', fontWeight: 800 }}>
-              No Open Advertisements Found
+              No recruitment advertisements available at this time.
             </h3>
             <p style={{ color: '#64748b', fontSize: '0.95rem', marginBottom: '24px', lineHeight: 1.5 }}>
-              There are currently no active recruitment posters or vacancy advertisements available.
+              There are currently no active admin-uploaded recruitment posters available.
             </p>
+            <button
+              onClick={() => navigate('/apply')}
+              style={{
+                backgroundColor: '#0f2b5c',
+                color: '#ffffff',
+                border: 'none',
+                padding: '12px 32px',
+                borderRadius: '8px',
+                fontWeight: 800,
+                fontSize: '1rem',
+                cursor: 'pointer',
+                boxShadow: '0 4px 14px rgba(15, 43, 92, 0.3)'
+              }}
+            >
+              Proceed to Application Form &rarr;
+            </button>
           </div>
         ) : (
-          /* Stacked List of Faculty Posters & Vacancy Posters */
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '40px' }}>
-            {/* 1. Faculty / School Official Posters */}
-            {schoolPosters.map((sch) => (
-              <VacancyPoster key={`school-${sch.id}`} school={sch} />
-            ))}
+          <>
+            {/* Stacked List of Faculty Posters & Vacancy Posters */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '40px' }}>
+              {/* 1. Faculty / School Official Posters */}
+              {schoolPosters.map((sch) => (
+                <VacancyPoster key={`school-${sch.id}`} school={sch} />
+              ))}
 
-            {/* 2. Individual Vacancy Posters */}
-            {vacancies.map((job) => (
-              <VacancyPoster key={`job-${job.id}`} job={job} />
-            ))}
-          </div>
+              {/* 2. Individual Vacancy Posters */}
+              {jobPosters.map((job) => (
+                <VacancyPoster key={`job-${job.id}`} job={job} />
+              ))}
+            </div>
+
+            {/* 🔘 SINGLE PAGE-LEVEL APPLY NOW BUTTON AT THE VERY END */}
+            <div style={{ textAlign: 'center', marginTop: '48px', paddingTop: '24px', borderTop: '1px solid #e2e8f0' }}>
+              <button
+                onClick={() => navigate('/apply')}
+                style={{
+                  backgroundColor: '#0f2b5c',
+                  color: '#ffffff',
+                  border: 'none',
+                  padding: '16px 44px',
+                  borderRadius: '10px',
+                  fontWeight: 800,
+                  fontSize: '1.1rem',
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 18px rgba(15, 43, 92, 0.35)',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                Apply Now &rarr;
+              </button>
+            </div>
+          </>
         )}
       </div>
     </div>

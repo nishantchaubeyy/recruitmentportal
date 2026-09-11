@@ -681,6 +681,34 @@ async function mockGetSchools(params) {
   });
 }
 
+async function compressImageForMockStorage(file) {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX_WIDTH = 900;
+        let width = img.width;
+        let height = img.height;
+        if (width > MAX_WIDTH) {
+          height = Math.round((height * MAX_WIDTH) / width);
+          width = MAX_WIDTH;
+        }
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', 0.75));
+      };
+      img.onerror = () => resolve(e.target.result);
+      img.src = e.target.result;
+    };
+    reader.onerror = () => resolve(null);
+    reader.readAsDataURL(file);
+  });
+}
+
 async function mockUploadSchoolPoster(schoolId, formData) {
   await delay(200);
   schools = getStoredSchools();
@@ -691,12 +719,7 @@ async function mockUploadSchoolPoster(schoolId, formData) {
   if (formData instanceof FormData) {
     const file = formData.get('poster');
     if (file && typeof file === 'object' && file.name) {
-      posterUrl = await new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = () => reject(new Error('Failed to read image file'));
-        reader.readAsDataURL(file);
-      });
+      posterUrl = await compressImageForMockStorage(file);
     }
   } else if (formData && formData.posterUrl) {
     posterUrl = formData.posterUrl;
