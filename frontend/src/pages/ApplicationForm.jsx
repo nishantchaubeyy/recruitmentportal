@@ -780,11 +780,11 @@ function ApplicationForm() {
   const availablePosts = isNonTeaching ? POSTS_BY_TYPE.NON_TEACHING : POSTS_BY_TYPE.TEACHING;
 
   return (
-    <div className="container" style={{ maxWidth: '1020px', padding: '24px 20px' }}>
+    <div className="container app-form-container" style={{ maxWidth: '1020px', padding: '24px 20px' }}>
       
       {/* FORMAL UNIVERSITY APPLICATION FORM HEADER - STEP 1 ONLY */}
       {currentStep === 1 && (
-        <div style={{
+        <div className="app-header-card" style={{
           backgroundColor: '#ffffff',
           border: '1px solid #111111',
           borderRadius: '12px',
@@ -792,7 +792,7 @@ function ApplicationForm() {
           marginBottom: '24px',
           boxShadow: 'none'
         }}>
-          <div style={{
+          <div className="app-header-flex" style={{
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
@@ -800,7 +800,7 @@ function ApplicationForm() {
             gap: '20px'
           }}>
             {/* Left: Official Logo + Title + University Location */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flexWrap: 'wrap' }}>
+            <div className="app-header-left" style={{ display: 'flex', alignItems: 'center', gap: '20px', flexWrap: 'wrap' }}>
               <img
                 src="/logo.dypiu.png"
                 alt="DYPIU Logo"
@@ -824,7 +824,7 @@ function ApplicationForm() {
             </div>
 
             {/* Right: Department & Post Applied For (Clean text, no pill/badge) */}
-            <div style={{
+            <div className="app-header-right" style={{
               display: 'flex',
               flexDirection: 'column',
               gap: '4px',
@@ -849,15 +849,15 @@ function ApplicationForm() {
       )}
 
       {/* STEP PROGRESS INDICATOR BAR */}
-      <div style={{ backgroundColor: '#ffffff', border: '1px solid #111111', borderRadius: '14px', padding: '18px 24px', marginBottom: '24px', boxShadow: 'none' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+      <div className="app-step-progress-card" style={{ backgroundColor: '#ffffff', border: '1px solid #111111', borderRadius: '14px', padding: '18px 24px', marginBottom: '24px', boxShadow: 'none' }}>
+        <div className="app-step-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
           <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#0f172a' }}>
             Step {currentStep} of 7: <span style={{ color: '#0f766e' }}>{STEPS[currentStep - 1].title}</span>
           </div>
         </div>
 
         {/* Progress Dots / Steps */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'relative' }}>
+        <div className="app-step-indicators-track" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'relative' }}>
           {STEPS.map((s) => {
             const isDone = s.id < currentStep;
             const isCurrent = s.id === currentStep;
@@ -865,6 +865,7 @@ function ApplicationForm() {
             return (
               <div
                 key={s.id}
+                className="app-step-item"
                 onClick={() => {
                   if (s.id <= currentStep) {
                     setCurrentStep(s.id);
@@ -879,7 +880,7 @@ function ApplicationForm() {
                   zIndex: 2
                 }}
               >
-                <div style={{
+                <div className="app-step-item-circle" style={{
                   width: '32px',
                   height: '32px',
                   borderRadius: '50%',
@@ -895,7 +896,7 @@ function ApplicationForm() {
                 }}>
                   {isDone ? '✓' : s.id}
                 </div>
-                <div style={{ fontSize: '0.72rem', fontWeight: isCurrent ? 800 : 600, color: isCurrent ? '#0f2b5c' : '#64748b', marginTop: '6px' }}>
+                <div className="app-step-item-label" style={{ fontSize: '0.72rem', fontWeight: isCurrent ? 800 : 600, color: isCurrent ? '#0f2b5c' : '#64748b', marginTop: '6px' }}>
                   {s.shortName}
                 </div>
               </div>
@@ -911,16 +912,16 @@ function ApplicationForm() {
       )}
 
       {/* FORM BODY CONTAINER BY STEP */}
-      <div style={{ backgroundColor: '#ffffff', border: '1px solid #111111', borderRadius: '14px', padding: '28px', boxShadow: 'none', marginBottom: '24px' }}>
+      <div className="app-form-body-card" style={{ backgroundColor: '#ffffff', border: '1px solid #111111', borderRadius: '14px', padding: '28px', boxShadow: 'none', marginBottom: '24px' }}>
 
         {/* STEP 1: PERSONAL INFORMATION */}
         {currentStep === 1 && (
           <div>
-            <h3 style={{ margin: '0 0 18px 0', color: '#0f2b5c', fontSize: '1.15rem', fontWeight: 800, borderBottom: '2px solid #f1f5f9', paddingBottom: '10px' }}>
+            <h3 className="app-step-title" style={{ margin: '0 0 18px 0', color: '#0f2b5c', fontSize: '1.15rem', fontWeight: 800, borderBottom: '2px solid #f1f5f9', paddingBottom: '10px' }}>
               STEP 1 — Personal Information & Post Selection
             </h3>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
+            <div className="app-form-grid-2col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
               <div className="form-group">
                 <label style={{ fontWeight: 700, fontSize: '0.85rem' }}>Selected Faculty / Department</label>
                 <select value={selectedFaculty} onChange={(e) => setSelectedFaculty(e.target.value)}>
@@ -944,7 +945,7 @@ function ApplicationForm() {
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '100px 1fr 1fr 1fr', gap: '14px', marginBottom: '20px' }}>
+            <div className="app-form-grid-4col" style={{ display: 'grid', gridTemplateColumns: '100px 1fr 1fr 1fr', gap: '14px', marginBottom: '20px' }}>
               <div className="form-group">
                 <label style={{ fontWeight: 700, fontSize: '0.85rem' }}>Title <span className="required">*</span></label>
                 <select value={title} onChange={(e) => setTitle(e.target.value)}>
@@ -972,10 +973,10 @@ function ApplicationForm() {
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '2.2fr 100px 1fr 1fr', gap: '14px' }}>
+            <div className="app-form-grid-dob" style={{ display: 'grid', gridTemplateColumns: '2.2fr 100px 1fr 1fr', gap: '14px' }}>
               <div className="form-group">
                 <label style={{ fontWeight: 700, fontSize: '0.85rem' }}>Date of Birth <span className="required">*</span></label>
-                <div style={{ display: 'flex', gap: '6px' }}>
+                <div className="app-dob-inputs-flex" style={{ display: 'flex', gap: '6px' }}>
                   <CompactDropdownSelect
                     value={dobDay}
                     options={DAYS_LIST}
@@ -1030,11 +1031,11 @@ function ApplicationForm() {
         {/* STEP 2: CONTACT INFORMATION */}
         {currentStep === 2 && (
           <div>
-            <h3 style={{ margin: '0 0 18px 0', color: '#0f2b5c', fontSize: '1.15rem', fontWeight: 800, borderBottom: '2px solid #f1f5f9', paddingBottom: '10px' }}>
+            <h3 className="app-step-title" style={{ margin: '0 0 18px 0', color: '#0f2b5c', fontSize: '1.15rem', fontWeight: 800, borderBottom: '2px solid #f1f5f9', paddingBottom: '10px' }}>
               STEP 2 — Contact Information
             </h3>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
+            <div className="app-form-grid-2col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
               <div className="form-group">
                 <label style={{ fontWeight: 700, fontSize: '0.85rem' }}>Email Address <span className="required">*</span></label>
                 <input
@@ -1052,7 +1053,7 @@ function ApplicationForm() {
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
+            <div className="app-form-grid-2col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
               <div className="form-group">
                 <label style={{ fontWeight: 700, fontSize: '0.85rem' }}>
                   Mobile Number <span className="required">*</span>
@@ -1093,14 +1094,14 @@ function ApplicationForm() {
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
+            <div className="app-form-grid-1col" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '20px', marginBottom: '20px' }}>
               <div className="form-group">
                 <label style={{ fontWeight: 700, fontSize: '0.85rem' }}>Address Line / Street</label>
                 <input type="text" placeholder="Address Details" value={address} onChange={(e) => setAddress(e.target.value)} />
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 140px', gap: '15px' }}>
+            <div className="app-form-grid-4col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 140px', gap: '15px' }}>
               <div className="form-group">
                 <label style={{ fontWeight: 700, fontSize: '0.85rem' }}>City <span className="required">*</span></label>
                 <input type="text" placeholder="City" value={city} onChange={(e) => setCity(e.target.value)} required />
@@ -1143,13 +1144,13 @@ function ApplicationForm() {
         {/* STEP 3: ACADEMIC QUALIFICATIONS */}
         {currentStep === 3 && (
           <div>
-            <h3 style={{ margin: '0 0 18px 0', color: '#0f2b5c', fontSize: '1.15rem', fontWeight: 800, borderBottom: '2px solid #f1f5f9', paddingBottom: '10px' }}>
+            <h3 className="app-step-title" style={{ margin: '0 0 18px 0', color: '#0f2b5c', fontSize: '1.15rem', fontWeight: 800, borderBottom: '2px solid #f1f5f9', paddingBottom: '10px' }}>
               STEP 3 — Academic Qualifications
             </h3>
 
             {qualifications.map((q, idx) => (
               <div key={idx} style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', padding: '16px', marginBottom: '16px', borderRadius: '10px' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr 1fr 1fr 90px 90px 110px', gap: '10px' }}>
+                <div className="app-qual-grid" style={{ display: 'grid', gridTemplateColumns: '130px 1fr 1fr 1fr 90px 90px 110px', gap: '10px' }}>
                   <div className="form-group" style={{ marginBottom: 0 }}>
                     <label style={{ fontSize: '11px', fontWeight: 700 }}>Degree Type</label>
                     <select value={q.qualificationDegree} onChange={(e) => handleQualChange(idx, 'qualificationDegree', e.target.value)}>
@@ -1221,7 +1222,7 @@ function ApplicationForm() {
         {/* STEP 4: WORK EXPERIENCE */}
         {currentStep === 4 && (
           <div>
-            <h3 style={{ margin: '0 0 18px 0', color: '#0f2b5c', fontSize: '1.15rem', fontWeight: 800, borderBottom: '2px solid #f1f5f9', paddingBottom: '10px' }}>
+            <h3 className="app-step-title" style={{ margin: '0 0 18px 0', color: '#0f2b5c', fontSize: '1.15rem', fontWeight: 800, borderBottom: '2px solid #f1f5f9', paddingBottom: '10px' }}>
               STEP 4 — Work Experience
             </h3>
 
@@ -1281,7 +1282,7 @@ function ApplicationForm() {
               <div>
                 {experiences.map((exp, idx) => (
                   <div key={idx} style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', padding: '18px', marginBottom: '16px', borderRadius: '8px' }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '15px', marginBottom: '12px' }}>
+                    <div className="app-exp-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '15px', marginBottom: '12px' }}>
                       <div className="form-group" style={{ marginBottom: 0 }}>
                         <label style={{ fontWeight: 700, fontSize: '0.82rem' }}>Organization / University</label>
                         <input type="text" placeholder="Organization" value={exp.organization} onChange={(e) => handleExpChange(idx, 'organization', e.target.value)} />
@@ -1302,7 +1303,7 @@ function ApplicationForm() {
                       </div>
                     </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '15px' }}>
+                    <div className="app-exp-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '15px' }}>
                       <div className="form-group" style={{ marginBottom: 0 }}>
                         <label style={{ fontWeight: 700, fontSize: '0.82rem' }}>From Date</label>
                         <input type="date" value={exp.fromDate} onChange={(e) => handleExpChange(idx, 'fromDate', e.target.value)} />
@@ -1350,11 +1351,11 @@ function ApplicationForm() {
         {/* STEP 5: RESEARCH & PROFESSIONAL INFORMATION */}
         {currentStep === 5 && (
           <div>
-            <h3 style={{ margin: '0 0 18px 0', color: '#0f2b5c', fontSize: '1.15rem', fontWeight: 800, borderBottom: '2px solid #f1f5f9', paddingBottom: '10px' }}>
+            <h3 className="app-step-title" style={{ margin: '0 0 18px 0', color: '#0f2b5c', fontSize: '1.15rem', fontWeight: 800, borderBottom: '2px solid #f1f5f9', paddingBottom: '10px' }}>
               STEP 5 — Research & Professional Information
             </h3>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr 1fr', gap: '15px', marginBottom: '18px' }}>
+            <div className="app-form-grid-3col" style={{ display: 'grid', gridTemplateColumns: '1fr 2fr 1fr', gap: '15px', marginBottom: '18px' }}>
               <div className="form-group">
                 <label style={{ fontWeight: 700, fontSize: '0.85rem' }}>Ph.D. Status</label>
                 <select value={phdStatus} onChange={(e) => setPhdStatus(e.target.value)}>
@@ -1377,7 +1378,7 @@ function ApplicationForm() {
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '15px', marginBottom: '18px' }}>
+            <div className="app-form-grid-3col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '15px', marginBottom: '18px' }}>
               <div className="form-group">
                 <label style={{ fontWeight: 700, fontSize: '0.85rem' }}>Scopus Publications Count</label>
                 <input type="number" value={scopusCount} onChange={(e) => setScopusCount(e.target.value)} />
@@ -1399,11 +1400,11 @@ function ApplicationForm() {
         {/* STEP 6: DOCUMENTS UPLOAD */}
         {currentStep === 6 && (
           <div>
-            <h3 style={{ margin: '0 0 18px 0', color: '#0f2b5c', fontSize: '1.15rem', fontWeight: 800, borderBottom: '2px solid #f1f5f9', paddingBottom: '10px' }}>
+            <h3 className="app-step-title" style={{ margin: '0 0 18px 0', color: '#0f2b5c', fontSize: '1.15rem', fontWeight: 800, borderBottom: '2px solid #f1f5f9', paddingBottom: '10px' }}>
               STEP 6 — Document Uploads (PDF format, max 5MB)
             </h3>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+            <div className="app-form-grid-2col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
               <div style={{ border: '2px dashed #cbd5e1', borderRadius: '12px', padding: '20px', textAlign: 'center', backgroundColor: '#f8fafc' }}>
                 <div style={{ fontSize: '1.8rem', marginBottom: '6px' }}>📄</div>
                 <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.92rem' }}>
@@ -1456,7 +1457,7 @@ function ApplicationForm() {
         {/* STEP 7: READ-ONLY FINAL REVIEW & DECLARATION */}
         {currentStep === 7 && (
           <div>
-            <h3 style={{ margin: '0 0 18px 0', color: '#0f2b5c', fontSize: '1.15rem', fontWeight: 800, borderBottom: '2px solid #f1f5f9', paddingBottom: '10px' }}>
+            <h3 className="app-step-title" style={{ margin: '0 0 18px 0', color: '#0f2b5c', fontSize: '1.15rem', fontWeight: 800, borderBottom: '2px solid #f1f5f9', paddingBottom: '10px' }}>
               STEP 7 — Declaration & Final Review
             </h3>
 
@@ -1464,7 +1465,7 @@ function ApplicationForm() {
             <div style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '20px', marginBottom: '24px' }}>
               <h4 style={{ margin: '0 0 12px 0', color: '#0f766e', fontSize: '0.96rem', fontWeight: 800 }}>Summary of Application Details:</h4>
               
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', fontSize: '0.86rem', color: '#334155' }}>
+              <div className="app-form-grid-2col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', fontSize: '0.86rem', color: '#334155' }}>
                 <div><strong>Candidate Name:</strong> {title} {firstName} {middleName} {lastName}</div>
                 <div><strong>Post Applied:</strong> {postAppliedFor || 'Faculty Position'}</div>
                 <div><strong>School / Faculty:</strong> {selectedFaculty}</div>
@@ -1490,7 +1491,7 @@ function ApplicationForm() {
             </div>
 
             {/* CAPTCHA */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px', flexWrap: 'wrap' }}>
               <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#0f172a' }}>
                 Security Check: What is <span style={{ color: '#0f766e' }}>{captchaNum1} + {captchaNum2}</span>?
               </span>
@@ -1507,6 +1508,7 @@ function ApplicationForm() {
             <div style={{ textAlign: 'center', paddingTop: '10px', borderTop: '1px solid #e2e8f0' }}>
               <button
                 type="button"
+                className="app-btn-next"
                 onClick={handleFinalSubmit}
                 disabled={submitting}
                 style={{ backgroundColor: '#0f766e', color: '#ffffff', border: 'none', padding: '12px 32px', borderRadius: '10px', fontWeight: 800, fontSize: '0.98rem', cursor: 'pointer', boxShadow: '0 4px 14px rgba(15,118,110,0.2)' }}
@@ -1520,10 +1522,11 @@ function ApplicationForm() {
       </div>
 
       {/* FOOTER WIZARD STEP CONTROLS */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div className="app-form-actions-bar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         {currentStep > 1 ? (
           <button
             type="button"
+            className="app-btn-prev"
             onClick={handlePrevStep}
             style={{ backgroundColor: '#ffffff', border: '1.5px solid #cbd5e1', color: '#334155', padding: '10px 22px', borderRadius: '8px', fontWeight: 700, fontSize: '0.88rem', cursor: 'pointer' }}
           >
@@ -1534,6 +1537,7 @@ function ApplicationForm() {
         {currentStep < 7 && (
           <button
             type="button"
+            className="app-btn-next"
             onClick={handleNextStep}
             style={{ backgroundColor: '#0f2b5c', color: '#ffffff', border: 'none', padding: '10px 24px', borderRadius: '8px', fontWeight: 800, fontSize: '0.88rem', cursor: 'pointer' }}
           >

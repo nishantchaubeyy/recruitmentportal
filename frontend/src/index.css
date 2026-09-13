@@ -2176,3 +2176,189 @@ footer.footer-dypiu {
   }
 }
 
+/* ==========================================================================
+   APPLICATION FORM - MOBILE RESPONSIVE LAYOUT (max-width: 768px ONLY)
+   DO NOT TOUCH OR MODIFY DESKTOP RULES.
+   ========================================================================== */
+
+@media (max-width: 768px) {
+  /* 1. Outer Container & Page Width */
+  .app-form-container {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 12px 10px !important;
+    box-sizing: border-box !important;
+  }
+
+  /* 2. Top Application Form Header Card */
+  .app-header-card {
+    padding: 16px 14px !important;
+    margin-bottom: 16px !important;
+    border-radius: 10px !important;
+    box-sizing: border-box !important;
+    width: 100% !important;
+  }
+
+  .app-header-flex {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 14px !important;
+  }
+
+  .app-header-left {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 10px !important;
+    width: 100% !important;
+  }
+
+  .app-header-left img {
+    height: 44px !important;
+  }
+
+  .app-header-left h1 {
+    font-size: 1.3rem !important;
+    line-height: 1.25 !important;
+  }
+
+  .app-header-right {
+    width: 100% !important;
+    text-align: left !important;
+    gap: 6px !important;
+  }
+
+  .app-header-right div {
+    font-size: 0.85rem !important;
+    line-height: 1.4 !important;
+    word-break: break-word !important;
+  }
+
+  /* 3. Step Progress Section */
+  .app-step-progress-card {
+    padding: 14px 12px !important;
+    margin-bottom: 16px !important;
+    border-radius: 10px !important;
+    box-sizing: border-box !important;
+    width: 100% !important;
+  }
+
+  .app-step-header {
+    font-size: 0.85rem !important;
+    margin-bottom: 10px !important;
+  }
+
+  .app-step-indicators-track {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: flex-start !important;
+    gap: 6px !important;
+    overflow-x: auto !important;
+    padding-bottom: 6px !important;
+    -webkit-overflow-scrolling: touch;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .app-step-item {
+    flex: 0 0 auto !important;
+    min-width: 44px !important;
+  }
+
+  .app-step-item-circle {
+    width: 28px !important;
+    height: 28px !important;
+    font-size: 0.78rem !important;
+  }
+
+  .app-step-item-label {
+    font-size: 0.65rem !important;
+    margin-top: 4px !important;
+    white-space: nowrap !important;
+  }
+
+  /* 4. Form Body Container Card */
+  .app-form-body-card {
+    padding: 16px 14px !important;
+    border-radius: 10px !important;
+    margin-bottom: 16px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .app-step-title {
+    font-size: 0.98rem !important;
+    line-height: 1.35 !important;
+    margin-bottom: 14px !important;
+    word-wrap: break-word !important;
+    overflow-wrap: anywhere !important;
+  }
+
+  /* 5. Mobile Single-Column Form Grids */
+  .app-form-grid-2col,
+  .app-form-grid-3col,
+  .app-form-grid-4col,
+  .app-form-grid-dob,
+  .app-qual-grid,
+  .app-exp-grid {
+    display: flex !important;
+    flex-direction: column !important;
+    grid-template-columns: 1fr !important;
+    gap: 14px !important;
+    margin-bottom: 16px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .app-dob-inputs-flex {
+    flex-direction: column !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+
+  /* 6. Form Group, Inputs, Selects & Buttons */
+  .form-group {
+    width: 100% !important;
+    margin-bottom: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  .form-group label {
+    font-size: 0.82rem !important;
+    margin-bottom: 4px !important;
+    display: block !important;
+    word-break: break-word !important;
+  }
+
+  .form-group input[type="text"],
+  .form-group input[type="email"],
+  .form-group input[type="tel"],
+  .form-group input[type="number"],
+  .form-group input[type="date"],
+  .form-group select {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-height: 44px !important;
+    font-size: 0.88rem !important;
+    box-sizing: border-box !important;
+  }
+
+  /* 7. Step Action Controls Bar & Buttons */
+  .app-form-actions-bar {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 10px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .app-btn-next,
+  .app-btn-prev {
+    width: 100% !important;
+    min-height: 46px !important;
+    justify-content: center !important;
+    text-align: center !important;
+    box-sizing: border-box !important;
+  }
+}
+
+
