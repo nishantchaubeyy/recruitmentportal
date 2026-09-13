@@ -90,6 +90,111 @@ const STEPS = [
   { id: 7, title: 'Review & Submit', shortName: 'Review' }
 ];
 
+// Custom compact scrollable select popup (displays 12 numbers in view then scroll/slide)
+function CompactDropdownSelect({ value, options, onChange, placeholder, flex = 1 }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const selectedOpt = options.find((o) => (typeof o === 'object' ? o.value : o) === value);
+  const displayLabel = selectedOpt
+    ? (typeof selectedOpt === 'object' ? selectedOpt.label : selectedOpt)
+    : placeholder;
+
+  return (
+    <div ref={dropdownRef} style={{ position: 'relative', flex, minWidth: '80px' }}>
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        style={{
+          width: '100%',
+          padding: '9px 10px',
+          borderRadius: '8px',
+          border: '1px solid #cbd5e1',
+          backgroundColor: '#ffffff',
+          color: value ? '#0f172a' : '#64748b',
+          fontSize: '0.86rem',
+          fontWeight: value ? 700 : 500,
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          cursor: 'pointer',
+          userSelect: 'none',
+          boxShadow: 'none'
+        }}
+      >
+        <span>{displayLabel}</span>
+        <span style={{ fontSize: '0.65rem', color: '#64748b', marginLeft: '4px', transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }}>▼</span>
+      </button>
+
+      {isOpen && (
+        <div
+          style={{
+            position: 'absolute',
+            top: '100%',
+            left: 0,
+            right: 0,
+            marginTop: '4px',
+            maxHeight: '240px',
+            overflowY: 'auto',
+            backgroundColor: '#ffffff',
+            border: '1px solid #cbd5e1',
+            borderRadius: '8px',
+            boxShadow: '0 10px 25px rgba(15, 23, 42, 0.15)',
+            zIndex: 100,
+            padding: '4px 0'
+          }}
+        >
+          <div
+            onClick={() => { onChange(''); setIsOpen(false); }}
+            style={{
+              padding: '6px 10px',
+              fontSize: '0.84rem',
+              color: '#94a3b8',
+              cursor: 'pointer',
+              backgroundColor: value === '' ? '#f1f5f9' : 'transparent'
+            }}
+          >
+            {placeholder}
+          </div>
+          {options.map((opt) => {
+            const optVal = typeof opt === 'object' ? opt.value : opt;
+            const optLbl = typeof opt === 'object' ? opt.label : opt;
+            const isSelected = value === optVal;
+            return (
+              <div
+                key={optVal}
+                onClick={() => { onChange(optVal); setIsOpen(false); }}
+                style={{
+                  padding: '6px 10px',
+                  fontSize: '0.84rem',
+                  fontWeight: isSelected ? 700 : 500,
+                  color: isSelected ? '#0f766e' : '#1e293b',
+                  backgroundColor: isSelected ? '#f0fdf4' : 'transparent',
+                  cursor: 'pointer'
+                }}
+                onMouseEnter={(e) => { if (!isSelected) e.currentTarget.style.backgroundColor = '#f8fafc'; }}
+                onMouseLeave={(e) => { if (!isSelected) e.currentTarget.style.backgroundColor = 'transparent'; }}
+              >
+                {optLbl}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ApplicationForm() {
   const [searchParams] = useSearchParams();
   const { jobId: routeJobId } = useParams();
@@ -365,13 +470,40 @@ function ApplicationForm() {
         setError('Valid Email ID is required.');
         return;
       }
-      if (!mobile) {
-        setError('Mobile Number is required.');
+      if (!mobile || mobile.length !== 10) {
+        setError('Invalid Mobile Number: Mobile number must be exactly 10 digits.');
+        return;
+      }
+      if (alternateMobile && alternateMobile.length !== 10) {
+        setError('Invalid Alternate Mobile Number: Alternate mobile number must be exactly 10 digits.');
+        return;
+      }
+      if (pinCode && pinCode.length !== 6) {
+        setError('Invalid PIN Code: PIN code must be exactly 6 digits.');
         return;
       }
       if (!city || !state) {
         setError('City and State are required.');
         return;
+      }
+    }
+
+    if (currentStep === 3) {
+      for (let i = 0; i < qualifications.length; i++) {
+        const q = qualifications[i];
+        const hasEntry = q.degreeName || q.instituteName || q.specialization || q.passingYear || q.cgpa;
+        if (hasEntry) {
+          if (!q.degreeName || !q.instituteName || !q.passingYear || !q.cgpa) {
+            setError(`Academic qualification entry #${i + 1} (${q.qualificationDegree || 'Row'}) is incomplete. All fields are required once an academic entry is added.`);
+            return;
+          }
+          const cgpaStr = String(q.cgpa).trim();
+          const decParts = cgpaStr.split('.');
+          if (isNaN(cgpaStr) || (decParts.length > 1 && decParts[1].length > 2)) {
+            setError(`Invalid CGPA / Percentage in qualification #${i + 1}. Must be up to 2 decimal places (e.g. 9.54 or 85.50).`);
+            return;
+          }
+        }
       }
     }
 
@@ -464,7 +596,19 @@ function ApplicationForm() {
   };
   const handleQualChange = (idx, field, val) => {
     const copy = [...qualifications];
-    copy[idx][field] = val;
+    if (field === 'cgpa') {
+      let clean = val.replace(/[^0-9.]/g, '');
+      const parts = clean.split('.');
+      if (parts.length > 2) {
+        clean = parts[0] + '.' + parts.slice(1).join('');
+      }
+      if (parts.length > 1) {
+        clean = parts[0] + '.' + parts[1].slice(0, 2);
+      }
+      copy[idx][field] = clean;
+    } else {
+      copy[idx][field] = val;
+    }
     setQualifications(copy);
     triggerAutosave();
   };
@@ -638,69 +782,71 @@ function ApplicationForm() {
   return (
     <div className="container" style={{ maxWidth: '1020px', padding: '24px 20px' }}>
       
-      {/* FORMAL UNIVERSITY APPLICATION FORM HEADER */}
-      <div style={{
-        backgroundColor: '#ffffff',
-        border: '1px solid #111111',
-        borderRadius: '12px',
-        padding: '24px 28px',
-        marginBottom: '24px',
-        boxShadow: 'none'
-      }}>
+      {/* FORMAL UNIVERSITY APPLICATION FORM HEADER - STEP 1 ONLY */}
+      {currentStep === 1 && (
         <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: '20px'
+          backgroundColor: '#ffffff',
+          border: '1px solid #111111',
+          borderRadius: '12px',
+          padding: '24px 28px',
+          marginBottom: '24px',
+          boxShadow: 'none'
         }}>
-          {/* Left: Official Logo + Title + University Location */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flexWrap: 'wrap' }}>
-            <img
-              src="/logo.dypiu.png"
-              alt="DYPIU Logo"
-              style={{ height: '54px', width: 'auto', objectFit: 'contain' }}
-            />
-            <div>
-              <h1 style={{
-                margin: 0,
-                fontSize: '1.55rem',
-                fontWeight: 800,
-                color: '#0f172a',
-                letterSpacing: '-0.3px',
-                lineHeight: 1.2
-              }}>
-                APPLICATION FORM
-              </h1>
-              <div style={{ color: '#475569', fontSize: '0.9rem', fontWeight: 600, marginTop: '3px' }}>
-                D Y Patil International University, Akurdi, Pune
-              </div>
-            </div>
-          </div>
-
-          {/* Right: Department & Post Applied For (Clean text, no pill/badge) */}
           <div style={{
             display: 'flex',
-            flexDirection: 'column',
-            gap: '4px',
-            textAlign: 'left'
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '20px'
           }}>
-            <div style={{ fontSize: '0.9rem', color: '#0f172a' }}>
-              <strong style={{ fontWeight: 700, color: '#0f172a' }}>Department:</strong>{' '}
-              <span style={{ color: '#334155', fontWeight: 500 }}>{selectedFaculty || loadedVacancy?.department || 'General Faculty'}</span>
-            </div>
-            {(postAppliedFor || loadedVacancy?.position) && (
-              <div style={{ fontSize: '0.9rem', color: '#0f172a' }}>
-                <strong style={{ fontWeight: 700, color: '#0f172a' }}>Post Applied For:</strong>{' '}
-                <span style={{ color: '#334155', fontWeight: 500 }}>{postAppliedFor || loadedVacancy?.position}</span>
+            {/* Left: Official Logo + Title + University Location */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flexWrap: 'wrap' }}>
+              <img
+                src="/logo.dypiu.png"
+                alt="DYPIU Logo"
+                style={{ height: '54px', width: 'auto', objectFit: 'contain' }}
+              />
+              <div>
+                <h1 style={{
+                  margin: 0,
+                  fontSize: '1.55rem',
+                  fontWeight: 800,
+                  color: '#0f172a',
+                  letterSpacing: '-0.3px',
+                  lineHeight: 1.2
+                }}>
+                  APPLICATION FORM
+                </h1>
+                <div style={{ color: '#475569', fontSize: '0.9rem', fontWeight: 600, marginTop: '3px' }}>
+                  D Y Patil International University, Akurdi, Pune
+                </div>
               </div>
-            )}
-          </div>
-        </div>
+            </div>
 
-        {/* Subtle Horizontal Divider Line */}
-        <div style={{ borderTop: '1px solid #e2e8f0', marginTop: '18px' }} />
-      </div>
+            {/* Right: Department & Post Applied For (Clean text, no pill/badge) */}
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '4px',
+              textAlign: 'left'
+            }}>
+              <div style={{ fontSize: '0.9rem', color: '#0f172a' }}>
+                <strong style={{ fontWeight: 700, color: '#0f172a' }}>Department:</strong>{' '}
+                <span style={{ color: '#334155', fontWeight: 500 }}>{selectedFaculty || loadedVacancy?.department || 'General Faculty'}</span>
+              </div>
+              {(postAppliedFor || loadedVacancy?.position) && (
+                <div style={{ fontSize: '0.9rem', color: '#0f172a' }}>
+                  <strong style={{ fontWeight: 700, color: '#0f172a' }}>Post Applied For:</strong>{' '}
+                  <span style={{ color: '#334155', fontWeight: 500 }}>{postAppliedFor || loadedVacancy?.position}</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Subtle Horizontal Divider Line */}
+          <div style={{ borderTop: '1px solid #e2e8f0', marginTop: '18px' }} />
+        </div>
+      )}
 
       {/* STEP PROGRESS INDICATOR BAR */}
       <div style={{ backgroundColor: '#ffffff', border: '1px solid #111111', borderRadius: '14px', padding: '18px 24px', marginBottom: '24px', boxShadow: 'none' }}>
@@ -830,20 +976,27 @@ function ApplicationForm() {
               <div className="form-group">
                 <label style={{ fontWeight: 700, fontSize: '0.85rem' }}>Date of Birth <span className="required">*</span></label>
                 <div style={{ display: 'flex', gap: '6px' }}>
-                  <select value={dobDay} onChange={(e) => setDobDay(e.target.value)} required style={{ flex: 1 }}>
-                    <option value="">Day</option>
-                    {DAYS_LIST.map((d) => <option key={d} value={d}>{d}</option>)}
-                  </select>
-
-                  <select value={dobMonth} onChange={(e) => setDobMonth(e.target.value)} required style={{ flex: 1.5 }}>
-                    <option value="">Month</option>
-                    {MONTHS_LIST.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
-                  </select>
-
-                  <select value={dobYear} onChange={(e) => setDobYear(e.target.value)} required style={{ flex: 1.2 }}>
-                    <option value="">Year</option>
-                    {YEARS_LIST.map((y) => <option key={y} value={y}>{y}</option>)}
-                  </select>
+                  <CompactDropdownSelect
+                    value={dobDay}
+                    options={DAYS_LIST}
+                    onChange={(val) => setDobDay(val)}
+                    placeholder="Day"
+                    flex={1}
+                  />
+                  <CompactDropdownSelect
+                    value={dobMonth}
+                    options={MONTHS_LIST}
+                    onChange={(val) => setDobMonth(val)}
+                    placeholder="Month"
+                    flex={1.5}
+                  />
+                  <CompactDropdownSelect
+                    value={dobYear}
+                    options={YEARS_LIST}
+                    onChange={(val) => setDobYear(val)}
+                    placeholder="Year"
+                    flex={1.2}
+                  />
                 </div>
               </div>
 
@@ -901,24 +1054,53 @@ function ApplicationForm() {
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
               <div className="form-group">
-                <label style={{ fontWeight: 700, fontSize: '0.85rem' }}>Mobile Number <span className="required">*</span></label>
-                <input type="tel" placeholder="Mobile Number" value={mobile} onChange={(e) => setMobile(e.target.value)} required />
+                <label style={{ fontWeight: 700, fontSize: '0.85rem' }}>
+                  Mobile Number <span className="required">*</span>
+                  {mobile && mobile.length !== 10 && (
+                    <span style={{ color: '#ef4444', fontSize: '0.78rem', marginLeft: '8px', fontWeight: 600 }}>
+                      (Invalid - must be 10 digits)
+                    </span>
+                  )}
+                </label>
+                <input
+                  type="tel"
+                  placeholder="10-digit Mobile Number"
+                  value={mobile}
+                  maxLength={10}
+                  onChange={(e) => setMobile(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                  required
+                  style={{ borderColor: mobile && mobile.length !== 10 ? '#ef4444' : undefined }}
+                />
+              </div>
+
+              <div className="form-group">
+                <label style={{ fontWeight: 700, fontSize: '0.85rem' }}>
+                  Alternate Mobile Number
+                  {alternateMobile && alternateMobile.length !== 10 && (
+                    <span style={{ color: '#ef4444', fontSize: '0.78rem', marginLeft: '8px', fontWeight: 600 }}>
+                      (Invalid - must be 10 digits)
+                    </span>
+                  )}
+                </label>
+                <input
+                  type="tel"
+                  placeholder="10-digit Alternate Mobile"
+                  value={alternateMobile}
+                  maxLength={10}
+                  onChange={(e) => setAlternateMobile(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                  style={{ borderColor: alternateMobile && alternateMobile.length !== 10 ? '#ef4444' : undefined }}
+                />
               </div>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
-              <div className="form-group">
-                <label style={{ fontWeight: 700, fontSize: '0.85rem' }}>Alternate Mobile Number</label>
-                <input type="tel" placeholder="Alternate Mobile Number" value={alternateMobile} onChange={(e) => setAlternateMobile(e.target.value)} />
-              </div>
-
               <div className="form-group">
                 <label style={{ fontWeight: 700, fontSize: '0.85rem' }}>Address Line / Street</label>
                 <input type="text" placeholder="Address Details" value={address} onChange={(e) => setAddress(e.target.value)} />
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 120px', gap: '15px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 140px', gap: '15px' }}>
               <div className="form-group">
                 <label style={{ fontWeight: 700, fontSize: '0.85rem' }}>City <span className="required">*</span></label>
                 <input type="text" placeholder="City" value={city} onChange={(e) => setCity(e.target.value)} required />
@@ -937,8 +1119,22 @@ function ApplicationForm() {
               </div>
 
               <div className="form-group">
-                <label style={{ fontWeight: 700, fontSize: '0.85rem' }}>PIN Code</label>
-                <input type="text" placeholder="PIN" value={pinCode} onChange={(e) => setPinCode(e.target.value)} />
+                <label style={{ fontWeight: 700, fontSize: '0.85rem' }}>
+                  PIN Code
+                  {pinCode && pinCode.length !== 6 && (
+                    <span style={{ color: '#ef4444', fontSize: '0.75rem', marginLeft: '4px', fontWeight: 600, display: 'block' }}>
+                      Invalid (6 digits)
+                    </span>
+                  )}
+                </label>
+                <input
+                  type="text"
+                  placeholder="6-digit PIN"
+                  value={pinCode}
+                  maxLength={6}
+                  onChange={(e) => setPinCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  style={{ borderColor: pinCode && pinCode.length !== 6 ? '#ef4444' : undefined }}
+                />
               </div>
             </div>
           </div>
@@ -988,8 +1184,8 @@ function ApplicationForm() {
                   </div>
 
                   <div className="form-group" style={{ marginBottom: 0 }}>
-                    <label style={{ fontSize: '11px', fontWeight: 700 }}>CGPA / %</label>
-                    <input type="text" placeholder="%" value={q.cgpa} onChange={(e) => handleQualChange(idx, 'cgpa', e.target.value)} />
+                    <label style={{ fontSize: '11px', fontWeight: 700 }}>CGPA / % (Max 2 decimals)</label>
+                    <input type="text" placeholder="e.g. 9.54" value={q.cgpa} onChange={(e) => handleQualChange(idx, 'cgpa', e.target.value)} />
                   </div>
 
                   <div className="form-group" style={{ marginBottom: 0 }}>

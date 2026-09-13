@@ -80,7 +80,7 @@ const getStoredApplications = () => {
     const stored = localStorage.getItem('MOCK_APPLICATIONS_PERSIST');
     if (stored) {
       const parsed = JSON.parse(stored);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      if (Array.isArray(parsed)) return parsed;
     }
   } catch (e) {
     console.error('Failed to parse stored applications:', e);
