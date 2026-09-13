@@ -61,9 +61,9 @@ function JobDetails() {
       <div style={{ maxWidth: '960px', margin: '0 auto 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <button
           onClick={() => navigate(-1)}
-          style={{ background: 'none', border: 'none', color: '#475569', fontSize: '0.86rem', fontWeight: 600, cursor: 'pointer', padding: 0, display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+          style={{ background: 'none', border: 'none', color: '#111111', fontSize: '0.95rem', fontWeight: 600, cursor: 'pointer', padding: 0, display: 'inline-flex', alignItems: 'center', gap: '6px' }}
         >
-          <span>&larr;</span> Back to Openings
+          &larr; Back
         </button>
         <button
           onClick={() => window.print()}

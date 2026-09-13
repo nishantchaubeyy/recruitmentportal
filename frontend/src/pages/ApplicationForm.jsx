@@ -781,6 +781,25 @@ function ApplicationForm() {
 
   return (
     <div className="container app-form-container" style={{ maxWidth: '1020px', padding: '24px 20px' }}>
+      <div style={{ marginBottom: '16px' }}>
+        <button
+          onClick={() => navigate(-1)}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: '#111111',
+            fontSize: '0.95rem',
+            fontWeight: 600,
+            cursor: 'pointer',
+            padding: 0,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px'
+          }}
+        >
+          &larr; Back
+        </button>
+      </div>
       
       {/* FORMAL UNIVERSITY APPLICATION FORM HEADER - STEP 1 ONLY */}
       {currentStep === 1 && (

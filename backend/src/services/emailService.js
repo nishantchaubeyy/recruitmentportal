@@ -73,7 +73,7 @@ async function sendApplicationStatusEmail({ to, candidateName, applicationNumber
           ${comment ? `<p style="margin: 8px 0 0 0; font-size: 0.9rem; color: #475569; font-style: italic;">"${comment}"</p>` : ''}
         </div>
 
-        <p>You can track the full details and history of your application anytime by logging into the candidate dashboard or using the Track Application portal.</p>
+        <p>Please retain your Application Number for future correspondence regarding your application.</p>
 
         <p style="margin-top: 30px;">Best Regards,<br /><strong>Human Resources & Recruitment Cell</strong><br />D Y Patil International University, Akurdi, Pune</p>
       </div>

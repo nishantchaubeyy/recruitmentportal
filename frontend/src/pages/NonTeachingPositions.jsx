@@ -82,9 +82,23 @@ function NonTeachingPositions() {
   return (
     <div className="container" style={{ maxWidth: '980px', padding: '30px 24px' }}>
       <div style={{ marginBottom: '20px' }}>
-        <Link to="/" style={{ fontSize: '0.9rem', color: '#64748b', textDecoration: 'none', fontWeight: 600 }}>
-          &larr; Back to Home
-        </Link>
+        <button
+          onClick={() => navigate(-1)}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: '#111111',
+            fontSize: '0.95rem',
+            fontWeight: 600,
+            cursor: 'pointer',
+            padding: 0,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px'
+          }}
+        >
+          &larr; Back
+        </button>
       </div>
 
       <div style={{ marginBottom: '28px' }}>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { apiRequest, API_URL } from '../utils/api';
 import { statusLabel } from '../utils/status';
 
@@ -12,6 +12,7 @@ const parseField = (field, fallback) => {
 
 function ApplicantApplicationDetails() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [app, setApp] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -110,12 +111,12 @@ function ApplicantApplicationDetails() {
       
       {/* Top Action Bar */}
       <div style={{ maxWidth: '960px', margin: '0 auto 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Link 
-          to="/applicant/dashboard" 
-          style={{ fontSize: '0.86rem', color: '#475569', fontWeight: 600, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+        <button 
+          onClick={() => navigate(-1)} 
+          style={{ background: 'none', border: 'none', fontSize: '0.95rem', color: '#111111', fontWeight: 600, cursor: 'pointer', padding: 0, display: 'inline-flex', alignItems: 'center', gap: '6px' }}
         >
-          <span>&larr;</span> Back to Dashboard
-        </Link>
+          &larr; Back
+        </button>
         <button
           onClick={() => window.print()}
           style={{

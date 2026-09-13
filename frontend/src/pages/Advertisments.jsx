@@ -49,6 +49,25 @@ function Advertisments() {
         }}
       >
         <div style={{ maxWidth: '900px', margin: '0 auto' }}>
+          <div style={{ textAlign: 'left', marginBottom: '16px' }}>
+            <button
+              onClick={() => navigate(-1)}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#111111',
+                fontSize: '0.95rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                padding: 0,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}
+            >
+              &larr; Back
+            </button>
+          </div>
           <h1
             style={{
               margin: 0,
@@ -58,7 +77,8 @@ function Advertisments() {
               fontFamily: "'Playfair Display', Georgia, 'Times New Roman', serif",
               letterSpacing: '0.5px',
               textTransform: 'uppercase',
-              lineHeight: 1.2
+              lineHeight: 1.2,
+              textAlign: 'center'
             }}
           >
             FACULTY & VACANCY ADVERTISEMENTS

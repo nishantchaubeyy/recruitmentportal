@@ -356,7 +356,7 @@ function Home() {
             <li>Select <strong>Teaching Positions</strong> or <strong>Non-Teaching Positions</strong> above to browse available vacancies.</li>
             <li>Selecting a department opens the official DYPIU application form.</li>
             <li>Have your CV ready in PDF format (max 5 MB) before submitting.</li>
-            <li>Use the <strong>Track Application</strong> link to monitor your application at any time.</li>
+            <li>Please retain your Application Number for future correspondence.</li>
           </ul>
         </div>
       </div>

@@ -36,25 +36,8 @@ function Header() {
           <span className={`hamburger-bar ${mobileMenuOpen ? 'open' : ''}`}></span>
         </button>
 
-        {/* PUBLIC NAVIGATION: ONLY 'Home' and 'Track Application' */}
         <div className={`navbar-content ${mobileMenuOpen ? 'is-active' : ''}`}>
           <nav className="navbar-nav-main" style={{ marginLeft: 'auto' }}>
-            <Link 
-              to="/" 
-              className={`nav-link ${location.pathname === '/' ? 'active' : ''}`}
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Home
-            </Link>
-
-            <Link 
-              to="/track" 
-              className={`nav-link ${location.pathname === '/track' ? 'active' : ''}`}
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Track Application
-            </Link>
-
             {user && user.role === 'APPLICANT' && (
               <Link 
                 to="/applicant/dashboard" 

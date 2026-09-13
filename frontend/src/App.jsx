@@ -12,7 +12,6 @@ import NonTeachingPositions from './pages/NonTeachingPositions';
 import JobDetails from './pages/JobDetails';
 import Login from './pages/Login';
 import Register from './pages/Register';
-import TrackApplication from './pages/TrackApplication';
 import Advertisments from './pages/Advertisments';
 
 // Applicant Pages
@@ -104,7 +103,9 @@ function App() {
           <Route path="/jobs/:id" element={<PublicLayout><JobDetails /></PublicLayout>} />
           <Route path="/login" element={<PublicLayout><Login /></PublicLayout>} />
           <Route path="/register" element={<PublicLayout><Register /></PublicLayout>} />
-          <Route path="/track" element={<PublicLayout><TrackApplication /></PublicLayout>} />
+          <Route path="/track" element={<Navigate to="/" replace />} />
+          <Route path="/track-application" element={<Navigate to="/" replace />} />
+          <Route path="/application-tracking" element={<Navigate to="/" replace />} />
 
           {/* Admin Login (Standalone) */}
           <Route path="/admin/login" element={<PublicLayout><AdminLogin /></PublicLayout>} />

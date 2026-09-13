@@ -528,20 +528,6 @@ async function mockUpdateStatus(id, body) {
   return { message: 'Status updated.', application: applications[idx] };
 }
 
-async function mockTrackApplication(params) {
-  await delay();
-  const num = params.get('applicationNumber');
-  const app = applications.find((a) => a.applicationNumber === num && a.status !== 'DRAFT');
-  if (!app) throw new Error('No application found with the provided number.');
-  return {
-    applicationNumber: app.applicationNumber,
-    position: app.job.position,
-    department: app.job.department,
-    appliedDate: app.submittedAt || app.createdAt,
-    status: app.status,
-    history: app.statusHistory
-  };
-}
 
 // ── INTERVIEWS ────────────────────────────────────────────────
 async function mockGetInterviews() {
@@ -844,7 +830,6 @@ export async function mockApiRequest(endpoint, options = {}) {
   if (path === '/applications' && method === 'GET') return mockGetApplications(params);
   if (path === '/applications' && method === 'POST') return mockCreateDraft(body);
   if (path === '/applications/my' && method === 'GET') return mockGetMyApplications();
-  if (path === '/applications/track' && method === 'GET') return mockTrackApplication(params);
   if (parts[0] === 'applications' && parts.length === 2 && method === 'GET') return mockGetApplicationById(parts[1]);
   if (parts[0] === 'applications' && parts.length === 2 && method === 'PUT') return mockUpdateDraft(parts[1], body);
   if (parts[0] === 'applications' && parts[2] === 'submit' && method === 'POST') return mockSubmitApplication(parts[1], body);

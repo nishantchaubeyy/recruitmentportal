@@ -90,7 +90,7 @@ function ApplicationSuccess() {
         <p style={{ fontSize: '0.875rem', color: '#4B5563', marginBottom: '32px', lineHeight: '1.6' }}>
           {isInterest
             ? 'We have recorded your credentials. Our HR team will reach out to you via email and mobile as soon as a vacancy is officially opened for this position.'
-            : 'Please note down your Application Number for future communications. You can track the real-time status of your application at any time using our tracking tool.'}
+            : 'Please keep your Application Number for future communication.'}
         </p>
 
         <div style={{ display: 'flex', gap: '14px', justifyContent: 'center', flexWrap: 'wrap' }}>
@@ -101,38 +101,19 @@ function ApplicationSuccess() {
               alignItems: 'center',
               justifyContent: 'center',
               height: '42px', 
-              padding: '0 24px', 
+              padding: '0 28px', 
               borderRadius: '6px', 
-              border: '1px solid #D1D5DB', 
-              backgroundColor: '#ffffff',
-              color: '#111111', 
+              border: 'none', 
+              backgroundColor: '#0f2b5c',
+              color: '#ffffff', 
               textDecoration: 'none', 
-              fontWeight: 600, 
+              fontWeight: 700, 
               fontSize: '0.9rem',
+              boxShadow: '0 2px 8px rgba(15,43,92,0.2)',
               transition: 'background-color 0.15s ease'
             }}
           >
             Back to Home
-          </Link>
-          <Link 
-            to="/track" 
-            style={{ 
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              height: '42px', 
-              padding: '0 24px', 
-              borderRadius: '6px', 
-              backgroundColor: '#006652', 
-              color: '#ffffff', 
-              textDecoration: 'none', 
-              fontWeight: 600, 
-              fontSize: '0.9rem',
-              border: 'none',
-              transition: 'background-color 0.15s ease'
-            }}
-          >
-            Track Status
           </Link>
         </div>
       </div>

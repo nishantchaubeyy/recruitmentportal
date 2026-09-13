@@ -678,50 +678,7 @@ async function getApplicationStatus(req, res) {
   }
 }
 
-/**
- * Public application tracker by application number.
- * GET /api/applications/track?applicationNumber=APP-YYYY-XXXXXX
- */
-async function trackApplication(req, res) {
-  const { applicationNumber } = req.query;
 
-  if (!applicationNumber) {
-    return res.status(400).json({ error: 'Application number is required.' });
-  }
-
-  try {
-    const application = await prisma.application.findUnique({
-      where: { applicationNumber: applicationNumber.trim() },
-      select: {
-        applicationNumber: true,
-        status: true,
-        submittedAt: true,
-        createdAt: true,
-        job: { select: { position: true, department: true } },
-        statusHistory: {
-          select: { newStatus: true, changedAt: true, comment: true },
-          orderBy: { changedAt: 'desc' }
-        }
-      }
-    });
-
-    if (!application || application.status === APPLICATION_STATUS.DRAFT) {
-      return res.status(404).json({ error: 'No application found with the provided number.' });
-    }
-
-    return res.json({
-      applicationNumber: application.applicationNumber,
-      position: application.job?.position,
-      department: application.job?.department,
-      appliedDate: application.submittedAt || application.createdAt,
-      status: application.status,
-      history: application.statusHistory
-    });
-  } catch (error) {
-    console.error('Track application error:', error);
-    return res.status(500).json({ error: 'Failed to look up application.' });
-  }
-}
 
 /**
  * Document Upload Endpoint.
@@ -840,7 +797,6 @@ module.exports = {
   getApplicationById,
   updateApplicationStatus,
   getApplicationStatus,
-  trackApplication,
   uploadDocument,
   downloadDocument,
   deleteDocument

@@ -4,9 +4,6 @@ const applicationController = require('../controllers/applicationController');
 const { authenticate, optionalAuthenticate, requireAdmin, requireApplicant } = require('../middleware/authMiddleware');
 const upload = require('../middleware/uploadMiddleware');
 
-// Public status tracker by application number (no account required).
-router.get('/track', applicationController.trackApplication);
-
 // Application Creation (supports direct/guest or logged-in applicants) & Applicant List
 router.post('/', optionalAuthenticate, applicationController.createApplicationDraft);
 router.get('/my', authenticate, requireApplicant, applicationController.getMyApplications);
