@@ -24,9 +24,9 @@ function Footer() {
             alt="D Y PATIL INTERNATIONAL UNIVERSITY" 
             className="footer-logo-img"
             style={{ 
-              width: '210px', 
+              width: '310px', 
               height: 'auto', 
-              marginBottom: '16px',
+              marginBottom: '18px',
               objectFit: 'contain',
               display: 'block'
             }} 

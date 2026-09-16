@@ -2,6 +2,7 @@ import React, { useState, useEffect, useContext, useRef } from 'react';
 import { useSearchParams, useParams, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { apiRequest } from '../utils/api';
+import DYPIUWatermark from '../components/DYPIUWatermark';
 
 const FACULTIES_LIST = [
   'SCHOOL OF COMPUTING',
@@ -780,7 +781,9 @@ function ApplicationForm() {
   const availablePosts = isNonTeaching ? POSTS_BY_TYPE.NON_TEACHING : POSTS_BY_TYPE.TEACHING;
 
   return (
-    <div className="container app-form-container" style={{ maxWidth: '1020px', padding: '24px 20px' }}>
+    <div className="page-watermark-wrapper">
+      <DYPIUWatermark top="15px" />
+      <div className="container app-form-container" style={{ maxWidth: '1020px', padding: '24px 20px', position: 'relative', zIndex: 1 }}>
       <div style={{ marginBottom: '16px' }}>
         <button
           onClick={() => navigate(-1)}
@@ -1565,6 +1568,7 @@ function ApplicationForm() {
         )}
       </div>
 
+      </div>
     </div>
   );
 }

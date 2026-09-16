@@ -1237,7 +1237,7 @@ footer.footer-dypiu {
 
 @media (max-width: 768px) {
   .footer-logo-img {
-    width: 165px !important;
+    width: 230px !important;
   }
   .footer-links-list a {
     font-size: 16px;
@@ -2355,26 +2355,9 @@ footer.footer-dypiu {
   min-height: 100vh;
 }
 
-.page-watermark-img {
-  position: absolute;
-  top: 40px;
-  right: max(20px, calc(50% - 640px));
-  width: 340px;
-  max-width: 25vw;
-  height: auto;
-  opacity: 0.12;
-  background: transparent !important;
-  border: none !important;
-  box-shadow: none !important;
-  outline: none !important;
-  pointer-events: none;
-  user-select: none;
-  z-index: 0;
-  filter: brightness(0);
-}
-
-@media (max-width: 1100px) {
-  .page-watermark-img {
-    display: none;
+@media (max-width: 900px) {
+  .page-watermark-img,
+  .dypiu-page-watermark-img {
+    display: none !important;
   }
 }

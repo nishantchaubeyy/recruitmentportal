@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { apiRequest } from '../utils/api';
+import DYPIUWatermark from '../components/DYPIUWatermark';
 
 function JobDetails() {
   const { id } = useParams();
@@ -51,7 +52,9 @@ function JobDetails() {
   const isClosed = !job.isApplicationOpen;
 
   return (
-    <div style={{ backgroundColor: '#f4f4f2', minHeight: '100vh', padding: '36px 16px 80px', fontFamily: "'Plus Jakarta Sans', Inter, -apple-system, BlinkMacSystemFont, sans-serif", color: '#171717' }}>
+    <div className="page-watermark-wrapper" style={{ backgroundColor: '#f4f4f2', minHeight: '100vh', padding: '36px 16px 80px', fontFamily: "'Plus Jakarta Sans', Inter, -apple-system, BlinkMacSystemFont, sans-serif", color: '#171717' }}>
+      <DYPIUWatermark top="15px" />
+      <div style={{ position: 'relative', zIndex: 1 }}>
       
       {/* Top Back Action Bar */}
       <div style={{ maxWidth: '960px', margin: '0 auto 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -293,6 +296,7 @@ function JobDetails() {
         </section>
 
       </main>
+      </div>
     </div>
   );
 }

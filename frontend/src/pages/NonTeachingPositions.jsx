@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { apiRequest } from '../utils/api';
+import DYPIUWatermark from '../components/DYPIUWatermark';
 
 const NON_TEACHING_DIVISIONS = [
   { id: 'admin-registrar', name: 'University Administration & Operations', keyword: 'Admin Administrative Operations Registrar' },
@@ -81,12 +82,7 @@ function NonTeachingPositions() {
 
   return (
     <div className="page-watermark-wrapper">
-      <img
-        src="/logobw1.png"
-        alt=""
-        className="page-watermark-img"
-        aria-hidden="true"
-      />
+      <DYPIUWatermark top="15px" />
       <div className="container" style={{ maxWidth: '980px', padding: '30px 24px', position: 'relative', zIndex: 1 }}>
         <div style={{ marginBottom: '20px' }}>
           <button
