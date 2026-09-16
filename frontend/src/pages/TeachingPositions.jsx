@@ -81,203 +81,211 @@ function TeachingPositions() {
   };
 
   return (
-    <div className="container" style={{ maxWidth: '980px', padding: '30px 24px' }}>
-      <div style={{ marginBottom: '20px' }}>
-        <button
-          onClick={() => navigate(-1)}
-          style={{
-            background: 'none',
-            border: 'none',
+    <div className="page-watermark-wrapper">
+      <img
+        src="/logobw1.png"
+        alt=""
+        className="page-watermark-img"
+        aria-hidden="true"
+      />
+      <div className="container" style={{ maxWidth: '980px', padding: '30px 24px', position: 'relative', zIndex: 1 }}>
+        <div style={{ marginBottom: '20px' }}>
+          <button
+            onClick={() => navigate(-1)}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: '#111111',
+              fontSize: '0.95rem',
+              fontWeight: 600,
+              cursor: 'pointer',
+              padding: 0,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}
+          >
+            &larr; Back
+          </button>
+        </div>
+
+        <div style={{ marginBottom: '28px' }}>
+          <h1 style={{
             color: '#111111',
-            fontSize: '0.95rem',
-            fontWeight: 600,
-            cursor: 'pointer',
-            padding: 0,
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '6px'
-          }}
-        >
-          &larr; Back
-        </button>
-      </div>
-
-      <div style={{ marginBottom: '28px' }}>
-        <h1 style={{
-          color: '#111111',
-          margin: 0,
-          fontSize: '2.3rem',
-          fontWeight: 700,
-          fontFamily: "'Playfair Display', 'Cormorant Garamond', 'Libre Baskerville', Georgia, serif",
-          letterSpacing: '-0.5px',
-          lineHeight: 1.15
-        }}>
-          Teaching Positions
-        </h1>
-      </div>
-
-      {loading ? (
-        <div style={{ textAlign: 'center', padding: '40px 0', color: '#64748b' }}>
-          <div className="spinner" style={{ margin: '0 auto 12px auto' }}></div>
-          <p style={{ fontWeight: 600 }}>Loading teaching positions...</p>
+            margin: 0,
+            fontSize: '2.3rem',
+            fontWeight: 700,
+            fontFamily: "'Playfair Display', 'Cormorant Garamond', 'Libre Baskerville', Georgia, serif",
+            letterSpacing: '-0.5px',
+            lineHeight: 1.15
+          }}>
+            Teaching Positions
+          </h1>
         </div>
-      ) : error ? (
-        <div style={{ backgroundColor: '#fef2f2', border: '1px solid #fecaca', padding: '16px', borderRadius: '12px', color: '#b91c1c' }}>
-          Failed to load positions: {error}
-        </div>
-      ) : (
-        /* Vertical Container with Teal Blocks */
-        <div className="vertical-card-container container-teaching">
-          <div className="vertical-prompt-text">PLEASE CHOOSE FACULTY/DEPARTMENT BELOW:</div>
 
-          <div className="vertical-blocks-list">
-            {TEACHING_FACULTIES.map((fac) => {
-              const isExpanded = expandedSchoolId === fac.id;
-              const schoolJobs = getSchoolVacancies(fac);
-
-              return (
-                <div key={fac.id} style={{ marginBottom: '8px' }}>
-                  {/* Full-Width Teal Block Button (Clean, no arrow) */}
-                  <div
-                    className="vertical-block-item block-teal"
-                    onClick={() => handleToggleSchool(fac.id)}
-                  >
-                    <span>{fac.name}</span>
-                  </div>
-
-                  {/* Dropdown Content Directly Below Clicked Block */}
-                  {isExpanded && (
-                    <div style={{
-                      padding: '24px',
-                      backgroundColor: '#ffffff',
-                      border: '1px solid #111111',
-                      borderTop: 'none',
-                      borderRadius: '0 0 6px 6px',
-                      boxShadow: 'none'
-                    }}>
-
-                      {schoolJobs.length > 0 ? (
-                        /* ── ACTIVE VACANCIES EXIST ── */
-                        <>
-                          <div style={{ marginBottom: '24px' }}>
-                            <h4 style={{ color: '#111111', fontSize: '0.92rem', fontWeight: 800, margin: '0 0 16px 0', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
-                              Currently Active Vacancies ({schoolJobs.length}):
-                            </h4>
-
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '20px' }}>
-                              {schoolJobs.map((job) => (
-                                <div
-                                  key={job.id}
-                                  className="retro-vacancy-card"
-                                >
-                                  <div>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                                      <span style={{ backgroundColor: '#f0fdfa', color: '#0f766e', padding: '3px 8px', fontSize: '0.74rem', fontWeight: 700, border: '1px solid #99f6e4', borderRadius: '3px' }}>
-                                        {job.employmentType || 'Full Time'}
-                                      </span>
-                                      <span style={{ fontSize: '0.75rem', color: '#111111', fontWeight: 700 }}>
-                                        {job.vacancyNumber || 'VAC-2026'}
-                                      </span>
-                                    </div>
-
-                                    <h4 style={{ margin: '0 0 8px 0', color: '#111111', fontSize: '1.05rem', fontWeight: 800, lineHeight: 1.3 }}>
-                                      {job.position}
-                                    </h4>
-
-                                    <div style={{ fontSize: '0.82rem', color: '#15803d', fontWeight: 700, marginBottom: '16px' }}>
-                                      {job.numPositions > 1 ? `${job.numPositions} Openings` : '1 Opening'}
-                                    </div>
-                                  </div>
-
-                                  <button
-                                    onClick={() => navigate(`/apply?jobId=${job.id}&faculty=${encodeURIComponent(fac.name)}&type=TEACHING`)}
-                                    className="retro-apply-btn"
-                                  >
-                                    Apply Now &rarr;
-                                  </button>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-
-                          {/* Simple Clean Row: General Application */}
-                          <div style={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            flexWrap: 'wrap',
-                            gap: '16px',
-                            marginTop: '28px',
-                            paddingTop: '20px',
-                            borderTop: '1px solid #e2e8f0'
-                          }}>
-                            <div>
-                              <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '1.05rem', letterSpacing: '-0.2px' }}>
-                                Apply for {fac.name}
-                              </div>
-                              <div style={{ fontSize: '0.88rem', color: '#475569', marginTop: '3px' }}>
-                                Fill out the application form for faculty roles in this school.
-                              </div>
-                            </div>
-
-                            <button
-                              onClick={() => navigate(`/apply?faculty=${encodeURIComponent(fac.name)}&type=TEACHING`)}
-                              className="general-apply-btn"
-                            >
-                              Apply Now &rarr;
-                            </button>
-                          </div>
-                        </>
-                      ) : (
-                        /* ── NO ACTIVE VACANCIES ── */
-                        <div>
-                          <div style={{
-                            padding: '8px 0 16px 0',
-                            color: '#475569',
-                            fontSize: '0.95rem',
-                            fontWeight: 600
-                          }}>
-                            No active openings currently available for this school.
-                          </div>
-
-                          {/* Simple Clean Row: General Application */}
-                          <div style={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            flexWrap: 'wrap',
-                            gap: '16px',
-                            marginTop: '8px',
-                            paddingTop: '16px',
-                            borderTop: '1px solid #e2e8f0'
-                          }}>
-                            <div>
-                              <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '1.05rem', letterSpacing: '-0.2px' }}>
-                                Apply for {fac.name}
-                              </div>
-                              <div style={{ fontSize: '0.88rem', color: '#475569', marginTop: '3px' }}>
-                                Fill out the application form for faculty roles in this school.
-                              </div>
-                            </div>
-
-                            <button
-                              onClick={() => navigate(`/apply?faculty=${encodeURIComponent(fac.name)}&type=TEACHING`)}
-                              className="general-apply-btn"
-                            >
-                              Apply Now &rarr;
-                            </button>
-                          </div>
-                        </div>
-                      )}
-
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: '40px 0', color: '#64748b' }}>
+            <div className="spinner" style={{ margin: '0 auto 12px auto' }}></div>
+            <p style={{ fontWeight: 600 }}>Loading teaching positions...</p>
           </div>
-        </div>
-      )}
+        ) : error ? (
+          <div style={{ backgroundColor: '#fef2f2', border: '1px solid #fecaca', padding: '16px', borderRadius: '12px', color: '#b91c1c' }}>
+            Failed to load positions: {error}
+          </div>
+        ) : (
+          /* Vertical Container with Teal Blocks */
+          <div className="vertical-card-container container-teaching">
+            <div className="vertical-prompt-text">PLEASE CHOOSE FACULTY/DEPARTMENT BELOW:</div>
+
+            <div className="vertical-blocks-list">
+              {TEACHING_FACULTIES.map((fac) => {
+                const isExpanded = expandedSchoolId === fac.id;
+                const schoolJobs = getSchoolVacancies(fac);
+
+                return (
+                  <div key={fac.id} style={{ marginBottom: '8px' }}>
+                    {/* Full-Width Teal Block Button (Clean, no arrow) */}
+                    <div
+                      className="vertical-block-item block-teal"
+                      onClick={() => handleToggleSchool(fac.id)}
+                    >
+                      <span>{fac.name}</span>
+                    </div>
+
+                    {/* Dropdown Content Directly Below Clicked Block */}
+                    {isExpanded && (
+                      <div style={{
+                        padding: '24px',
+                        backgroundColor: '#ffffff',
+                        border: '1px solid #111111',
+                        borderTop: 'none',
+                        borderRadius: '0 0 6px 6px',
+                        boxShadow: 'none'
+                      }}>
+
+                        {schoolJobs.length > 0 ? (
+                          /* ── ACTIVE VACANCIES EXIST ── */
+                          <>
+                            <div style={{ marginBottom: '24px' }}>
+                              <h4 style={{ color: '#111111', fontSize: '0.92rem', fontWeight: 800, margin: '0 0 16px 0', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
+                                Currently Active Vacancies ({schoolJobs.length}):
+                              </h4>
+
+                              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '20px' }}>
+                                {schoolJobs.map((job) => (
+                                  <div
+                                    key={job.id}
+                                    className="retro-vacancy-card"
+                                  >
+                                    <div>
+                                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                                        <span style={{ backgroundColor: '#f0fdfa', color: '#0f766e', padding: '3px 8px', fontSize: '0.74rem', fontWeight: 700, border: '1px solid #99f6e4', borderRadius: '3px' }}>
+                                          {job.employmentType || 'Full Time'}
+                                        </span>
+                                        <span style={{ fontSize: '0.75rem', color: '#111111', fontWeight: 700 }}>
+                                          {job.vacancyNumber || 'VAC-2026'}
+                                        </span>
+                                      </div>
+
+                                      <h4 style={{ margin: '0 0 8px 0', color: '#111111', fontSize: '1.05rem', fontWeight: 800, lineHeight: 1.3 }}>
+                                        {job.position}
+                                      </h4>
+
+                                      <div style={{ fontSize: '0.82rem', color: '#15803d', fontWeight: 700, marginBottom: '16px' }}>
+                                        {job.numPositions > 1 ? `${job.numPositions} Openings` : '1 Opening'}
+                                      </div>
+                                    </div>
+
+                                    <button
+                                      onClick={() => navigate(`/apply?jobId=${job.id}&faculty=${encodeURIComponent(fac.name)}&type=TEACHING`)}
+                                      className="retro-apply-btn"
+                                    >
+                                      Apply Now &rarr;
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+
+                            {/* Simple Clean Row: General Application */}
+                            <div style={{
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'center',
+                              flexWrap: 'wrap',
+                              gap: '16px',
+                              marginTop: '28px',
+                              paddingTop: '20px',
+                              borderTop: '1px solid #e2e8f0'
+                            }}>
+                              <div>
+                                <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '1.05rem', letterSpacing: '-0.2px' }}>
+                                  Apply for {fac.name}
+                                </div>
+                                <div style={{ fontSize: '0.88rem', color: '#475569', marginTop: '3px' }}>
+                                  Fill out the application form for faculty roles in this school.
+                                </div>
+                              </div>
+
+                              <button
+                                onClick={() => navigate(`/apply?faculty=${encodeURIComponent(fac.name)}&type=TEACHING`)}
+                                className="general-apply-btn"
+                              >
+                                Apply Now &rarr;
+                              </button>
+                            </div>
+                          </>
+                        ) : (
+                          /* ── NO ACTIVE VACANCIES ── */
+                          <div>
+                            <div style={{
+                              padding: '8px 0 16px 0',
+                              color: '#475569',
+                              fontSize: '0.95rem',
+                              fontWeight: 600
+                            }}>
+                              No active openings currently available for this school.
+                            </div>
+
+                            {/* Simple Clean Row: General Application */}
+                            <div style={{
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'center',
+                              flexWrap: 'wrap',
+                              gap: '16px',
+                              marginTop: '8px',
+                              paddingTop: '16px',
+                              borderTop: '1px solid #e2e8f0'
+                            }}>
+                              <div>
+                                <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '1.05rem', letterSpacing: '-0.2px' }}>
+                                  Apply for {fac.name}
+                                </div>
+                                <div style={{ fontSize: '0.88rem', color: '#475569', marginTop: '3px' }}>
+                                  Fill out the application form for faculty roles in this school.
+                                </div>
+                              </div>
+
+                              <button
+                                onClick={() => navigate(`/apply?faculty=${encodeURIComponent(fac.name)}&type=TEACHING`)}
+                                className="general-apply-btn"
+                              >
+                                Apply Now &rarr;
+                              </button>
+                            </div>
+                          </div>
+                        )}
+
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

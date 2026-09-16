@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { apiRequest } from '../utils/api';
-import InterestModal from '../components/InterestModal';
 
 function JobDetails() {
   const { id } = useParams();
@@ -9,9 +8,6 @@ function JobDetails() {
   const [job, setJob] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
-  // Interest Modal state
-  const [interestModalOpen, setInterestModalOpen] = useState(false);
 
   useEffect(() => {
     fetchJobDetails();
@@ -271,22 +267,9 @@ function JobDetails() {
 
             <div>
               {isClosed ? (
-                <button
-                  onClick={() => setInterestModalOpen(true)}
-                  style={{
-                    backgroundColor: '#ffffff',
-                    border: '1px solid #171717',
-                    color: '#171717',
-                    padding: '10px 22px',
-                    borderRadius: '4px',
-                    fontWeight: 700,
-                    fontSize: '0.86rem',
-                    cursor: 'pointer',
-                    letterSpacing: '0.3px'
-                  }}
-                >
-                  Notify Me When Open
-                </button>
+                <span style={{ color: '#b91c1c', fontWeight: 700, fontSize: '0.9rem', backgroundColor: '#fef2f2', padding: '8px 16px', borderRadius: '4px', border: '1px solid #fecaca' }}>
+                  Application Closed
+                </span>
               ) : (
                 <button
                   onClick={() => navigate(`/apply?jobId=${job.id}`)}
@@ -310,14 +293,6 @@ function JobDetails() {
         </section>
 
       </main>
-
-      {/* Interest Registration Modal */}
-      <InterestModal
-        isOpen={interestModalOpen}
-        onClose={() => setInterestModalOpen(false)}
-        defaultCategory={job.type}
-        defaultPosition={job.position}
-      />
     </div>
   );
 }

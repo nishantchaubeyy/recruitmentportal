@@ -1139,22 +1139,14 @@ th {
    ========================================================================== */
 
 footer.footer-dypiu {
-  background: var(--dypiu-blue);
+  background: #669BBC;
   color: #ffffff;
   margin-top: 60px;
   position: relative;
 }
 
 .footer-brand-stripe {
-  height: 4px;
-  width: 100%;
-  background: linear-gradient(
-    90deg, 
-    var(--dypiu-blue) 0% 25%, 
-    var(--dypiu-teal) 25% 50%, 
-    var(--dypiu-green) 50% 75%, 
-    var(--dypiu-orange) 75% 100%
-  );
+  display: none;
 }
 
 .footer-content {
@@ -1214,28 +1206,42 @@ footer.footer-dypiu {
 .footer-links-list {
   list-style: none;
   padding: 0;
+  margin: 0;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
 }
 
 .footer-links-list a {
-  color: #cbd5e1;
+  color: rgba(255, 255, 255, 0.95);
   text-decoration: none;
-  font-size: 0.88rem;
-  transition: color 0.2s ease;
+  font-size: 17px;
+  font-weight: 500;
+  font-family: Inter, 'DM Sans', 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  transition: opacity 0.15s ease, color 0.15s ease;
 }
 
 .footer-links-list a:hover {
   color: #ffffff;
+  opacity: 0.85;
 }
 
 .footer-bottom-bar {
-  border-top: 1px solid rgba(255, 255, 255, 0.12);
-  padding: 20px 24px;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 14px 24px;
   text-align: center;
-  color: #94a3b8;
-  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 15px;
+  font-family: Inter, 'DM Sans', 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+@media (max-width: 768px) {
+  .footer-logo-img {
+    width: 165px !important;
+  }
+  .footer-links-list a {
+    font-size: 16px;
+  }
 }
 
 /* ==========================================================================
@@ -1298,26 +1304,18 @@ footer.footer-dypiu {
   box-shadow: none;
 }
 
-/* Teaching Positions: Subtle DYPIU Teal */
-.vertical-block-item.block-teal {
-  background: #0d9488;
-  border: 1px solid #0d9488;
-}
-
-.vertical-block-item.block-teal:hover {
-  background: #0f766e;
-  border-color: #0f766e;
-}
-
-/* Non-Teaching Positions: Subtle DYPIU Deep Blue */
+/* Teaching & Non-Teaching Positions: Consistent #669BBC Block Background */
+.vertical-block-item.block-teal,
 .vertical-block-item.block-blue {
-  background: #0f2b5c;
-  border: 1px solid #0f2b5c;
+  background: #669BBC;
+  border: 1px solid #669BBC;
+  color: #ffffff;
 }
 
+.vertical-block-item.block-teal:hover,
 .vertical-block-item.block-blue:hover {
-  background: #071738;
-  border-color: #071738;
+  background: #5487a8;
+  border-color: #5487a8;
 }
 
 /* ==========================================================================
@@ -1343,8 +1341,9 @@ footer.footer-dypiu {
   box-shadow: none !important;
 }
 
-.retro-apply-btn {
-  background-color: #0d9488;
+.retro-apply-btn,
+.retro-apply-btn.btn-blue {
+  background-color: #669BBC;
   color: #ffffff;
   border: none !important;
   border-radius: 4px !important;
@@ -1360,23 +1359,17 @@ footer.footer-dypiu {
   display: block;
 }
 
-.retro-apply-btn:hover {
-  background-color: #0f766e;
+.retro-apply-btn:hover,
+.retro-apply-btn.btn-blue:hover {
+  background-color: #5487a8;
   transform: none !important;
   box-shadow: none !important;
 }
 
-.retro-apply-btn.btn-blue {
-  background-color: #0f2b5c;
-}
-
-.retro-apply-btn.btn-blue:hover {
-  background-color: #071738;
-}
-
 /* General School Application Clean Button */
-.general-apply-btn {
-  background-color: #0d9488;
+.general-apply-btn,
+.general-apply-btn.btn-blue {
+  background-color: #669BBC;
   color: #ffffff;
   border: none;
   border-radius: 8px;
@@ -1388,26 +1381,17 @@ footer.footer-dypiu {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  box-shadow: 0 2px 6px rgba(13, 148, 136, 0.25);
+  box-shadow: 0 2px 6px rgba(102, 155, 188, 0.25);
   transition: all 0.2s ease;
   text-decoration: none;
   white-space: nowrap;
 }
 
-.general-apply-btn:hover {
-  background-color: #0f766e;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(13, 148, 136, 0.35);
-}
-
-.general-apply-btn.btn-blue {
-  background-color: #0f2b5c;
-  box-shadow: 0 2px 6px rgba(15, 43, 92, 0.25);
-}
-
+.general-apply-btn:hover,
 .general-apply-btn.btn-blue:hover {
-  background-color: #071738;
-  box-shadow: 0 4px 12px rgba(15, 43, 92, 0.35);
+  background-color: #5487a8;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(102, 155, 188, 0.35);
 }
 
 
@@ -2361,4 +2345,36 @@ footer.footer-dypiu {
   }
 }
 
+/* ==========================================================================
+   PAGE BACKGROUND WATERMARK (TEACHING & NON-TEACHING POSITIONS)
+   ========================================================================== */
 
+.page-watermark-wrapper {
+  position: relative;
+  overflow-x: hidden;
+  min-height: 100vh;
+}
+
+.page-watermark-img {
+  position: absolute;
+  top: 40px;
+  right: max(20px, calc(50% - 640px));
+  width: 340px;
+  max-width: 25vw;
+  height: auto;
+  opacity: 0.12;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+  pointer-events: none;
+  user-select: none;
+  z-index: 0;
+  filter: brightness(0);
+}
+
+@media (max-width: 1100px) {
+  .page-watermark-img {
+    display: none;
+  }
+}

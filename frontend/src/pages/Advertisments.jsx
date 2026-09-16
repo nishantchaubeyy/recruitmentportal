@@ -109,43 +109,7 @@ function Advertisments() {
           >
             {error}
           </div>
-        ) : !hasAnyPosters ? (
-          /* Clean Minimal Empty State */
-          <div
-            style={{
-              backgroundColor: '#ffffff',
-              border: '1px dashed #cbd5e1',
-              borderRadius: '12px',
-              padding: '60px 32px',
-              textAlign: 'center',
-              maxWidth: '650px',
-              margin: '0 auto'
-            }}
-          >
-            <h3 style={{ margin: '0 0 10px 0', color: '#111111', fontSize: '1.3rem', fontWeight: 800 }}>
-              No recruitment advertisements available at this time.
-            </h3>
-            <p style={{ color: '#64748b', fontSize: '0.95rem', marginBottom: '24px', lineHeight: 1.5 }}>
-              There are currently no active admin-uploaded recruitment posters available.
-            </p>
-            <button
-              onClick={() => navigate('/apply')}
-              style={{
-                backgroundColor: '#0f2b5c',
-                color: '#ffffff',
-                border: 'none',
-                padding: '12px 32px',
-                borderRadius: '8px',
-                fontWeight: 800,
-                fontSize: '1rem',
-                cursor: 'pointer',
-                boxShadow: '0 4px 14px rgba(15, 43, 92, 0.3)'
-              }}
-            >
-              Proceed to Application Form &rarr;
-            </button>
-          </div>
-        ) : (
+        ) : !hasAnyPosters ? null : (
           <>
             {/* Stacked List of Faculty Posters & Vacancy Posters */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '40px' }}>
@@ -165,7 +129,7 @@ function Advertisments() {
               <button
                 onClick={() => navigate('/apply')}
                 style={{
-                  backgroundColor: '#0f2b5c',
+                  backgroundColor: '#669BBC',
                   color: '#ffffff',
                   border: 'none',
                   padding: '16px 44px',
@@ -173,7 +137,7 @@ function Advertisments() {
                   fontWeight: 800,
                   fontSize: '1.1rem',
                   cursor: 'pointer',
-                  boxShadow: '0 4px 18px rgba(15, 43, 92, 0.35)',
+                  boxShadow: '0 4px 18px rgba(102, 155, 188, 0.35)',
                   transition: 'all 0.2s ease'
                 }}
               >
