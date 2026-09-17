@@ -96,11 +96,10 @@ function VacancySlider() {
             fontSize: 'clamp(1.8rem, 4vw, 2.5rem)',
             fontWeight: 800,
             fontFamily: "'Playfair Display', 'Cormorant Garamond', 'Libre Baskerville', Georgia, serif",
-            letterSpacing: '0.5px',
-            textTransform: 'uppercase',
+            letterSpacing: '-0.5px',
             lineHeight: 1.15
           }}>
-            RECRUITMENTS
+            Recruitments
           </h2>
         </div>
 

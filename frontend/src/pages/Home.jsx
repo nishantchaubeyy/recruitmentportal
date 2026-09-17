@@ -112,18 +112,7 @@ const s = {
     transform: 'scale(1.15)',
     pointerEvents: 'none',
     zIndex: 2,
-  },
-
-  guide: { maxWidth: '900px', margin: '0 auto', padding: '0 20px 52px' },
-  guideBox: {
-    backgroundColor: '#ffffff',
-    border: '1px solid #e2e8f0',
-    borderRadius: '14px',
-    padding: '22px 28px',
-    boxShadow: '0 2px 10px rgba(15,23,42,0.04)',
-  },
-  guideH: { margin: '0 0 10px', color: '#0f2b5c', fontWeight: 800, fontSize: '0.95rem' },
-  guideUl: { paddingLeft: '20px', color: '#475569', fontSize: '0.88rem', lineHeight: 1.9, margin: 0 },
+  }
 };
 
 /* ─── COMPONENT ──────────────────────────────────────────────── */
@@ -132,130 +121,37 @@ function Home() {
 
   return (
     <div style={s.page}>
-      {/* ─── Google Fonts: Playfair Display + Uiverse Aurora Glass Card CSS ─── */}
+      {/* ─── Google Fonts: Playfair Display ─── */}
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;0,700;0,800;1,600;1,700&family=Playfair+Display:ital,wght@0,600;0,700;0,800;0,900;1,600;1,700&display=swap');
 
-        /* From Uiverse.io by ali-sazzad (with clean dark shadow - no white glow bleed) */
-        .sazzad-card {
+        .simple-category-card {
           position: relative;
           width: 100%;
-          min-height: 200px;
+          min-height: 195px;
           border-radius: 22px;
           overflow: hidden;
           display: flex;
           align-items: center;
           justify-content: center;
           padding: 32px 24px;
-
-          background: rgba(255, 255, 255, 0.75);
-          backdrop-filter: blur(25px);
-          -webkit-backdrop-filter: blur(25px);
-          border: 1px solid rgba(255, 255, 255, 0.85);
-
-          box-shadow:
-            0 16px 36px rgba(15, 23, 42, 0.16),
-            0 4px 12px rgba(15, 23, 42, 0.08);
-
-          transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.35s ease;
+          border: 2px solid rgba(255, 255, 255, 0.95);
+          box-shadow: 0 14px 36px rgba(15, 23, 42, 0.14);
+          transition: transform 0.25s ease, box-shadow 0.25s ease;
           cursor: pointer;
         }
 
-        .sazzad-card:hover {
-          transform: translateY(-8px);
-          box-shadow:
-            0 24px 48px rgba(15, 23, 42, 0.22),
-            0 8px 16px rgba(15, 23, 42, 0.12);
+        .simple-category-card:hover {
+          transform: translateY(-4px);
+          box-shadow: 0 20px 42px rgba(15, 23, 42, 0.2);
         }
 
-        /* Inner Glow Panel */
-        .sazzad-bg {
-          position: absolute;
-          inset: 6px;
-          background: linear-gradient(
-            145deg,
-            rgba(255, 255, 255, 0.94),
-            rgba(248, 250, 252, 0.82)
-          );
-          border-radius: 18px;
-          backdrop-filter: blur(25px);
-          -webkit-backdrop-filter: blur(25px);
-          border: 1px solid rgba(255, 255, 255, 0.9);
-          z-index: 1;
+        .card-teaching {
+          background: linear-gradient(135deg, rgba(255, 255, 255, 0.94) 0%, rgba(209, 250, 229, 0.8) 100%);
         }
 
-        /* Animated Aurora Blob - Green / Teal for Teaching */
-        .sazzad-aurora-teal {
-          position: absolute;
-          top: 50%;
-          left: 50%;
-          width: 180px;
-          height: 180px;
-          border-radius: 50%;
-          filter: blur(26px);
-          z-index: 1;
-
-          background: radial-gradient(
-            circle,
-            rgba(16, 185, 129, 0.90),
-            rgba(5, 150, 105, 0.45),
-            transparent
-          );
-
-          animation: sazzad-aurora-move 6.5s infinite ease-in-out;
-          opacity: 0.95;
-        }
-
-        /* Animated Aurora Blob - Orange / Coral for Non-Teaching */
-        .sazzad-aurora-orange {
-          position: absolute;
-          top: 50%;
-          left: 50%;
-          width: 180px;
-          height: 180px;
-          border-radius: 50%;
-          filter: blur(26px);
-          z-index: 1;
-
-          background: radial-gradient(
-            circle,
-            rgba(249, 115, 22, 0.90),
-            rgba(234, 88, 12, 0.45),
-            transparent
-          );
-
-          animation: sazzad-aurora-move 6.5s infinite ease-in-out;
-          opacity: 0.95;
-        }
-
-        /* Aurora Animation */
-        @keyframes sazzad-aurora-move {
-          0% {
-            transform: translate(-60%, -60%) scale(1);
-          }
-          30% {
-            transform: translate(10%, -40%) scale(1.15);
-          }
-          60% {
-            transform: translate(20%, 20%) scale(1.05);
-          }
-          80% {
-            transform: translate(-40%, 10%) scale(1.2);
-          }
-          100% {
-            transform: translate(-60%, -60%) scale(1);
-          }
-        }
-
-        .sazzad-content {
-          position: relative;
-          z-index: 3;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          text-align: center;
-          width: 100%;
+        .card-non-teaching {
+          background: linear-gradient(135deg, rgba(255, 255, 255, 0.94) 0%, rgba(254, 215, 170, 0.8) 100%);
         }
       `}</style>
 
@@ -280,26 +176,20 @@ function Home() {
 
       </section>
 
-      {/* CATEGORY CARDS — Frosted Glass Aurora Card with Watermark Logo & Editorial Serif Typography */}
+      {/* CATEGORY CARDS — Simple 2 Cards with Watermark Logo inside */}
       <div style={s.band}>
         <div style={s.grid}>
 
           {/* Card 1: Teaching */}
           <div
-            className="sazzad-card"
+            className="simple-category-card card-teaching"
             role="button"
             tabIndex={0}
             aria-label="Teaching Positions"
             onClick={() => navigate('/teaching')}
             onKeyDown={(e) => e.key === 'Enter' && navigate('/teaching')}
           >
-            {/* Frosted Glass Background */}
-            <div className="sazzad-bg" />
-            
-            {/* Animated Teal Aurora Glow */}
-            <div className="sazzad-aurora-teal" />
-            
-            {/* Watermark Logo In-Between */}
+            {/* Watermark Logo Inside */}
             <img 
               src="/imageblocks.png" 
               alt="" 
@@ -307,28 +197,22 @@ function Home() {
               aria-hidden="true" 
             />
 
-            {/* Front Editorial Serif Typography */}
-            <div className="sazzad-content">
+            {/* Front Typography */}
+            <div style={{ position: 'relative', zIndex: 3, textAlign: 'center' }}>
               <h3 style={s.cardTitle}>TEACHING</h3>
             </div>
           </div>
 
           {/* Card 2: Non-Teaching */}
           <div
-            className="sazzad-card"
+            className="simple-category-card card-non-teaching"
             role="button"
             tabIndex={0}
             aria-label="Non-Teaching Positions"
             onClick={() => navigate('/non-teaching')}
             onKeyDown={(e) => e.key === 'Enter' && navigate('/non-teaching')}
           >
-            {/* Frosted Glass Background */}
-            <div className="sazzad-bg" />
-            
-            {/* Animated Orange Aurora Glow */}
-            <div className="sazzad-aurora-orange" />
-            
-            {/* Watermark Logo In-Between */}
+            {/* Watermark Logo Inside */}
             <img 
               src="/imageblocks.png" 
               alt="" 
@@ -336,8 +220,8 @@ function Home() {
               aria-hidden="true" 
             />
 
-            {/* Front Editorial Serif Typography */}
-            <div className="sazzad-content">
+            {/* Front Typography */}
+            <div style={{ position: 'relative', zIndex: 3, textAlign: 'center' }}>
               <h3 style={s.cardTitle}>NON-TEACHING</h3>
             </div>
           </div>
@@ -347,19 +231,6 @@ function Home() {
 
       {/* FEATURED ROLES SLIDER */}
       <VacancySlider />
-
-      {/* CANDIDATE GUIDELINES */}
-      <div style={s.guide}>
-        <div style={s.guideBox}>
-          <h4 style={s.guideH}>Candidate Guidelines</h4>
-          <ul style={s.guideUl}>
-            <li>Select <strong>Teaching Positions</strong> or <strong>Non-Teaching Positions</strong> above to browse available vacancies.</li>
-            <li>Selecting a department opens the official DYPIU application form.</li>
-            <li>Have your CV ready in PDF format (max 5 MB) before submitting.</li>
-            <li>Please retain your Application Number for future correspondence.</li>
-          </ul>
-        </div>
-      </div>
 
     </div>
   );
