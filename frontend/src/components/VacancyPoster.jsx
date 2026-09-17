@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { getMediaUrl } from '../utils/api';
 
 /**
  * VacancyPoster Component
  * Renders ONLY the original admin-uploaded recruitment poster image as-is.
- * No Apply Now buttons inside or underneath individual posters.
+ * Strictly NO borders, frames, cards, outlines, background containers, or box-shadows.
  */
-const VacancyPoster = ({ job, school, style = {} }) => {
+const VacancyPoster = ({ job, school, showApplyButton = false, style = {} }) => {
+  const navigate = useNavigate();
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
 
   // Extract raw poster URL from school or job
@@ -32,20 +34,28 @@ const VacancyPoster = ({ job, school, style = {} }) => {
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
+        background: 'transparent',
+        border: 'none',
+        boxShadow: 'none',
+        outline: 'none',
+        padding: 0,
         ...style
       }}
     >
-      {/* 🖼️ ORIGINAL ADMIN-UPLOADED POSTER IMAGE AS-IS */}
+      {/* 🖼️ ORIGINAL ADMIN-UPLOADED POSTER IMAGE AS-IS (NO BORDER / NO CARD / NO FRAME / NO SHADOW) */}
       <div
         style={{
           width: '100%',
           display: 'flex',
           justifyContent: 'center',
           alignItems: 'center',
-          backgroundColor: '#ffffff',
-          borderRadius: '8px',
-          overflow: 'hidden',
-          boxShadow: '0 4px 20px rgba(15, 23, 42, 0.08)'
+          backgroundColor: 'transparent',
+          border: 'none',
+          outline: 'none',
+          boxShadow: 'none',
+          borderRadius: 0,
+          padding: 0,
+          margin: 0
         }}
       >
         <img
@@ -55,13 +65,17 @@ const VacancyPoster = ({ job, school, style = {} }) => {
           style={{
             width: '100%',
             height: 'auto',
-            maxHeight: '1100px',
+            maxWidth: '850px',
             objectFit: 'contain',
             display: 'block',
             cursor: 'pointer',
-            border: '1px solid #e2e8f0',
-            borderRadius: '8px',
-            transition: 'transform 0.2s ease, box-shadow 0.2s ease'
+            border: 'none',
+            outline: 'none',
+            boxShadow: 'none',
+            borderRadius: 0,
+            background: 'transparent',
+            padding: 0,
+            margin: 0
           }}
           title="Click to view full poster"
           onError={(e) => {
@@ -69,6 +83,32 @@ const VacancyPoster = ({ job, school, style = {} }) => {
           }}
         />
       </div>
+
+      {/* 🔘 SEPARATE APPLY NOW BUTTON BELOW POSTER (OUTSIDE IMAGE) */}
+      {showApplyButton && (
+        <div style={{ marginTop: '20px', textAlign: 'center' }}>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              navigate('/apply');
+            }}
+            style={{
+              backgroundColor: '#669BBC',
+              color: '#ffffff',
+              border: 'none',
+              padding: '12px 32px',
+              borderRadius: '8px',
+              fontWeight: 800,
+              fontSize: '0.95rem',
+              cursor: 'pointer',
+              boxShadow: '0 4px 14px rgba(102, 155, 188, 0.25)',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            Apply Now &rarr;
+          </button>
+        </div>
+      )}
 
       {/* 🔍 LIGHTBOX MODAL ON POSTER CLICK */}
       {isLightboxOpen && (
@@ -95,7 +135,10 @@ const VacancyPoster = ({ job, school, style = {} }) => {
               maxHeight: '95vh',
               display: 'flex',
               flexDirection: 'column',
-              alignItems: 'center'
+              alignItems: 'center',
+              border: 'none',
+              boxShadow: 'none',
+              background: 'transparent'
             }}
           >
             <button
@@ -122,8 +165,11 @@ const VacancyPoster = ({ job, school, style = {} }) => {
                 maxWidth: '92vw',
                 maxHeight: '85vh',
                 objectFit: 'contain',
-                borderRadius: '8px',
-                boxShadow: '0 12px 40px rgba(0,0,0,0.5)'
+                border: 'none',
+                outline: 'none',
+                boxShadow: 'none',
+                borderRadius: 0,
+                background: 'transparent'
               }}
             />
           </div>

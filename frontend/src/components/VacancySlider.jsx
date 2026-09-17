@@ -93,13 +93,13 @@ function VacancySlider() {
           <h2 style={{
             margin: 0,
             color: '#0f172a',
-            fontSize: 'clamp(1.8rem, 4vw, 2.5rem)',
+            fontSize: 'clamp(1.6rem, 3.5vw, 2.2rem)',
             fontWeight: 800,
             fontFamily: "'Playfair Display', 'Cormorant Garamond', 'Libre Baskerville', Georgia, serif",
             letterSpacing: '-0.5px',
             lineHeight: 1.15
           }}>
-            Recruitments
+            Job Advertisement Posters/Documents
           </h2>
         </div>
 

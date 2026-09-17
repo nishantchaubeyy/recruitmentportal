@@ -112,37 +112,16 @@ function Advertisments() {
         ) : !hasAnyPosters ? null : (
           <>
             {/* Stacked List of Faculty Posters & Vacancy Posters */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '40px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '48px' }}>
               {/* 1. Faculty / School Official Posters */}
               {schoolPosters.map((sch) => (
-                <VacancyPoster key={`school-${sch.id}`} school={sch} />
+                <VacancyPoster key={`school-${sch.id}`} school={sch} showApplyButton={true} />
               ))}
 
               {/* 2. Individual Vacancy Posters */}
               {jobPosters.map((job) => (
-                <VacancyPoster key={`job-${job.id}`} job={job} />
+                <VacancyPoster key={`job-${job.id}`} job={job} showApplyButton={true} />
               ))}
-            </div>
-
-            {/* 🔘 SINGLE PAGE-LEVEL APPLY NOW BUTTON AT THE VERY END */}
-            <div style={{ textAlign: 'center', marginTop: '48px', paddingTop: '24px', borderTop: '1px solid #e2e8f0' }}>
-              <button
-                onClick={() => navigate('/apply')}
-                style={{
-                  backgroundColor: '#669BBC',
-                  color: '#ffffff',
-                  border: 'none',
-                  padding: '16px 44px',
-                  borderRadius: '10px',
-                  fontWeight: 800,
-                  fontSize: '1.1rem',
-                  cursor: 'pointer',
-                  boxShadow: '0 4px 18px rgba(102, 155, 188, 0.35)',
-                  transition: 'all 0.2s ease'
-                }}
-              >
-                Apply Now &rarr;
-              </button>
             </div>
           </>
         )}
