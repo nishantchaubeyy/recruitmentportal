@@ -2,6 +2,7 @@ const prisma = require('../services/prisma');
 const storageService = require('../services/storageService');
 const { notifyStatusChange } = require('../services/notificationService');
 const { logAuditAction } = require('../services/auditService');
+const { sendSubmissionConfirmationEmail } = require('../services/emailService');
 const {
   APPLICATION_STATUS,
   HR_SETTABLE_STATUSES
@@ -319,6 +320,13 @@ async function submitApplication(req, res) {
       targetId: id,
       details: { applicationNumber: finalAppNumber, jobId: application.jobId },
       req
+    });
+
+    console.log('Application saved successfully.');
+
+    // Asynchronously send confirmation email without blocking API response or failing application
+    sendSubmissionConfirmationEmail(submittedApp.id).catch(err => {
+      console.error('Confirmation email failed.', err.message);
     });
 
     return res.json({

@@ -94,7 +94,8 @@ function VacancySlider() {
             margin: 0,
             color: '#0f172a',
             fontSize: 'clamp(1.8rem, 4vw, 2.5rem)',
-            fontWeight: 900,
+            fontWeight: 800,
+            fontFamily: "'Playfair Display', 'Cormorant Garamond', 'Libre Baskerville', Georgia, serif",
             letterSpacing: '0.5px',
             textTransform: 'uppercase',
             lineHeight: 1.15
