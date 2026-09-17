@@ -1207,7 +1207,7 @@ function ApplicationForm() {
                   </div>
 
                   <div className="form-group" style={{ marginBottom: 0 }}>
-                    <label style={{ fontSize: '11px', fontWeight: 700 }}>CGPA / % (Max 2 decimals)</label>
+                    <label style={{ fontSize: '11px', fontWeight: 700 }}>CGPA / %</label>
                     <input type="text" placeholder="e.g. 9.54" value={q.cgpa} onChange={(e) => handleQualChange(idx, 'cgpa', e.target.value)} />
                   </div>
 
