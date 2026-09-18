@@ -9,54 +9,20 @@ const s = {
   hero: {
     position: 'relative',
     width: '100%',
-    minHeight: 'clamp(420px, 52vh, 600px)',
+    backgroundColor: '#0f172a',
     display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
     justifyContent: 'center',
-    textAlign: 'center',
-    padding: '90px 24px 80px',
+    alignItems: 'center',
     overflow: 'hidden',
     boxSizing: 'border-box',
   },
 
   heroImgLayer: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
     width: '100%',
-    height: '100%',
-    objectFit: 'cover',
-    objectPosition: 'center top',
-    transform: 'none',
-    zIndex: 0,
-    pointerEvents: 'none',
-  },
-
-  heroOverlay: {
-    position: 'absolute',
-    inset: 0,
-    backgroundColor: 'rgba(15, 23, 42, 0.40)',
-    zIndex: 1,
-    pointerEvents: 'none',
-  },
-
-  heroInner: {
-    position: 'relative',
-    zIndex: 10,
-    maxWidth: '820px',
-    margin: '0 auto',
-    padding: '0 12px',
-  },
-
-  h1: {
-    fontSize: 'clamp(2.5rem, 6vw, 4rem)',
-    fontWeight: 900,
-    color: '#FCD34D',
-    letterSpacing: '-0.5px',
-    lineHeight: 1.1,
-    margin: 0,
-    textShadow: '0 3px 18px rgba(0,0,0,0.65)',
+    height: 'auto',
+    maxHeight: '540px',
+    objectFit: 'contain',
+    display: 'block',
   },
 };
 
@@ -627,23 +593,13 @@ function Home() {
         }
       `}</style>
 
-      {/* HERO — Pure photo + uniform dark tint + crisp "Join DYPIU!" */}
-      <section style={s.hero} aria-label="DYPIU Careers Hero">
-        {/* Layer 1: Full DYPIU Campus Entrance photo */}
+      {/* HERO BANNER — Full image display with zero cut/crop */}
+      <section style={s.hero} aria-label="DYPIU Campus Entrance">
         <img 
           src="/DYPIU.png" 
           alt="D Y Patil International University Campus" 
           style={s.heroImgLayer} 
-          aria-hidden="true" 
         />
-
-        {/* Layer 2: Pure uniform tint */}
-        <div style={s.heroOverlay} aria-hidden="true" />
-
-        {/* Layer 3: Clean "Join DYPIU!" heading */}
-        <div style={s.heroInner}>
-          <h1 style={s.h1}>Join DYPIU!</h1>
-        </div>
       </section>
 
       {/* ─── OPEN POSITIONS SEARCH & ELONGATED VACANCY BOXES SECTION ─── */}
