@@ -18,16 +18,16 @@ function ApplicationSuccess() {
         className="success-card" 
         style={{ 
           backgroundColor: '#ffffff', 
-          border: '1px solid #D1D5DB', 
+          border: '2px solid #8B1235', 
           borderRadius: '8px', 
           padding: '44px 36px', 
-          boxShadow: '0 1px 3px rgba(0,0,0,0.05)', 
+          boxShadow: '0 4px 20px rgba(139,18,53,0.08)', 
           textAlign: 'center' 
         }}
       >
         {isInterest ? (
           <>
-            <h2 style={{ color: '#111111', margin: '0 0 12px 0', fontSize: '1.75rem', fontWeight: 700, letterSpacing: '-0.02em' }}>
+            <h2 style={{ color: '#8B1235', margin: '0 0 12px 0', fontSize: '1.75rem', fontWeight: 800, letterSpacing: '-0.02em' }}>
               Form Submitted — Details Registered
             </h2>
             <p style={{ fontSize: '0.95rem', color: '#4B5563', margin: '0 0 32px 0', lineHeight: '1.6' }}>
@@ -36,7 +36,7 @@ function ApplicationSuccess() {
           </>
         ) : (
           <>
-            <h2 style={{ color: '#111111', margin: '0 0 12px 0', fontSize: '1.75rem', fontWeight: 700, letterSpacing: '-0.02em' }}>
+            <h2 style={{ color: '#8B1235', margin: '0 0 12px 0', fontSize: '1.75rem', fontWeight: 800, letterSpacing: '-0.02em' }}>
               Application Submitted Successfully
             </h2>
             <p style={{ fontSize: '0.95rem', color: '#4B5563', margin: '0 0 32px 0', lineHeight: '1.6' }}>
@@ -50,30 +50,30 @@ function ApplicationSuccess() {
         {/* Application Details Document Layout */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', alignItems: 'center', marginBottom: '32px' }}>
           <div>
-            <span style={{ fontSize: '0.75rem', color: '#6B7280', display: 'block', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+            <span style={{ fontSize: '0.75rem', color: '#8B1235', display: 'block', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
               {isInterest ? 'REGISTRATION REFERENCE NUMBER' : 'APPLICATION NUMBER'}
             </span>
-            <strong style={{ fontSize: '1.6rem', color: '#111111', display: 'block', marginTop: '4px', fontWeight: 700, letterSpacing: '0.02em' }}>
+            <strong style={{ fontSize: '1.6rem', color: '#8B1235', display: 'block', marginTop: '4px', fontWeight: 800, letterSpacing: '0.02em' }}>
               {state.appNumber}
             </strong>
           </div>
 
           <div>
-            <span style={{ fontSize: '0.75rem', color: '#6B7280', display: 'block', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+            <span style={{ fontSize: '0.75rem', color: '#8B1235', display: 'block', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
               POSITION / FACULTY
             </span>
-            <strong style={{ fontSize: '1.1rem', color: '#111111', display: 'block', marginTop: '4px', fontWeight: 700 }}>
+            <strong style={{ fontSize: '1.1rem', color: '#8B1235', display: 'block', marginTop: '4px', fontWeight: 800 }}>
               {state.position}
             </strong>
           </div>
 
           <div>
-            <span style={{ fontSize: '0.75rem', color: '#6B7280', display: 'block', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+            <span style={{ fontSize: '0.75rem', color: '#8B1235', display: 'block', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
               {isInterest ? 'NOTIFICATION STATUS' : 'APPLICATION STATUS'}
             </span>
             <span style={{ 
               fontSize: '1.15rem', 
-              color: isInterest ? '#B45309' : '#15803D', 
+              color: '#8B1235', 
               display: 'block', 
               marginTop: '4px', 
               fontWeight: 800,
@@ -100,16 +100,16 @@ function ApplicationSuccess() {
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
-              height: '42px', 
-              padding: '0 28px', 
+              height: '44px', 
+              padding: '0 32px', 
               borderRadius: '6px', 
               border: 'none', 
-              backgroundColor: '#0f2b5c',
-              color: '#ffffff', 
+              backgroundColor: '#8B1235',
+              color: '#FCD34D', 
               textDecoration: 'none', 
-              fontWeight: 700, 
-              fontSize: '0.9rem',
-              boxShadow: '0 2px 8px rgba(15,43,92,0.2)',
+              fontWeight: 800, 
+              fontSize: '0.92rem',
+              boxShadow: '0 2px 8px rgba(139,18,53,0.25)',
               transition: 'background-color 0.15s ease'
             }}
           >

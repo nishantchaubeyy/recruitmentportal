@@ -76,7 +76,7 @@ async function getPublicVacancies(req, res) {
     const jobs = await prisma.job.findMany({
       where,
       include: {
-        school: { select: { id: true, name: true, type: true } },
+        school: { select: { id: true, name: true, type: true, posterUrl: true } },
         departmentRef: { select: { id: true, name: true } },
         positionRef: { select: { id: true, title: true } }
       },

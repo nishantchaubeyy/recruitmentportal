@@ -60,16 +60,16 @@ function JobDetails() {
       <div style={{ maxWidth: '960px', margin: '0 auto 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <button
           onClick={() => navigate(-1)}
-          style={{ background: 'none', border: 'none', color: '#111111', fontSize: '0.95rem', fontWeight: 600, cursor: 'pointer', padding: 0, display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+          style={{ background: 'none', border: 'none', color: '#8B1235', fontSize: '0.95rem', fontWeight: 700, cursor: 'pointer', padding: 0, display: 'inline-flex', alignItems: 'center', gap: '6px' }}
         >
           &larr; Back
         </button>
         <button
           onClick={() => window.print()}
           style={{
-            backgroundColor: '#ffffff',
-            border: '1px solid #d1d5db',
-            color: '#171717',
+            backgroundColor: '#8B1235',
+            border: '1.5px solid #8B1235',
+            color: '#FCD34D',
             padding: '6px 14px',
             borderRadius: '4px',
             fontSize: '0.82rem',
@@ -87,23 +87,23 @@ function JobDetails() {
           maxWidth: '960px',
           margin: '0 auto',
           backgroundColor: '#ffffff',
-          border: '1px solid #e5e7eb',
+          border: '2px solid #8B1235',
           borderRadius: '4px',
-          boxShadow: '0 4px 24px rgba(0, 0, 0, 0.05)',
+          boxShadow: '0 4px 24px rgba(139, 18, 53, 0.08)',
           padding: 'clamp(28px, 5vw, 56px)',
           boxSizing: 'border-box'
         }}
       >
 
         {/* ─── DOCUMENT INSTITUTIONAL HEADER ─── */}
-        <header style={{ borderBottom: '2px solid #171717', paddingBottom: '24px', marginBottom: '32px' }}>
+        <header style={{ borderBottom: '2px solid #8B1235', paddingBottom: '24px', marginBottom: '32px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
             
             <div>
-              <div style={{ fontSize: '0.74rem', fontWeight: 800, letterSpacing: '1.8px', textTransform: 'uppercase', color: '#475569', marginBottom: '6px' }}>
+              <div style={{ fontSize: '0.74rem', fontWeight: 800, letterSpacing: '1.8px', textTransform: 'uppercase', color: '#8B1235', marginBottom: '6px' }}>
                 D Y PATIL INTERNATIONAL UNIVERSITY &bull; PUNE
               </div>
-              <div style={{ fontSize: '0.78rem', fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', color: '#171717', marginBottom: '14px' }}>
+              <div style={{ fontSize: '0.78rem', fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', color: '#8B1235', marginBottom: '14px' }}>
                 OFFICIAL RECRUITMENT SPECIFICATION DOSSIER
               </div>
 
@@ -113,7 +113,7 @@ function JobDetails() {
                   fontFamily: "'Playfair Display', 'Cormorant Garamond', 'Times New Roman', Georgia, serif",
                   fontSize: 'clamp(2rem, 4vw, 2.6rem)',
                   fontWeight: 800,
-                  color: '#111111',
+                  color: '#8B1235',
                   margin: '0 0 6px 0',
                   lineHeight: 1.15,
                   letterSpacing: '-0.3px'
@@ -255,10 +255,10 @@ function JobDetails() {
         </section>
 
         {/* ─── 05 FORMAL SUBMISSION ACTION ─── */}
-        <section style={{ border: '1px solid #171717', backgroundColor: '#fafafa', padding: '24px', borderRadius: '4px' }}>
+        <section style={{ border: '2px solid #8B1235', backgroundColor: '#fffdfa', padding: '24px', borderRadius: '4px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
             <div>
-              <div style={{ fontWeight: 800, color: '#111111', fontSize: '1rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              <div style={{ fontWeight: 800, color: '#B45309', fontSize: '1rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                 {isClosed ? 'Applications Closed' : 'Ready to Submit Application?'}
               </div>
               <div style={{ fontSize: '0.84rem', color: '#475569', marginTop: '3px' }}>
@@ -277,13 +277,13 @@ function JobDetails() {
                 <button
                   onClick={() => navigate(`/apply?jobId=${job.id}`)}
                   style={{
-                    backgroundColor: '#171717',
-                    color: '#ffffff',
+                    backgroundColor: '#8B1235',
+                    color: '#FCD34D',
                     border: 'none',
-                    padding: '10px 28px',
+                    padding: '12px 28px',
                     borderRadius: '4px',
-                    fontWeight: 700,
-                    fontSize: '0.88rem',
+                    fontWeight: 800,
+                    fontSize: '0.9rem',
                     cursor: 'pointer',
                     letterSpacing: '0.4px'
                   }}

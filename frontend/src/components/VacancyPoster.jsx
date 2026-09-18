@@ -93,15 +93,15 @@ const VacancyPoster = ({ job, school, showApplyButton = false, style = {} }) => 
               navigate('/apply');
             }}
             style={{
-              backgroundColor: '#669BBC',
-              color: '#ffffff',
+              backgroundColor: '#8B1235',
+              color: '#FCD34D',
               border: 'none',
               padding: '12px 32px',
               borderRadius: '8px',
               fontWeight: 800,
               fontSize: '0.95rem',
               cursor: 'pointer',
-              boxShadow: '0 4px 14px rgba(102, 155, 188, 0.25)',
+              boxShadow: '0 4px 14px rgba(139, 18, 53, 0.25)',
               transition: 'all 0.2s ease'
             }}
           >

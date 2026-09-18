@@ -1,4 +1,4 @@
-import React, { useContext, useState } from 'react';
+import React, { useContext, useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 
@@ -7,6 +7,20 @@ function Header() {
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 25) {
+        setScrolled(true);
+      } else {
+        setScrolled(false);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const handleLogout = () => {
     logout();
@@ -14,15 +28,22 @@ function Header() {
   };
 
   return (
-    <header className="navbar-dypiu">
+    <header className={`navbar-dypiu ${scrolled ? 'is-scrolled' : ''}`}>
       <div className="navbar-container">
-        {/* FAR LEFT: Official University Logo */}
+        {/* LEFT SIDE: Logo Crest + Disappearing University Name on Scroll */}
         <Link to="/" className="navbar-brand-link" onClick={() => setMobileMenuOpen(false)}>
-          <img 
-            src="/logo.dypiu.png" 
-            alt="D Y PATIL INTERNATIONAL UNIVERSITY" 
-            className="navbar-logo-img" 
-          />
+          <div className={`logo-container ${scrolled ? 'scrolled' : ''}`}>
+            <img 
+              src="/Screenshot_2026-09-18_143910-removebg-preview.png" 
+              alt="D Y Patil Crest" 
+              className="logo-icon" 
+            />
+            <div className={`logo-text-block ${scrolled ? 'scrolled-hide' : ''}`}>
+              <span className="logo-main-title">D Y PATIL</span>
+              <span className="logo-sub-title">INTERNATIONAL UNIVERSITY</span>
+              <span className="logo-tagline">AKURDI PUNE</span>
+            </div>
+          </div>
         </Link>
 
         {/* Mobile Hamburger Toggle */}
@@ -36,47 +57,39 @@ function Header() {
           <span className={`hamburger-bar ${mobileMenuOpen ? 'open' : ''}`}></span>
         </button>
 
+        {/* RIGHT SIDE: Navigation Menu (3 Items) */}
         <div className={`navbar-content ${mobileMenuOpen ? 'is-active' : ''}`}>
-          <nav className="navbar-nav-main" style={{ marginLeft: 'auto' }}>
-            {user && user.role === 'APPLICANT' && (
-              <Link 
-                to="/applicant/dashboard" 
-                className={`nav-link ${location.pathname.startsWith('/applicant/dashboard') || location.pathname.startsWith('/my-applications') ? 'active' : ''}`}
-                onClick={() => setMobileMenuOpen(false)}
+          <nav className="navbar-nav-main">
+            <Link 
+              to="/teaching" 
+              className={`nav-link ${location.pathname === '/teaching' ? 'active' : ''}`} 
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Teaching
+            </Link>
+            <Link 
+              to="/non-teaching" 
+              className={`nav-link ${location.pathname === '/non-teaching' ? 'active' : ''}`} 
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Non-Teaching
+            </Link>
+            <Link 
+              to="/advertisments" 
+              className={`nav-link ${location.pathname === '/advertisments' ? 'active' : ''}`} 
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Advertisements
+            </Link>
+            {user && (
+              <button 
+                onClick={() => { setMobileMenuOpen(false); handleLogout(); }}
+                className="nav-link-logout-btn"
               >
-                My Applications
-              </Link>
+                Logout ({user.name})
+              </button>
             )}
           </nav>
-
-          {/* RIGHT ACTIONS: Logged-in user profile & Logout */}
-          {user && (
-            <div className="navbar-actions" style={{ marginLeft: '20px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <div style={{ textAlign: 'right', fontSize: '0.85rem' }}>
-                  <div style={{ fontWeight: 700, color: '#0f2b5c' }}>{user.name}</div>
-                  <span style={{ 
-                    fontSize: '0.72rem', 
-                    padding: '2px 8px', 
-                    borderRadius: '12px', 
-                    backgroundColor: '#e0f2fe', 
-                    color: '#0369a1',
-                    fontWeight: 700,
-                    textTransform: 'uppercase'
-                  }}>
-                    {user.role}
-                  </span>
-                </div>
-                <button 
-                  onClick={() => { setMobileMenuOpen(false); handleLogout(); }}
-                  className="btn btn-outline btn-sm"
-                  style={{ padding: '6px 14px', fontSize: '0.82rem' }}
-                >
-                  Logout
-                </button>
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </header>

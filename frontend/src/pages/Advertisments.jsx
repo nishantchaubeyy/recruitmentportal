@@ -45,7 +45,7 @@ function Advertisments() {
           backgroundColor: '#ffffff',
           padding: '48px 24px 24px',
           textAlign: 'center',
-          borderBottom: '1px solid #e2e8f0'
+          borderBottom: '2px solid #8B1235'
         }}
       >
         <div style={{ maxWidth: '900px', margin: '0 auto' }}>
@@ -55,9 +55,9 @@ function Advertisments() {
               style={{
                 background: 'none',
                 border: 'none',
-                color: '#111111',
+                color: '#8B1235',
                 fontSize: '0.95rem',
-                fontWeight: 600,
+                fontWeight: 700,
                 cursor: 'pointer',
                 padding: 0,
                 display: 'inline-flex',
@@ -71,7 +71,7 @@ function Advertisments() {
           <h1
             style={{
               margin: 0,
-              color: '#111111',
+              color: '#8B1235',
               fontSize: 'clamp(1.8rem, 3.8vw, 2.5rem)',
               fontWeight: 800,
               fontFamily: "'Playfair Display', Georgia, 'Times New Roman', serif",

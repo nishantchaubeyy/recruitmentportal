@@ -85,14 +85,14 @@ function VacancySlider() {
   }
 
   return (
-    <section style={{ backgroundColor: '#f8fafc', padding: '64px 0 64px' }}>
+    <section style={{ backgroundColor: '#ffffff', padding: '64px 0 64px' }}>
       <div className="container" style={{ maxWidth: '1200px', padding: '0 24px', margin: '0 auto' }}>
         
         {/* 🎯 CENTER-ALIGNED SECTION HEADER */}
         <div style={{ textAlign: 'center', marginBottom: '28px' }}>
           <h2 style={{
             margin: 0,
-            color: '#0f172a',
+            color: '#8B1235',
             fontSize: 'clamp(1.6rem, 3.5vw, 2.2rem)',
             fontWeight: 800,
             fontFamily: "'Playfair Display', 'Cormorant Garamond', 'Libre Baskerville', Georgia, serif",
@@ -121,14 +121,14 @@ function VacancySlider() {
                   width: '46px',
                   height: '46px',
                   borderRadius: '50%',
-                  border: '1px solid #cbd5e1',
-                  backgroundColor: '#ffffff',
-                  color: canScrollLeft ? '#0f172a' : '#cbd5e1',
+                  border: '1.5px solid #8B1235',
+                  backgroundColor: '#8B1235',
+                  color: canScrollLeft ? '#FCD34D' : 'rgba(252, 211, 77, 0.4)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   cursor: canScrollLeft ? 'pointer' : 'default',
-                  boxShadow: canScrollLeft ? '0 4px 14px rgba(15,23,42,0.15)' : 'none',
+                  boxShadow: canScrollLeft ? '0 4px 14px rgba(139,18,53,0.25)' : 'none',
                   transition: 'all 0.2s ease',
                   opacity: canScrollLeft ? 1 : 0.4
                 }}
@@ -151,14 +151,14 @@ function VacancySlider() {
                   width: '46px',
                   height: '46px',
                   borderRadius: '50%',
-                  border: '1px solid #cbd5e1',
-                  backgroundColor: '#ffffff',
-                  color: canScrollRight ? '#0f172a' : '#cbd5e1',
+                  border: '1.5px solid #8B1235',
+                  backgroundColor: '#8B1235',
+                  color: canScrollRight ? '#FCD34D' : 'rgba(252, 211, 77, 0.4)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   cursor: canScrollRight ? 'pointer' : 'default',
-                  boxShadow: canScrollRight ? '0 4px 14px rgba(15,23,42,0.15)' : 'none',
+                  boxShadow: canScrollRight ? '0 4px 14px rgba(139,18,53,0.25)' : 'none',
                   transition: 'all 0.2s ease',
                   opacity: canScrollRight ? 1 : 0.4
                 }}
@@ -200,9 +200,9 @@ function VacancySlider() {
             ))}
           </div>
 
-          {/* Slider Dots Indicator */}
+          {/* Slider Pagination Dots */}
           {vacancies.length > 1 && (
-            <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginTop: '12px' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginTop: '16px' }}>
               {vacancies.map((_, i) => (
                 <button
                   key={i}
@@ -212,7 +212,7 @@ function VacancySlider() {
                     width: activeIndex === i ? '28px' : '10px',
                     height: '10px',
                     borderRadius: '5px',
-                    backgroundColor: activeIndex === i ? '#669BBC' : '#cbd5e1',
+                    backgroundColor: activeIndex === i ? '#8B1235' : '#cbd5e1',
                     border: 'none',
                     cursor: 'pointer',
                     transition: 'all 0.3s ease',
@@ -232,15 +232,15 @@ function VacancySlider() {
               display: 'inline-flex',
               alignItems: 'center',
               gap: '10px',
-              backgroundColor: '#669BBC',
-              color: '#ffffff',
+              backgroundColor: '#8B1235',
+              color: '#FCD34D',
               border: 'none',
               padding: '14px 32px',
               borderRadius: '10px',
               fontWeight: 800,
               fontSize: '0.95rem',
               cursor: 'pointer',
-              boxShadow: '0 4px 16px rgba(102, 155, 188, 0.25)',
+              boxShadow: '0 4px 16px rgba(139, 18, 53, 0.25)',
               transition: 'all 0.2s ease'
             }}
           >

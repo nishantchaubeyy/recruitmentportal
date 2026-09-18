@@ -49,8 +49,8 @@ function Login() {
 
   return (
     <div className="container">
-      <div style={{ maxWidth: '400px', margin: '60px auto', padding: '30px', border: '1px solid #cbd5e1', backgroundColor: '#f8fafc' }}>
-        <h2 style={{ border: 'none', margin: '0 0 20px 0', padding: 0, textAlign: 'center' }}>Applicant Login</h2>
+      <div style={{ maxWidth: '400px', margin: '60px auto', padding: '30px', border: '2px solid #8B1235', borderRadius: '8px', backgroundColor: '#ffffff', boxShadow: '0 4px 20px rgba(139, 18, 53, 0.08)' }}>
+        <h2 style={{ border: 'none', margin: '0 0 20px 0', padding: 0, textAlign: 'center', color: '#8B1235', fontWeight: 800 }}>Applicant Login</h2>
         
         {error && (
           <div style={{ padding: '10px', backgroundColor: '#fee2e2', border: '1px solid #fca5a5', color: '#991b1b', marginBottom: '15px', fontSize: '0.85rem' }}>
@@ -60,7 +60,7 @@ function Login() {
 
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label htmlFor="email">Email Address <span className="required">*</span></label>
+            <label htmlFor="email" style={{ color: '#8B1235', fontWeight: 700 }}>Email Address <span className="required">*</span></label>
             <input 
               type="email" 
               id="email" 
@@ -72,7 +72,7 @@ function Login() {
           </div>
 
           <div className="form-group">
-            <label htmlFor="password">Password <span className="required">*</span></label>
+            <label htmlFor="password" style={{ color: '#8B1235', fontWeight: 700 }}>Password <span className="required">*</span></label>
             <input 
               type="password" 
               id="password" 
@@ -85,8 +85,7 @@ function Login() {
 
           <button 
             type="submit" 
-            className="btn btn-primary btn-block" 
-            style={{ padding: '10px', fontSize: '0.9rem', marginTop: '10px' }}
+            style={{ width: '100%', padding: '12px', fontSize: '0.92rem', marginTop: '10px', backgroundColor: '#8B1235', color: '#FCD34D', border: 'none', borderRadius: '6px', fontWeight: 800, cursor: 'pointer' }}
             disabled={loading}
           >
             {loading ? 'Logging in...' : 'Login'}
@@ -94,7 +93,7 @@ function Login() {
         </form>
 
         <div style={{ marginTop: '20px', textAlign: 'center', fontSize: '0.85rem', color: '#64748b' }}>
-          Don't have an account? <Link to="/register" style={{ fontWeight: 600 }}>Register here</Link>
+          Don't have an account? <Link to="/register" style={{ fontWeight: 700, color: '#8B1235' }}>Register here</Link>
         </div>
 
         <div style={{ marginTop: '30px', borderTop: '1px solid #cbd5e1', paddingTop: '15px', textAlign: 'center', fontSize: '0.85rem' }}>

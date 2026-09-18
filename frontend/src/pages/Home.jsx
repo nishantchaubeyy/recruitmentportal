@@ -1,11 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import VacancySlider from '../components/VacancySlider';
-
-/* ─── OVERLAP MATH ─────────────────────────────────────────────
-   HALF = 120: cards straddle the hero bottom edge seamlessly.
-────────────────────────────────────────────────────────────── */
-const HALF = 120;
+import { apiRequest, getMediaUrl } from '../utils/api';
 
 /* ─── STYLES ─────────────────────────────────────────────────── */
 const s = {
@@ -14,18 +9,17 @@ const s = {
   hero: {
     position: 'relative',
     width: '100%',
-    minHeight: '440px',
+    minHeight: 'clamp(420px, 52vh, 600px)',
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
     textAlign: 'center',
-    padding: `70px 24px ${HALF}px`,
+    padding: '90px 24px 80px',
     overflow: 'hidden',
     boxSizing: 'border-box',
   },
 
-  /* LAYER 1 — Full DYPIU campus entrance photo (/DYPIU.png) */
   heroImgLayer: {
     position: 'absolute',
     top: 0,
@@ -33,13 +27,12 @@ const s = {
     width: '100%',
     height: '100%',
     objectFit: 'cover',
-    objectPosition: 'center 18%',
+    objectPosition: 'center top',
     transform: 'none',
     zIndex: 0,
     pointerEvents: 'none',
   },
 
-  /* LAYER 2 — Pure subtle dark navy tint (NO white fade) */
   heroOverlay: {
     position: 'absolute',
     inset: 0,
@@ -48,7 +41,6 @@ const s = {
     pointerEvents: 'none',
   },
 
-  /* LAYER 3 — Sharp "Join DYPIU!" header */
   heroInner: {
     position: 'relative',
     zIndex: 10,
@@ -60,104 +52,583 @@ const s = {
   h1: {
     fontSize: 'clamp(2.5rem, 6vw, 4rem)',
     fontWeight: 900,
-    color: '#ffffff',
+    color: '#FCD34D',
     letterSpacing: '-0.5px',
     lineHeight: 1.1,
     margin: 0,
     textShadow: '0 3px 18px rgba(0,0,0,0.65)',
   },
-
-  /* ── CARDS BAND ── */
-  band: {
-    position: 'relative',
-    zIndex: 20,
-    marginTop: `-${HALF}px`,
-    padding: '0 16px 0',
-    display: 'flex',
-    justifyContent: 'center',
-    backgroundColor: 'transparent',
-  },
-  grid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 300px))',
-    gap: '32px',
-    width: '100%',
-    maxWidth: '680px',
-    justifyContent: 'center',
-  },
-
-  /* Premium Editorial Serif Card Title (#171717 Near-Black) */
-  cardTitle: {
-    fontFamily: "'Playfair Display', 'Cormorant Garamond', 'Times New Roman', Georgia, serif",
-    fontSize: 'clamp(1.75rem, 3.5vw, 2.15rem)',
-    fontWeight: 800,
-    color: '#171717',
-    letterSpacing: '0.8px',
-    textTransform: 'uppercase',
-    textAlign: 'center',
-    margin: 0,
-    lineHeight: 1.2,
-  },
-
-  /* Blurred Logo Watermark Layer In-Between */
-  cardLogoInBetween: {
-    position: 'absolute',
-    inset: 0,
-    width: '100%',
-    height: '100%',
-    objectFit: 'contain',
-    objectPosition: 'center',
-    opacity: 0.18,
-    filter: 'blur(1.5px)',
-    transform: 'scale(1.15)',
-    pointerEvents: 'none',
-    zIndex: 2,
-  }
 };
 
-/* ─── COMPONENT ──────────────────────────────────────────────── */
 function Home() {
   const navigate = useNavigate();
+  const [vacancies, setVacancies] = useState([]);
+  const [schools, setSchools] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedDept, setSelectedDept] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('');
+  const [activeCategoryFilter, setActiveCategoryFilter] = useState({
+    TEACHING: false,
+    NON_TEACHING: false
+  });
+
+  // Modal States
+  const [selectedJobModal, setSelectedJobModal] = useState(null);
+  const [activePosterUrl, setActivePosterUrl] = useState(null);
+
+  useEffect(() => {
+    fetchVacancies();
+  }, []);
+
+  const fetchVacancies = async () => {
+    setLoading(true);
+    try {
+      const [vacData, schoolData] = await Promise.all([
+        apiRequest('/public/vacancies').catch(() => []),
+        apiRequest('/public/schools').catch(() => [])
+      ]);
+      setVacancies(Array.isArray(vacData) ? vacData : []);
+      setSchools(Array.isArray(schoolData) ? schoolData : []);
+    } catch (err) {
+      console.error('Error fetching vacancies:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Helper to resolve poster url for a job from job or school
+  const findPosterForJob = (job, schoolsList = []) => {
+    if (!job) return null;
+    if (job.posterUrl) return job.posterUrl;
+    if (job.school && (job.school.posterUrl || job.school.recruitmentPosterUrl)) {
+      return job.school.posterUrl || job.school.recruitmentPosterUrl;
+    }
+    
+    // Match with schools list by ID or name
+    if (schoolsList && schoolsList.length > 0) {
+      const matched = schoolsList.find(s => {
+        if (job.schoolId && s.id === job.schoolId) return true;
+        if (job.school && job.school.id && s.id === job.school.id) return true;
+        
+        const dept = (job.department || (job.school && job.school.name) || '').toLowerCase().trim();
+        const sName = (s.name || '').toLowerCase().trim();
+        const sCode = (s.code || '').toLowerCase().trim();
+        if (!dept || (!sName && !sCode)) return false;
+        
+        return dept === sName || dept.includes(sName) || sName.includes(dept) || (sCode && dept.includes(sCode));
+      });
+
+      if (matched && (matched.posterUrl || matched.recruitmentPosterUrl)) {
+        return matched.posterUrl || matched.recruitmentPosterUrl;
+      }
+    }
+    return null;
+  };
+
+  // Derive unique departments/schools for filter dropdown
+  const departmentsList = Array.from(
+    new Set(
+      vacancies
+        .map(v => v.department || (v.school && v.school.name))
+        .filter(Boolean)
+    )
+  );
+
+  // Filtered vacancies logic
+  const filteredVacancies = vacancies.filter(v => {
+    const title = (v.position || v.title || '').toLowerCase();
+    const dept = (v.department || (v.school && v.school.name) || '').toLowerCase();
+    const type = (v.type || '').toUpperCase();
+    const query = searchQuery.toLowerCase().trim();
+
+    const matchesQuery = !query || title.includes(query) || dept.includes(query);
+    const matchesDept = !selectedDept || (v.department || (v.school && v.school.name)) === selectedDept;
+    const matchesCategorySelect = !selectedCategory || type === selectedCategory;
+
+    // Checkbox filters
+    const activeCats = [];
+    if (activeCategoryFilter.TEACHING) activeCats.push('TEACHING');
+    if (activeCategoryFilter.NON_TEACHING) activeCats.push('NON_TEACHING');
+    const matchesCheckboxCat = activeCats.length === 0 || activeCats.includes(type);
+
+    return matchesQuery && matchesDept && matchesCategorySelect && matchesCheckboxCat;
+  });
+
+  const toggleCategoryCheckbox = (catKey) => {
+    setActiveCategoryFilter(prev => ({
+      ...prev,
+      [catKey]: !prev[catKey]
+    }));
+  };
+
+  const clearAllFilters = () => {
+    setSearchQuery('');
+    setSelectedDept('');
+    setSelectedCategory('');
+    setActiveCategoryFilter({ TEACHING: false, NON_TEACHING: false });
+  };
 
   return (
     <div style={s.page}>
-      {/* ─── Google Fonts: Playfair Display ─── */}
+      {/* ─── Google Fonts & Page Custom CSS ─── */}
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;0,700;0,800;1,600;1,700&family=Playfair+Display:ital,wght@0,600;0,700;0,800;0,900;1,600;1,700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;0,700;0,800;1,600;1,700&family=Playfair+Display:ital,wght@0,600;0,700;0,800;0,900;1,600;1,700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
-        .simple-category-card {
-          position: relative;
-          width: 100%;
-          min-height: 195px;
-          border-radius: 22px;
-          overflow: hidden;
+        /* ── OPEN POSITIONS SEARCH & FILTERS SECTION ── */
+        .open-positions-section {
+          max-width: 1200px;
+          margin: 40px auto 80px;
+          padding: 0 24px;
+        }
+
+        .section-header-row {
           display: flex;
+          align-items: baseline;
+          gap: 12px;
+          margin-bottom: 24px;
+          border-bottom: 2px solid #8B1235;
+          padding-bottom: 12px;
+        }
+
+        .section-title {
+          font-family: 'Playfair Display', Georgia, serif;
+          font-size: 2rem;
+          font-weight: 800;
+          color: #8B1235;
+          text-transform: uppercase;
+          margin: 0;
+          letter-spacing: 0.5px;
+        }
+
+        .result-count-text {
+          font-size: 1rem;
+          font-weight: 700;
+          color: #8B1235;
+          margin: 0;
+        }
+
+        .search-bar-container {
+          background: #f8fafc;
+          border: 1.5px solid #e2e8f0;
+          border-radius: 12px;
+          padding: 20px;
+          box-shadow: 0 4px 16px rgba(15, 23, 42, 0.04);
+          margin-bottom: 28px;
+        }
+
+        .search-grid {
+          display: grid;
+          grid-template-columns: 2fr 1fr 1fr auto;
+          gap: 12px;
+          align-items: center;
+        }
+
+        @media (max-width: 900px) {
+          .search-grid {
+            grid-template-columns: 1fr;
+          }
+        }
+
+        .search-input-field, .search-select-field {
+          width: 100%;
+          padding: 11px 14px;
+          border: 1px solid #cbd5e1;
+          border-radius: 8px;
+          font-size: 0.92rem;
+          color: #1e293b;
+          background-color: #ffffff;
+          font-family: inherit;
+          outline: none;
+          transition: border-color 0.2s ease;
+        }
+
+        .search-input-field:focus, .search-select-field:focus {
+          border-color: #8B1235;
+        }
+
+        .btn-search-submit {
+          background-color: #8B1235;
+          color: #FFFFFF;
+          font-weight: 700;
+          font-size: 0.92rem;
+          padding: 11px 24px;
+          border: none;
+          border-radius: 8px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          display: inline-flex;
           align-items: center;
           justify-content: center;
-          padding: 32px 24px;
-          border: 2px solid rgba(255, 255, 255, 0.95);
-          box-shadow: 0 14px 36px rgba(15, 23, 42, 0.14);
-          transition: transform 0.25s ease, box-shadow 0.25s ease;
+          gap: 6px;
+        }
+
+        .btn-search-submit:hover {
+          background-color: #700e2a;
+          color: #F2B01E;
+        }
+
+        .filter-checkbox-row {
+          display: flex;
+          align-items: center;
+          gap: 20px;
+          margin-top: 14px;
+          padding-top: 12px;
+          border-top: 1px solid #e2e8f0;
+          flex-wrap: wrap;
+        }
+
+        .filter-checkbox-label {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 0.88rem;
+          font-weight: 600;
+          color: #475569;
+          cursor: pointer;
+          user-select: none;
+        }
+
+        .filter-checkbox-label input[type="checkbox"] {
+          accent-color: #8B1235;
+          width: 16px;
+          height: 16px;
           cursor: pointer;
         }
 
-        .simple-category-card:hover {
-          transform: translateY(-4px);
-          box-shadow: 0 20px 42px rgba(15, 23, 42, 0.2);
+        .btn-clear-filters {
+          background: none;
+          border: none;
+          color: #8B1235;
+          font-size: 0.85rem;
+          font-weight: 700;
+          cursor: pointer;
+          text-decoration: underline;
+          margin-left: auto;
         }
 
-        .card-teaching {
-          background: linear-gradient(135deg, rgba(255, 255, 255, 0.94) 0%, rgba(209, 250, 229, 0.8) 100%);
+        .btn-clear-filters:hover {
+          color: #700e2a;
         }
 
-        .card-non-teaching {
-          background: linear-gradient(135deg, rgba(255, 255, 255, 0.94) 0%, rgba(254, 215, 170, 0.8) 100%);
+        /* ── ELONGATED FULL-WIDTH RECTANGULAR VACANCY BOXES ── */
+        .vacancy-list-container {
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+          width: 100%;
+        }
+
+        .job-card-elongated {
+          background: #ffffff;
+          border: 2px solid #8B1235;
+          border-radius: 12px;
+          padding: 22px 28px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 20px;
+          width: 100%;
+          box-shadow: 0 4px 14px rgba(139, 18, 53, 0.06);
+          transition: transform 0.2s ease, box-shadow 0.2s ease;
+          box-sizing: border-box;
+        }
+
+        .job-card-elongated:hover {
+          transform: translateY(-3px);
+          box-shadow: 0 12px 28px rgba(139, 18, 53, 0.14);
+        }
+
+        @media (max-width: 768px) {
+          .job-card-elongated {
+            flex-direction: column;
+            align-items: flex-start;
+            padding: 20px;
+          }
+        }
+
+        .job-info-left {
+          flex: 1;
+        }
+
+        .job-title-elongated {
+          font-family: 'Playfair Display', Georgia, serif;
+          font-size: 1.35rem;
+          font-weight: 800;
+          color: #8B1235;
+          line-height: 1.25;
+          margin: 0 0 6px 0;
+        }
+
+        .job-meta-line {
+          font-size: 0.90rem;
+          color: #475569;
+          font-weight: 500;
+          margin-bottom: 12px;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          flex-wrap: wrap;
+        }
+
+        .job-tags-row {
+          display: flex;
+          gap: 8px;
+          align-items: center;
+          flex-wrap: wrap;
+        }
+
+        .job-tag-pill {
+          font-size: 0.78rem;
+          font-weight: 700;
+          padding: 4px 12px;
+          border-radius: 20px;
+          background-color: #f1f5f9;
+          color: #334155;
+          border: 1px solid #cbd5e1;
+        }
+
+        .job-tag-pill.type-pill {
+          background-color: #8B1235;
+          color: #FFFFFF;
+          border: none;
+        }
+
+        .job-actions-right {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          flex-shrink: 0;
+        }
+
+        @media (max-width: 768px) {
+          .job-actions-right {
+            width: 100%;
+            justify-content: flex-start;
+            margin-top: 14px;
+            padding-top: 14px;
+            border-top: 1px solid #f1f5f9;
+          }
+        }
+
+        .btn-elongated-advertisement {
+          background-color: #ffffff;
+          color: #8B1235;
+          border: 1.5px solid #8B1235;
+          font-weight: 700;
+          font-size: 0.88rem;
+          padding: 9px 16px;
+          border-radius: 8px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          white-space: nowrap;
+        }
+
+        .btn-elongated-advertisement:hover {
+          background-color: #8B1235;
+          color: #F2B01E;
+        }
+
+        .btn-elongated-details {
+          background-color: #8B1235;
+          color: #FFFFFF;
+          font-weight: 700;
+          font-size: 0.88rem;
+          padding: 10px 20px;
+          border-radius: 8px;
+          border: none;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          white-space: nowrap;
+        }
+
+        .btn-elongated-details:hover {
+          background-color: #700e2a;
+          color: #F2B01E;
+        }
+
+        .empty-jobs-container {
+          text-align: center;
+          padding: 60px 24px;
+          background-color: #f8fafc;
+          border: 1.5px dashed #cbd5e1;
+          border-radius: 12px;
+          color: #64748b;
+          font-size: 1.05rem;
+          font-weight: 600;
+        }
+
+        /* ── MODALS POP-UP STYLING ── */
+        .portal-modal-overlay {
+          position: fixed;
+          inset: 0;
+          background-color: rgba(15, 23, 42, 0.7);
+          backdrop-filter: blur(4px);
+          z-index: 2000;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 20px;
+          overflow-y: auto;
+        }
+
+        .portal-modal-card {
+          background-color: #ffffff;
+          border: 2px solid #8B1235;
+          border-radius: 14px;
+          max-width: 720px;
+          width: 100%;
+          max-height: 90vh;
+          overflow-y: auto;
+          box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+          position: relative;
+          padding: 32px;
+        }
+
+        .poster-modal-card {
+          background-color: #ffffff;
+          border: 2px solid #8B1235;
+          border-radius: 14px;
+          max-width: 850px;
+          width: 100%;
+          max-height: 90vh;
+          overflow-y: auto;
+          box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+          position: relative;
+          padding: 24px;
+        }
+
+        .portal-modal-close-btn {
+          position: absolute;
+          top: 16px;
+          right: 20px;
+          background: #f1f5f9;
+          border: none;
+          border-radius: 50%;
+          width: 36px;
+          height: 36px;
+          font-size: 1.2rem;
+          font-weight: 700;
+          color: #475569;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.2s ease;
+        }
+
+        .portal-modal-close-btn:hover {
+          background: #8B1235;
+          color: #FFFFFF;
+        }
+
+        .modal-eyebrow {
+          font-size: 0.75rem;
+          font-weight: 800;
+          letter-spacing: 1.5px;
+          color: #8B1235;
+          text-transform: uppercase;
+          margin-bottom: 6px;
+        }
+
+        .modal-job-title {
+          font-family: 'Playfair Display', Georgia, serif;
+          font-size: 1.75rem;
+          font-weight: 800;
+          color: #8B1235;
+          margin: 0 0 8px 0;
+          line-height: 1.2;
+        }
+
+        .modal-job-dept {
+          font-size: 0.95rem;
+          font-weight: 600;
+          color: #334155;
+          margin-bottom: 20px;
+        }
+
+        .modal-meta-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+          gap: 12px;
+          background: #f8fafc;
+          padding: 14px 18px;
+          border-radius: 8px;
+          border: 1px solid #e2e8f0;
+          margin-bottom: 24px;
+        }
+
+        .modal-meta-item span {
+          display: block;
+          font-size: 0.72rem;
+          color: #64748b;
+          text-transform: uppercase;
+          font-weight: 700;
+        }
+
+        .modal-meta-item strong {
+          font-size: 0.88rem;
+          color: #1e293b;
+        }
+
+        .modal-section-block {
+          margin-bottom: 20px;
+        }
+
+        .modal-section-block h4 {
+          font-size: 0.85rem;
+          font-weight: 800;
+          text-transform: uppercase;
+          color: #8B1235;
+          letter-spacing: 0.5px;
+          margin: 0 0 8px 0;
+          border-bottom: 1px solid #e2e8f0;
+          padding-bottom: 4px;
+        }
+
+        .modal-section-block p {
+          font-size: 0.92rem;
+          color: #334155;
+          line-height: 1.6;
+          margin: 0;
+          white-space: pre-line;
+        }
+
+        .modal-action-footer {
+          margin-top: 28px;
+          padding-top: 20px;
+          border-top: 2px solid #f1f5f9;
+          display: flex;
+          justify-content: flex-end;
+          gap: 12px;
+        }
+
+        .btn-modal-apply-now {
+          background-color: #8B1235;
+          color: #FFFFFF;
+          font-weight: 800;
+          font-size: 0.95rem;
+          padding: 12px 28px;
+          border-radius: 6px;
+          border: none;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .btn-modal-apply-now:hover {
+          background-color: #700e2a;
+          color: #F2B01E;
         }
       `}</style>
 
       {/* HERO — Pure photo + uniform dark tint + crisp "Join DYPIU!" */}
       <section style={s.hero} aria-label="DYPIU Careers Hero">
-
         {/* Layer 1: Full DYPIU Campus Entrance photo */}
         <img 
           src="/DYPIU.png" 
@@ -166,72 +637,273 @@ function Home() {
           aria-hidden="true" 
         />
 
-        {/* Layer 2: Pure uniform tint (NO white fade) */}
+        {/* Layer 2: Pure uniform tint */}
         <div style={s.heroOverlay} aria-hidden="true" />
 
         {/* Layer 3: Clean "Join DYPIU!" heading */}
         <div style={s.heroInner}>
           <h1 style={s.h1}>Join DYPIU!</h1>
         </div>
-
       </section>
 
-      {/* CATEGORY CARDS — Simple 2 Cards with Watermark Logo inside */}
-      <div style={s.band}>
-        <div style={s.grid}>
-
-          {/* Card 1: Teaching */}
-          <div
-            className="simple-category-card card-teaching"
-            role="button"
-            tabIndex={0}
-            aria-label="Teaching Positions"
-            onClick={() => navigate('/teaching')}
-            onKeyDown={(e) => e.key === 'Enter' && navigate('/teaching')}
-          >
-            {/* Watermark Logo Inside */}
-            <img 
-              src="/imageblocks.png" 
-              alt="" 
-              style={s.cardLogoInBetween} 
-              aria-hidden="true" 
-            />
-
-            {/* Front Typography */}
-            <div style={{ position: 'relative', zIndex: 3, textAlign: 'center' }}>
-              <h3 style={s.cardTitle}>TEACHING</h3>
-            </div>
-          </div>
-
-          {/* Card 2: Non-Teaching */}
-          <div
-            className="simple-category-card card-non-teaching"
-            role="button"
-            tabIndex={0}
-            aria-label="Non-Teaching Positions"
-            onClick={() => navigate('/non-teaching')}
-            onKeyDown={(e) => e.key === 'Enter' && navigate('/non-teaching')}
-          >
-            {/* Watermark Logo Inside */}
-            <img 
-              src="/imageblocks.png" 
-              alt="" 
-              style={s.cardLogoInBetween} 
-              aria-hidden="true" 
-            />
-
-            {/* Front Typography */}
-            <div style={{ position: 'relative', zIndex: 3, textAlign: 'center' }}>
-              <h3 style={s.cardTitle}>NON-TEACHING</h3>
-            </div>
-          </div>
-
+      {/* ─── OPEN POSITIONS SEARCH & ELONGATED VACANCY BOXES SECTION ─── */}
+      <section className="open-positions-section" aria-label="Open Positions">
+        <div className="section-header-row">
+          <h2 className="section-title">OPEN POSITIONS</h2>
+          <span className="result-count-text">
+            ({filteredVacancies.length} {filteredVacancies.length === 1 ? 'role' : 'roles'})
+          </span>
         </div>
-      </div>
 
-      {/* FEATURED ROLES SLIDER */}
-      <VacancySlider />
+        {/* SEARCH & FILTERS BAR */}
+        <div className="search-bar-container">
+          <div className="search-grid">
+            {/* 1. Keyword / Role Input */}
+            <input
+              type="text"
+              className="search-input-field"
+              placeholder="Search by role, keyword or department..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
 
+            {/* 2. Department / School Dropdown */}
+            <select
+              className="search-select-field"
+              value={selectedDept}
+              onChange={(e) => setSelectedDept(e.target.value)}
+            >
+              <option value="">All Departments</option>
+              {departmentsList.map((dept, idx) => (
+                <option key={idx} value={dept}>
+                  {dept}
+                </option>
+              ))}
+            </select>
+
+            {/* 3. Job Type / Category Dropdown */}
+            <select
+              className="search-select-field"
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+            >
+              <option value="">All Job Types</option>
+              <option value="TEACHING">Teaching</option>
+              <option value="NON_TEACHING">Non-Teaching</option>
+            </select>
+
+            {/* 4. Search Submit Button */}
+            <button
+              className="btn-search-submit"
+              onClick={() => {}}
+            >
+              Search
+            </button>
+          </div>
+
+          {/* Checkbox Category Filters */}
+          <div className="filter-checkbox-row">
+            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1e293b' }}>Filter by Category:</span>
+            <label className="filter-checkbox-label">
+              <input
+                type="checkbox"
+                checked={activeCategoryFilter.TEACHING}
+                onChange={() => toggleCategoryCheckbox('TEACHING')}
+              />
+              Teaching
+            </label>
+            <label className="filter-checkbox-label">
+              <input
+                type="checkbox"
+                checked={activeCategoryFilter.NON_TEACHING}
+                onChange={() => toggleCategoryCheckbox('NON_TEACHING')}
+              />
+              Non-Teaching
+            </label>
+
+            {(searchQuery || selectedDept || selectedCategory || activeCategoryFilter.TEACHING || activeCategoryFilter.NON_TEACHING) && (
+              <button className="btn-clear-filters" onClick={clearAllFilters}>
+                Clear all filters
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* VACANCY LIST — ELONGATED RECTANGULAR BOXES */}
+        {loading ? (
+          <div className="empty-jobs-container">
+            Loading active vacancies...
+          </div>
+        ) : filteredVacancies.length === 0 ? (
+          <div className="empty-jobs-container">
+            No current openings available.
+          </div>
+        ) : (
+          <div className="vacancy-list-container">
+            {filteredVacancies.map((job) => {
+              const jobTitle = job.position || job.title || 'Academic / Staff Role';
+              const jobDept = job.department || (job.school && job.school.name) || 'D Y Patil International University';
+              const locationText = job.location || 'Akurdi, Pune';
+              const jobType = job.type === 'TEACHING' ? 'Teaching' : job.type === 'NON_TEACHING' ? 'Non-Teaching' : job.type || 'Vacancy';
+              const openingsCount = job.openings || job.positionsCount || 1;
+              const posterPath = findPosterForJob(job, schools);
+              const hasPoster = Boolean(posterPath);
+              const posterMediaUrl = hasPoster ? getMediaUrl(posterPath) : null;
+
+              return (
+                <div key={job.id} className="job-card-elongated">
+                  {/* LEFT SIDE: Position Details, Metadata & Badges */}
+                  <div className="job-info-left">
+                    <h3 className="job-title-elongated">{jobTitle}</h3>
+                    <div className="job-meta-line">
+                      <span>{jobDept}</span> &bull; <span>{locationText}</span> &bull; <span>{job.experience || 'Prior experience preferred'}</span> &bull; <strong style={{ color: '#16a34a' }}>{openingsCount} {openingsCount === 1 ? 'Opening' : 'Openings'}</strong>
+                    </div>
+                    <div className="job-tags-row">
+                      <span className="job-tag-pill type-pill">{jobType}</span>
+                      <span className="job-tag-pill">{job.employmentType || 'Full Time'}</span>
+                    </div>
+                  </div>
+
+                  {/* RIGHT SIDE: Action Buttons (Advertisement + View Details) */}
+                  <div className="job-actions-right">
+                    {hasPoster && (
+                      <button
+                        className="btn-elongated-advertisement"
+                        onClick={() => setActivePosterUrl(posterMediaUrl)}
+                        title="View Official Recruitment Advertisement Poster"
+                      >
+                        Advertisement
+                      </button>
+                    )}
+
+                    <button
+                      className="btn-elongated-details"
+                      onClick={() => setSelectedJobModal(job)}
+                    >
+                      View Details →
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
+      {/* ─── VACANCY DETAILS POP-UP MODAL ─── */}
+      {selectedJobModal && (
+        <div className="portal-modal-overlay" onClick={() => setSelectedJobModal(null)}>
+          <div className="portal-modal-card" onClick={(e) => e.stopPropagation()}>
+            <button className="portal-modal-close-btn" onClick={() => setSelectedJobModal(null)}>✕</button>
+
+            <div className="modal-eyebrow">D Y PATIL INTERNATIONAL UNIVERSITY &bull; RECRUITMENT SPECIFICATION</div>
+            <h2 className="modal-job-title">{selectedJobModal.position || selectedJobModal.title}</h2>
+            <div className="modal-job-dept">
+              {selectedJobModal.department || (selectedJobModal.school && selectedJobModal.school.name)} &bull; {selectedJobModal.type === 'TEACHING' ? 'Teaching Faculty' : 'Non-Teaching Staff'}
+            </div>
+
+            <div className="modal-meta-grid">
+              <div className="modal-meta-item">
+                <span>Openings</span>
+                <strong>{selectedJobModal.openings || selectedJobModal.positionsCount || 1} Positions</strong>
+              </div>
+              <div className="modal-meta-item">
+                <span>Campus</span>
+                <strong>{selectedJobModal.location || 'Akurdi, Pune'}</strong>
+              </div>
+              <div className="modal-meta-item">
+                <span>Employment Type</span>
+                <strong>{selectedJobModal.employmentType || 'Full Time'}</strong>
+              </div>
+              <div className="modal-meta-item">
+                <span>Deadline</span>
+                <strong>
+                  {selectedJobModal.deadline 
+                    ? new Date(selectedJobModal.deadline).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+                    : 'Open until filled'}
+                </strong>
+              </div>
+            </div>
+
+            {/* Description */}
+            <div className="modal-section-block">
+              <h4>Role Description & Scope</h4>
+              <p>
+                {selectedJobModal.description || 'Responsible for academic instruction, student mentoring, research supervision, and departmental development at DYPIU.'}
+              </p>
+            </div>
+
+            {/* Qualifications & Experience */}
+            {(selectedJobModal.qualification || selectedJobModal.experience) && (
+              <div className="modal-section-block">
+                <h4>Qualifications & Experience</h4>
+                {selectedJobModal.qualification && (
+                  <p style={{ marginBottom: '6px' }}>
+                    <strong>Academic:</strong> {selectedJobModal.qualification}
+                  </p>
+                )}
+                {selectedJobModal.experience && (
+                  <p>
+                    <strong>Experience:</strong> {selectedJobModal.experience}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* Advertisement Poster Preview inside Details */}
+            {(() => {
+              const modalPosterPath = findPosterForJob(selectedJobModal, schools);
+              if (!modalPosterPath) return null;
+              const modalPosterMediaUrl = getMediaUrl(modalPosterPath);
+              return (
+                <div className="modal-section-block">
+                  <h4>Recruitment Advertisement Poster</h4>
+                  <div style={{ textAlign: 'center', marginTop: '10px' }}>
+                    <img 
+                      src={modalPosterMediaUrl} 
+                      alt="Official Recruitment Poster" 
+                      style={{ maxWidth: '100%', maxHeight: '300px', borderRadius: '8px', border: '1px solid #cbd5e1', cursor: 'pointer' }}
+                      onClick={() => setActivePosterUrl(modalPosterMediaUrl)}
+                    />
+                  </div>
+                </div>
+              );
+            })()}
+
+            <div className="modal-action-footer">
+              <button 
+                className="btn-modal-apply-now"
+                onClick={() => {
+                  const jobId = selectedJobModal.id;
+                  setSelectedJobModal(null);
+                  navigate(`/apply?jobId=${jobId}`);
+                }}
+              >
+                Proceed to Apply Now &rarr;
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── ADVERTISEMENT POSTER POP-UP MODAL ─── */}
+      {activePosterUrl && (
+        <div className="portal-modal-overlay" onClick={() => setActivePosterUrl(null)}>
+          <div className="poster-modal-card" onClick={(e) => e.stopPropagation()}>
+            <button className="portal-modal-close-btn" onClick={() => setActivePosterUrl(null)}>✕</button>
+            <div style={{ textAlign: 'center' }}>
+              <h3 style={{ margin: '0 0 16px 0', color: '#8B1235', fontFamily: 'Playfair Display, serif', fontSize: '1.4rem' }}>
+                Official Recruitment Advertisement
+              </h3>
+              <img 
+                src={activePosterUrl} 
+                alt="Official Recruitment Poster" 
+                style={{ maxWidth: '100%', maxHeight: '78vh', objectFit: 'contain', borderRadius: '8px', boxShadow: '0 8px 24px rgba(0,0,0,0.2)' }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
