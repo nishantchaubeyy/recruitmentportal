@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiRequest, getMediaUrl } from '../utils/api';
+import DYPIUWatermark from '../components/DYPIUWatermark';
 
 /* ─── STYLES ─────────────────────────────────────────────────── */
 const s = {
@@ -26,6 +27,33 @@ const s = {
   },
 };
 
+const StatCounter = ({ target, duration = 1600, suffix = '+' }) => {
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    let startTimestamp = null;
+    let animationFrameId = null;
+
+    const step = (timestamp) => {
+      if (!startTimestamp) startTimestamp = timestamp;
+      const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+      // Ease out cubic curve for smooth counter animation
+      const current = Math.floor((1 - Math.pow(1 - progress, 3)) * target);
+      setCount(current);
+      if (progress < 1) {
+        animationFrameId = requestAnimationFrame(step);
+      } else {
+        setCount(target);
+      }
+    };
+
+    animationFrameId = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(animationFrameId);
+  }, [target, duration]);
+
+  return <span>{count.toLocaleString()}{suffix}</span>;
+};
+
 function Home() {
   const navigate = useNavigate();
   const [vacancies, setVacancies] = useState([]);
@@ -38,6 +66,20 @@ function Home() {
     TEACHING: false,
     NON_TEACHING: false
   });
+
+  // Hero Background Image Carousel Slider (homeimg.png and image.png)
+  const heroImages = [
+    '/homeimg.png',
+    '/image.png'
+  ];
+  const [heroImageIdx, setHeroImageIdx] = useState(0);
+
+  useEffect(() => {
+    const sliderTimer = setInterval(() => {
+      setHeroImageIdx((prevIdx) => (prevIdx + 1) % heroImages.length);
+    }, 5000);
+    return () => clearInterval(sliderTimer);
+  }, [heroImages.length]);
 
   // Modal States
   const [selectedJobModal, setSelectedJobModal] = useState(null);
@@ -153,24 +195,24 @@ function Home() {
           align-items: baseline;
           gap: 12px;
           margin-bottom: 24px;
-          border-bottom: 2px solid #8B1235;
+          border-bottom: 2px solid #000000;
           padding-bottom: 12px;
         }
 
         .section-title {
-          font-family: 'Playfair Display', Georgia, serif;
-          font-size: 2rem;
+          font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+          font-size: 2.2rem;
           font-weight: 800;
-          color: #8B1235;
+          color: #000000;
           text-transform: uppercase;
           margin: 0;
-          letter-spacing: 0.5px;
+          letter-spacing: -0.01em;
         }
 
         .result-count-text {
           font-size: 1rem;
           font-weight: 700;
-          color: #8B1235;
+          color: #374151;
           margin: 0;
         }
 
@@ -591,19 +633,499 @@ function Home() {
           background-color: #700e2a;
           color: #F2B01E;
         }
+
+        /* ─── LEFT-SIDE RED SHADE HERO SECTION STYLES ─── */
+        .custom-hero-main {
+          position: relative;
+          overflow: hidden;
+          background-color: #0f172a;
+        }
+
+        .custom-hero-container {
+          position: relative;
+          width: 100%;
+          min-height: 85vh;
+          height: auto;
+          display: flex;
+          align-items: center;
+          justify-content: flex-start;
+          padding: 0;
+          box-sizing: border-box;
+        }
+
+        @media (max-width: 768px) {
+          .custom-hero-container {
+            min-height: 70vh;
+          }
+        }
+
+        .custom-hero-slider-container {
+          position: absolute;
+          inset: 0;
+          width: 100%;
+          height: 100%;
+          overflow: hidden;
+          z-index: 0;
+        }
+
+        .custom-hero-bg-img {
+          position: absolute;
+          inset: 0;
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          object-position: center 35%;
+          opacity: 0;
+          transition: opacity 1.2s ease-in-out;
+          transform: none;
+          filter: none;
+        }
+
+        .custom-hero-bg-img.active {
+          opacity: 1;
+          transform: none;
+        }
+
+        @media (max-width: 768px) {
+          .custom-hero-bg-img {
+            object-position: center center;
+          }
+        }
+
+        /* LEFT-SIDE MAROON GRADIENT OVERLAY ONLY (fading to transparent by ~65%) */
+        .custom-hero-overlay-left-maroon {
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(90deg,
+            rgba(84, 18, 29, 0.92) 0%,
+            rgba(84, 18, 29, 0.75) 30%,
+            rgba(84, 18, 29, 0.35) 50%,
+            rgba(84, 18, 29, 0) 65%);
+          z-index: 2;
+        }
+
+        .custom-hero-overlay-top-anchor {
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(180deg, rgba(84, 18, 29, 0.35) 0%, transparent 40%);
+          z-index: 3;
+          pointer-events: none;
+        }
+
+        @media (max-width: 768px) {
+          .custom-hero-overlay-left-maroon {
+            background: rgba(84, 18, 29, 0.75);
+          }
+        }
+
+        .custom-hero-grid-pattern {
+          position: absolute;
+          inset: 0;
+          opacity: 0.04;
+          pointer-events: none;
+          background-image: radial-gradient(rgba(217, 164, 60, 0.4) 1px, transparent 1px);
+          background-size: 24px 24px;
+          z-index: 4;
+        }
+
+        .custom-hero-content {
+          position: relative;
+          z-index: 10;
+          max-width: 640px;
+          padding: 80px 60px;
+          color: #ffffff;
+          width: 100%;
+          box-sizing: border-box;
+          text-align: left;
+        }
+
+        @media (max-width: 768px) {
+          .custom-hero-content {
+            padding: 50px 24px;
+          }
+        }
+
+        .custom-hero-text-block {
+          width: 100%;
+          max-width: 640px;
+          display: flex;
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 16px;
+        }
+
+        .custom-hero-h1 {
+          font-family: 'Playfair Display', Georgia, serif;
+          font-weight: 700;
+          letter-spacing: -0.01em;
+          color: #ffffff;
+          line-height: 1.2;
+          margin: 0;
+          text-align: left;
+          align-self: flex-start;
+          text-shadow: 0 4px 18px rgba(0, 0, 0, 0.75), 0 2px 8px rgba(0, 0, 0, 0.6);
+        }
+
+        .hero-h1-line1 {
+          display: block;
+          text-align: left;
+          font-size: clamp(2rem, 3.6vw, 2.9rem);
+          font-weight: 700;
+          color: #ffffff;
+        }
+
+        .hero-h1-line2 {
+          display: block;
+          text-align: left;
+          font-size: clamp(2.3rem, 4.4vw, 3.5rem);
+          font-weight: 800;
+          color: #d9a43c;
+          font-style: italic;
+          margin: 3px 0;
+        }
+
+        .hero-h1-line3 {
+          display: block;
+          text-align: left;
+          font-size: clamp(1.7rem, 3.2vw, 2.5rem);
+          font-weight: 700;
+          color: #ffffff;
+        }
+
+        .custom-hero-motto-stats-container {
+          width: 100%;
+          display: flex;
+          flex-direction: column;
+          align-items: flex-start;
+          text-align: left;
+          margin-top: 4px;
+        }
+
+        .custom-hero-motto {
+          font-family: 'Playfair Display', Georgia, serif;
+          font-size: clamp(1.5rem, 2.8vw, 2.2rem);
+          font-weight: 900;
+          letter-spacing: 0.04em;
+          color: #ffffff;
+          line-height: 1.2;
+          text-align: left;
+          text-shadow: 0 4px 18px rgba(0, 0, 0, 0.8);
+          margin-bottom: 8px;
+        }
+
+        /* Stats – clean horizontal row with gap */
+        .hero-stats-grid {
+          display: flex;
+          gap: 56px;
+          flex-wrap: wrap;
+          margin-top: 24px;
+          width: 100%;
+        }
+
+        @media (max-width: 768px) {
+          .hero-stats-grid {
+            gap: 28px;
+          }
+        }
+
+        .hero-stat-card {
+          display: flex;
+          flex-direction: column;
+          align-items: flex-start;
+          justify-content: center;
+        }
+
+        .hero-stat-number {
+          font-family: 'Playfair Display', Georgia, serif;
+          font-size: 44px;
+          font-weight: 800;
+          color: #d9a43c;
+          line-height: 1;
+          margin-bottom: 6px;
+          text-shadow: 0 4px 16px rgba(0, 0, 0, 0.8);
+        }
+
+        .hero-stat-label {
+          font-family: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
+          font-size: 13px;
+          letter-spacing: 1px;
+          text-transform: uppercase;
+          font-weight: 600;
+          color: rgba(255, 255, 255, 0.95);
+          white-space: nowrap;
+          text-shadow: 0 2px 10px rgba(0, 0, 0, 0.7);
+        }
+
+        /* ─── CAREERS APPLICATION CATEGORY SELECTOR SECTION ─── */
+        .careers-category-section {
+          width: 100%;
+          background-color: #ffffff;
+          border-bottom: 1px solid #f3f4f6;
+          padding: 48px 24px;
+          position: relative;
+          overflow: hidden;
+        }
+
+        @media (min-width: 768px) {
+          .careers-category-section {
+            padding: 56px 48px;
+          }
+        }
+
+        .careers-category-wrapper {
+          max-width: 1200px;
+          margin: 0 auto;
+          padding: 0 24px;
+          position: relative;
+          z-index: 1;
+        }
+
+        .careers-header-row {
+          margin-bottom: 32px;
+          display: flex;
+          align-items: flex-end;
+          justify-content: space-between;
+          border-bottom: 2px solid #000000;
+          padding-bottom: 12px;
+          gap: 16px;
+        }
+
+        .careers-title {
+          font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+          font-size: clamp(2.2rem, 4vw, 3rem);
+          font-weight: 800;
+          color: #000000;
+          letter-spacing: -0.02em;
+          margin: 0;
+          line-height: 1;
+        }
+
+        .careers-header-logo {
+          height: 44px;
+          max-height: 52px;
+          object-fit: contain;
+          display: block;
+        }
+
+        .careers-card-box {
+          width: 100%;
+          max-width: 1040px;
+          margin: 0 auto;
+          background-color: #ffffff;
+          border: 1px solid #e2e4e8;
+          border-radius: 8px;
+          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03);
+          padding: 44px 32px;
+        }
+
+        @media (min-width: 768px) {
+          .careers-card-box {
+            padding: 56px 52px;
+          }
+        }
+
+        .careers-instruction-text {
+          text-align: center;
+          color: #374151;
+          font-size: clamp(1.05rem, 1.8vw, 1.2rem);
+          font-weight: 500;
+          line-height: 1.6;
+          max-width: 800px;
+          margin: 0 auto 36px;
+        }
+
+        .careers-buttons-grid {
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: 20px;
+          max-width: 820px;
+          margin: 0 auto;
+        }
+
+        @media (min-width: 640px) {
+          .careers-buttons-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 28px;
+          }
+        }
+
+        .portal-btn {
+          background-color: #8B1235;
+          color: #ffffff;
+          border: 2px solid #8B1235;
+          transition: all 0.3s ease;
+          letter-spacing: 0.075em;
+          display: block;
+          width: 100%;
+          padding: 16px 28px;
+          text-align: center;
+          font-weight: 700;
+          font-size: 0.95rem;
+          text-transform: uppercase;
+          border-radius: 4px;
+          cursor: pointer;
+          user-select: none;
+          text-decoration: none;
+          box-sizing: border-box;
+        }
+
+        .portal-btn:hover {
+          background-color: #ffffff;
+          color: #8B1235;
+          border-color: #8B1235;
+          box-shadow: 0 4px 14px rgba(139, 18, 53, 0.25);
+        }
+
+        .portal-btn:active {
+          transform: translateY(1px);
+        }
+
+        .careers-subtle-note {
+          margin-top: 28px;
+          text-align: center;
+          font-size: 0.8rem;
+          color: #9ca3af;
+        }
       `}</style>
 
-      {/* HERO BANNER — Full image display with zero cut/crop */}
-      <section style={s.hero} aria-label="DYPIU Campus Entrance">
-        <img 
-          src="/DYPIU.png" 
-          alt="D Y Patil International University Campus" 
-          style={s.heroImgLayer} 
-        />
+      {/* BEGIN: Hero Section */}
+      <main className="custom-hero-main">
+        <div className="custom-hero-container">
+          
+          {/* Hero Background Image Slider (homeimg.png & image.png) */}
+          <div className="custom-hero-slider-container">
+            {heroImages.map((imgSrc, idx) => (
+              <img 
+                key={imgSrc + idx}
+                alt="D Y Patil International University Campus" 
+                className={`custom-hero-bg-img ${idx === heroImageIdx ? 'active' : ''}`}
+                src={imgSrc} 
+              />
+            ))}
+          </div>
+          
+          {/* Left-Side Maroon Gradient Overlay (#54121d at ~90% opacity fading to transparent by 45-50%) */}
+          <div className="custom-hero-overlay-left-maroon"></div>
+          <div className="custom-hero-overlay-top-anchor"></div>
+          
+          {/* Subtle Grid Overlay */}
+          <div className="custom-hero-grid-pattern"></div>
+          
+          {/* Foreground Left-Aligned Text Content Panel */}
+          <div className="custom-hero-content">
+            <div className="custom-hero-text-block">
+              
+              {/* LEFT-ALIGNED: Main Headline inside Maroon Panel */}
+              <h1 className="custom-hero-h1">
+                <span className="hero-h1-line1">Shape the Future of</span>
+                <span className="hero-h1-line2">Innovation & Education</span>
+                <span className="hero-h1-line3">at DY Patil International University</span>
+              </h1>
+
+              {/* LEFT-ALIGNED: Motto & Counting Stats inside Maroon Panel */}
+              <div className="custom-hero-motto-stats-container">
+                {/* Motto: Think. Thrive. Transform. */}
+                <div className="custom-hero-motto">
+                  Think. Thrive. Transform.
+                </div>
+
+                {/* Animated Counters Section */}
+                <div className="hero-stats-grid">
+                  
+                  {/* Stat 1: Schools & Departments */}
+                  <div className="hero-stat-card">
+                    <div className="hero-stat-number">
+                      <StatCounter target={10} suffix="+" />
+                    </div>
+                    <div className="hero-stat-label">
+                      SCHOOLS & DEPARTMENTS
+                    </div>
+                  </div>
+
+                  {/* Stat 2: Students */}
+                  <div className="hero-stat-card">
+                    <div className="hero-stat-number">
+                      <StatCounter target={6000} suffix="+" />
+                    </div>
+                    <div className="hero-stat-label">
+                      STUDENTS
+                    </div>
+                  </div>
+
+                  {/* Stat 3: Faculties */}
+                  <div className="hero-stat-card">
+                    <div className="hero-stat-number">
+                      <StatCounter target={200} suffix="+" />
+                    </div>
+                    <div className="hero-stat-label">
+                      FACULTIES
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </main>
+      {/* END: Hero Section */}
+
+      {/* ─── CAREERS APPLICATION CATEGORY SELECTOR SECTION ─── */}
+      <section className="careers-category-section" aria-label="Careers Category Selector">
+        {/* Subtle, smaller DYPIU Background Watermark positioned in right margin (width: 200px, top: 160px, right: 25px, opacity: 0.09) */}
+        <DYPIUWatermark top="160px" right="25px" width="200px" opacity={0.09} />
+
+        <div className="careers-category-wrapper">
+          
+          {/* Top Section: Large Bold Black Heading on the left */}
+          <div className="careers-header-row">
+            <h1 className="careers-title">
+              Careers
+            </h1>
+          </div>
+
+          {/* Centered Light Gray Bordered Card/Container */}
+          <div className="careers-card-box">
+            
+            {/* Instruction text: Centered dark gray text */}
+            <p className="careers-instruction-text">
+              Please fill in the below application form to apply for position
+            </p>
+
+            {/* Two Buttons Grid: side-by-side on desktop, stacked on mobile */}
+            <div className="careers-buttons-grid">
+              
+              {/* 1. TEACHING BUTTON */}
+              <button 
+                className="portal-btn"
+                onClick={() => navigate('/teaching')}
+              >
+                TEACHING
+              </button>
+
+              {/* 2. NON TEACHING BUTTON */}
+              <button 
+                className="portal-btn"
+                onClick={() => navigate('/non-teaching')}
+              >
+                NON TEACHING
+              </button>
+
+            </div>
+
+            {/* Subtle note for applicants */}
+            <div className="careers-subtle-note">
+              <p>Select your category to view active job openings and initiate direct online submission</p>
+            </div>
+
+          </div>
+
+        </div>
       </section>
 
       {/* ─── OPEN POSITIONS SEARCH & ELONGATED VACANCY BOXES SECTION ─── */}
-      <section className="open-positions-section" aria-label="Open Positions">
+      <section id="open-positions" className="open-positions-section" aria-label="Open Positions">
         <div className="section-header-row">
           <h2 className="section-title">OPEN POSITIONS</h2>
           <span className="result-count-text">

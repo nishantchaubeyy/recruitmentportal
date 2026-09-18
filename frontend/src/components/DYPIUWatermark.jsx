@@ -2,10 +2,10 @@ import React from 'react';
 
 /**
  * Standardized DYPIU Background Watermark Component.
- * Renders the official transparent monochrome DYPIU logo watermark
- * in the background whitespace on the right side of public pages.
+ * Renders a subtle, non-overlapping black-and-white DYPIU logo watermark (/logobw1.png)
+ * in the right side margin of pages.
  */
-function DYPIUWatermark({ top = '15px', right, width = '340px', opacity = 0.10 }) {
+function DYPIUWatermark({ top = '160px', right = '25px', width = '200px', opacity = 0.09 }) {
   return (
     <img
       src="/logobw1.png"
@@ -15,9 +15,8 @@ function DYPIUWatermark({ top = '15px', right, width = '340px', opacity = 0.10 }
       style={{
         position: 'absolute',
         top: top,
-        right: right || 'max(20px, calc(50% - 660px))',
+        right: right,
         width: width,
-        maxWidth: '25vw',
         height: 'auto',
         opacity: opacity,
         background: 'transparent',
@@ -26,8 +25,7 @@ function DYPIUWatermark({ top = '15px', right, width = '340px', opacity = 0.10 }
         outline: 'none',
         pointerEvents: 'none',
         userSelect: 'none',
-        zIndex: 0,
-        filter: 'brightness(0)'
+        zIndex: 0
       }}
     />
   );
