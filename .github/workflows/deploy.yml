@@ -1,4 +1,4 @@
-name: Deploy DYPIU Recruitment Portal to Ubuntu Server
+name: Deploy DYPIU Recruitment Portal to College Server
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
 
 jobs:
   deploy:
-    name: Build & Deploy on Self-Hosted Ubuntu Runner
+    name: Build & Deploy on Server
     runs-on: self-hosted
 
     steps:
@@ -18,9 +18,9 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'
 
-      - name: 3. Make deploy script executable & run deployment
+      - name: 3. Execute automated deployment script
         run: |
           chmod +x ./deploy.sh
           ./deploy.sh
+
