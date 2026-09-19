@@ -5,7 +5,7 @@ import React from 'react';
  * Renders a subtle, non-overlapping black-and-white DYPIU logo watermark (/logobw1.png)
  * in the right side margin of pages.
  */
-function DYPIUWatermark({ top = '160px', right = '25px', width = '200px', opacity = 0.09 }) {
+function DYPIUWatermark({ top = '160px', right = '25px', width = '280px', opacity = 0.22 }) {
   return (
     <img
       src="/logobw1.png"
@@ -19,6 +19,7 @@ function DYPIUWatermark({ top = '160px', right = '25px', width = '200px', opacit
         width: width,
         height: 'auto',
         opacity: opacity,
+        filter: 'brightness(0.6) contrast(1.4)',
         background: 'transparent',
         border: 'none',
         boxShadow: 'none',

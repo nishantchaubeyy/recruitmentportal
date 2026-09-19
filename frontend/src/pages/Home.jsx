@@ -73,12 +73,24 @@ function Home() {
     '/image.png'
   ];
   const [heroImageIdx, setHeroImageIdx] = useState(0);
+  const [isPreloading, setIsPreloading] = useState(true);
 
   useEffect(() => {
+    // Re-enable transitions only after initial first paint to prevent page load flash
+    const timer = requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        setIsPreloading(false);
+      });
+    });
+
     const sliderTimer = setInterval(() => {
       setHeroImageIdx((prevIdx) => (prevIdx + 1) % heroImages.length);
     }, 5000);
-    return () => clearInterval(sliderTimer);
+
+    return () => {
+      cancelAnimationFrame(timer);
+      clearInterval(sliderTimer);
+    };
   }, [heroImages.length]);
 
   // Modal States
@@ -179,15 +191,14 @@ function Home() {
 
   return (
     <div style={s.page}>
-      {/* ─── Google Fonts & Page Custom CSS ─── */}
+      {/* ─── Page Custom CSS ─── */}
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;0,700;0,800;1,600;1,700&family=Playfair+Display:ital,wght@0,600;0,700;0,800;0,900;1,600;1,700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
-
         /* ── OPEN POSITIONS SEARCH & FILTERS SECTION ── */
         .open-positions-section {
           max-width: 1200px;
           margin: 40px auto 80px;
           padding: 0 24px;
+          position: relative;
         }
 
         .section-header-row {
@@ -638,7 +649,10 @@ function Home() {
         .custom-hero-main {
           position: relative;
           overflow: hidden;
-          background-color: #0f172a;
+          background-color: #54121d;
+          min-height: 85vh;
+          display: flex;
+          align-items: center;
         }
 
         .custom-hero-container {
@@ -654,6 +668,7 @@ function Home() {
         }
 
         @media (max-width: 768px) {
+          .custom-hero-main,
           .custom-hero-container {
             min-height: 70vh;
           }
@@ -666,6 +681,7 @@ function Home() {
           height: 100%;
           overflow: hidden;
           z-index: 0;
+          background-color: #54121d;
         }
 
         .custom-hero-bg-img {
@@ -677,13 +693,18 @@ function Home() {
           object-position: center 35%;
           opacity: 0;
           transition: opacity 1.2s ease-in-out;
-          transform: none;
-          filter: none;
+          will-change: opacity;
+          backface-visibility: hidden;
+          pointer-events: none;
         }
 
         .custom-hero-bg-img.active {
           opacity: 1;
-          transform: none;
+        }
+
+        /* Disable transitions during the very first paint */
+        .custom-hero-main.preload .custom-hero-bg-img {
+          transition: none !important;
         }
 
         @media (max-width: 768px) {
@@ -813,18 +834,20 @@ function Home() {
           margin-bottom: 8px;
         }
 
-        /* Stats – clean horizontal row with gap */
+        /* Stats – force single horizontal row on desktop */
         .hero-stats-grid {
-          display: flex;
-          gap: 56px;
-          flex-wrap: wrap;
+          display: grid;
+          grid-template-columns: repeat(3, auto);
+          gap: 48px;
           margin-top: 24px;
-          width: 100%;
+          width: max-content;
         }
 
         @media (max-width: 768px) {
           .hero-stats-grid {
-            gap: 28px;
+            grid-template-columns: 1fr;
+            gap: 20px;
+            width: auto;
           }
         }
 
@@ -989,17 +1012,20 @@ function Home() {
       `}</style>
 
       {/* BEGIN: Hero Section */}
-      <main className="custom-hero-main">
+      <main className={`custom-hero-main ${isPreloading ? 'preload' : ''}`} id="hero">
         <div className="custom-hero-container">
           
           {/* Hero Background Image Slider (homeimg.png & image.png) */}
           <div className="custom-hero-slider-container">
             {heroImages.map((imgSrc, idx) => (
               <img 
-                key={imgSrc + idx}
+                key={imgSrc}
                 alt="D Y Patil International University Campus" 
                 className={`custom-hero-bg-img ${idx === heroImageIdx ? 'active' : ''}`}
-                src={imgSrc} 
+                src={imgSrc}
+                loading="eager"
+                decoding={idx === 0 ? "sync" : "async"}
+                fetchPriority={idx === 0 ? "high" : "auto"}
               />
             ))}
           </div>
@@ -1073,8 +1099,8 @@ function Home() {
 
       {/* ─── CAREERS APPLICATION CATEGORY SELECTOR SECTION ─── */}
       <section className="careers-category-section" aria-label="Careers Category Selector">
-        {/* Subtle, smaller DYPIU Background Watermark positioned in right margin (width: 200px, top: 160px, right: 25px, opacity: 0.09) */}
-        <DYPIUWatermark top="160px" right="25px" width="200px" opacity={0.09} />
+        {/* DYPIU Background Watermark shifted to the far right margin */}
+        <DYPIUWatermark top="120px" right="10px" width="260px" opacity={0.18} />
 
         <div className="careers-category-wrapper">
           
