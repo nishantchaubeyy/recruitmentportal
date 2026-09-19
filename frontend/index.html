@@ -13,6 +13,17 @@
     <link rel="preload" as="image" href="/homeimg.png" fetchpriority="high">
     <link rel="preload" as="image" href="/image.png">
     <link rel="preload" as="image" href="/Screenshot_2026-09-18_143910-removebg-preview.png">
+    <!-- Force every page to open at top and disable automatic scroll restoration -->
+    <script>
+      if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+      window.addEventListener('load', () => {
+        if (location.hash && !document.getElementById(location.hash.replace('#', ''))) {
+          history.replaceState(null, '', location.pathname + location.search);
+        }
+        window.scrollTo(0, 0);
+      });
+      window.addEventListener('pageshow', e => { if (e.persisted) window.scrollTo(0, 0); });
+    </script>
   </head>
   <body>
     <div id="root"></div>
