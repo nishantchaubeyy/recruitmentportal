@@ -17,11 +17,7 @@ function Header() {
     <header className="site-header">
       <div className="nav-inner">
         <Link to="/" className="brand" onClick={() => setMobileMenuOpen(false)}>
-          <img src="/logo.png" alt="D Y Patil International University" />
-          <div className="brand-text">
-            <b>D Y PATIL</b>
-            <span>International University · Akurdi Pune</span>
-          </div>
+          <img src="/footerlogo.png" alt="D Y Patil International University" className="navbar-logo-img" />
         </Link>
 
         {/* Mobile Hamburger Toggle */}

@@ -362,9 +362,18 @@ function Home() {
           .job-actions-right {
             width: 100%;
             justify-content: flex-start;
+            flex-wrap: wrap;
+            gap: 10px;
             margin-top: 14px;
             padding-top: 14px;
             border-top: 1px solid #f1f5f9;
+          }
+          .btn-elongated-advertisement,
+          .btn-elongated-details {
+            flex: 1;
+            min-width: 0;
+            justify-content: center;
+            text-align: center;
           }
         }
 

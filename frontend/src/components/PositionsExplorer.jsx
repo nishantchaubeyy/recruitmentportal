@@ -198,7 +198,7 @@ function PositionsExplorer({ category = 'teaching', title, subtitle }) {
 
         .pos-title {
           font-family: 'Playfair Display', Georgia, serif;
-          color: #721b28;
+          color: #000000;
           font-size: 44px;
           font-weight: 800;
           margin: 0 0 10px 0;

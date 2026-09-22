@@ -201,7 +201,7 @@ body {
 }
 
 /* ==========================================================================
-   SITE HEADER & NAVBAR STYLING (WIDENED NAVBAR)
+   SITE HEADER & NAVBAR STYLING
    ========================================================================== */
 
 .site-header {
@@ -210,40 +210,65 @@ body {
   position: sticky; top: 0; z-index: 50;
   box-shadow: 0 2px 10px rgba(0,0,0,.25);
 }
+
+/* ── Desktop ── */
 .site-header .nav-inner {
-  max-width: 100%;               /* full width instead of 1280px */
+  max-width: 100%;
   margin: 0 auto;
-  padding: 0 80px;               /* wide side spacing */
-  height: 84px;                  /* a bit taller */
+  padding: 0 50px;
+  height: 90px;
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
-.site-header .brand { display:flex; align-items:center; gap:14px; text-decoration:none; color:#fff; }
-.site-header .brand img { height: 50px; width:auto; }
-.site-header .brand-text b   { display:block; font-family:'Playfair Display',serif; font-size:20px; letter-spacing:1px; }
-.site-header .brand-text span{ display:block; font-size:11px; letter-spacing:1.5px; text-transform:uppercase; opacity:.9; }
-.site-header nav { display:flex; gap:40px; align-items:center; }
-.site-header nav a { color:#fff; font-weight:600; font-size:17px; text-decoration:none; transition:.25s; }
-.site-header nav a:hover { color:#d9a43c; }
 
+/* Brand / logo link — no fixed box, no size constraints */
+.site-header .brand {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+  flex-shrink: 0;
+}
+
+/* The logo image: width-driven, height follows naturally */
+.site-header .brand .navbar-logo-img {
+  width: 220px;
+  height: auto;
+  object-fit: contain;
+  display: block;
+  max-height: none;
+  max-width: none;
+}
+
+/* Navigation links */
+.site-header nav { display: flex; gap: 40px; align-items: center; }
+.site-header nav a {
+  color: #fff;
+  font-weight: 600;
+  font-size: 18px;
+  text-decoration: none;
+  transition: color .25s;
+}
+.site-header nav a:hover { color: #d9a43c; }
+
+/* Logout button */
 .site-header .nav-logout-btn {
   background: none;
-  border: 1px solid rgba(255, 255, 255, 0.4);
+  border: 1px solid rgba(255,255,255,0.4);
   color: #fff;
   padding: 6px 14px;
   border-radius: 4px;
   font-weight: 600;
-  font-size: 15px;
+  font-size: 16px;
   cursor: pointer;
   transition: 0.25s;
 }
 .site-header .nav-logout-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255,255,255,0.1);
   color: #d9a43c;
 }
 
-/* Mobile responsive navigation overlay */
+/* Mobile hamburger toggle */
 .navbar-mobile-toggle {
   display: none;
   background: none;
@@ -254,7 +279,6 @@ body {
   gap: 5px;
   z-index: 1001;
 }
-
 .hamburger-bar {
   display: block;
   width: 24px;
@@ -263,24 +287,27 @@ body {
   transition: all 0.3s ease;
 }
 
-@media (max-width: 900px) {
-  .site-header .nav-inner { padding: 0 20px; height: 70px; }
-  .site-header nav { gap: 18px; }
-  .site-header nav a { font-size: 14px; }
-  .site-header .brand-text { display: none; }
+/* ── Tablet (≤ 1024px) ── */
+@media (max-width: 1024px) {
+  .site-header .nav-inner { padding: 0 30px; height: 78px; }
+  .site-header .brand .navbar-logo-img { width: 180px; }
+  .site-header nav a { font-size: 16px; }
+  .site-header nav { gap: 28px; }
+}
 
-  .navbar-mobile-toggle {
-    display: flex;
-  }
+/* ── Mobile (≤ 768px) ── */
+@media (max-width: 768px) {
+  .site-header .nav-inner { padding: 0 16px; height: 66px; }
+  .site-header .brand .navbar-logo-img { width: 150px; }
 
-  .site-header nav {
-    display: none;
-  }
+  .navbar-mobile-toggle { display: flex; }
+
+  .site-header nav { display: none; }
 
   .site-header nav.mobile-open {
     display: flex;
     position: absolute;
-    top: 70px;
+    top: 66px;
     left: 0;
     right: 0;
     background: #721b28;
@@ -2608,7 +2635,9 @@ footer.footer-dypiu {
 #open-positions h2,
 .open-positions h2,
 .open-positions-title,
-.section-title {
+.section-title,
+.pos-title {
+  color: #000000 !important;
   margin: 0 0 16px !important;
   padding-bottom: 0 !important;
   border-bottom: none !important;
@@ -2670,8 +2699,11 @@ body, .form-page { font-family: 'Inter', system-ui, sans-serif; color: var(--bla
 .stepper-line { background: var(--line); }
 .stepper-line.done { background: var(--gold); }
 
-/* ---- Section headings ---- */
-h2, h3, .section-title, .step-heading, .app-step-title {
+/* ---- Section headings (scoped to application form only) ---- */
+.app-form-card h2,
+.app-form-card h3,
+.step-heading,
+.app-step-title {
   color: var(--maroon) !important;
   font-family: 'Playfair Display', Georgia, serif;
   font-weight: 700;
@@ -2755,3 +2787,34 @@ a:hover { color: var(--gold); }
 .text-blue-600, .text-blue-700, .text-blue-900, .text-indigo-600, .text-green-600, .text-emerald-600, .text-teal-600 { color: var(--maroon) !important; }
 .border-blue-500, .border-blue-600, .focus\:border-blue-500:focus { border-color: var(--maroon) !important; }
 .ring-blue-500, .focus\:ring-blue-500:focus { --tw-ring-color: rgba(114,27,40,.35) !important; }
+
+/* ==========================================================================
+   FINAL OVERRIDE — strip underlines from Careers & Open Positions headings
+   ========================================================================== */
+
+.careers-title,
+.careers-section h1,
+.careers-section h2,
+.careers-category-section h1,
+.careers-category-section h2 {
+  border-bottom: none !important;
+  padding-bottom: 0 !important;
+  color: #000000 !important;
+}
+.careers-title::after,
+.careers-title::before { display: none !important; }
+
+.open-positions-section h2,
+.open-positions-section .section-title,
+#open-positions h2,
+#open-positions .section-title,
+.section-title,
+.open-positions-title {
+  border-bottom: none !important;
+  padding-bottom: 0 !important;
+  color: #000000 !important;
+}
+.section-title::after,
+.section-title::before,
+.open-positions-title::after,
+.open-positions-title::before { display: none !important; }
