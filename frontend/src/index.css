@@ -201,33 +201,94 @@ body {
 }
 
 /* ==========================================================================
-   WHITE NAVBAR STYLING
+   SITE HEADER & NAVBAR STYLING (WIDENED NAVBAR)
    ========================================================================== */
 
-.navbar-dypiu {
-  background: #7A132B;
-  border-bottom: 1px solid #630f22;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-  position: sticky;
-  top: 0;
-  z-index: 1000;
+.site-header {
+  background: #721b28;
   width: 100%;
-  height: 65px;
+  position: sticky; top: 0; z-index: 50;
+  box-shadow: 0 2px 10px rgba(0,0,0,.25);
+}
+.site-header .nav-inner {
+  max-width: 100%;               /* full width instead of 1280px */
+  margin: 0 auto;
+  padding: 0 80px;               /* wide side spacing */
+  height: 84px;                  /* a bit taller */
   display: flex;
   align-items: center;
-  overflow: hidden;
+  justify-content: space-between;
+}
+.site-header .brand { display:flex; align-items:center; gap:14px; text-decoration:none; color:#fff; }
+.site-header .brand img { height: 50px; width:auto; }
+.site-header .brand-text b   { display:block; font-family:'Playfair Display',serif; font-size:20px; letter-spacing:1px; }
+.site-header .brand-text span{ display:block; font-size:11px; letter-spacing:1.5px; text-transform:uppercase; opacity:.9; }
+.site-header nav { display:flex; gap:40px; align-items:center; }
+.site-header nav a { color:#fff; font-weight:600; font-size:17px; text-decoration:none; transition:.25s; }
+.site-header nav a:hover { color:#d9a43c; }
+
+.site-header .nav-logout-btn {
+  background: none;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  color: #fff;
+  padding: 6px 14px;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 15px;
+  cursor: pointer;
+  transition: 0.25s;
+}
+.site-header .nav-logout-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #d9a43c;
 }
 
-.navbar-container {
-  max-width: 1240px;
-  margin: 0 auto;
-  width: 100%;
-  height: 65px;
-  padding: 0 24px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 24px;
+/* Mobile responsive navigation overlay */
+.navbar-mobile-toggle {
+  display: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  flex-direction: column;
+  gap: 5px;
+  z-index: 1001;
+}
+
+.hamburger-bar {
+  display: block;
+  width: 24px;
+  height: 2px;
+  background-color: #ffffff;
+  transition: all 0.3s ease;
+}
+
+@media (max-width: 900px) {
+  .site-header .nav-inner { padding: 0 20px; height: 70px; }
+  .site-header nav { gap: 18px; }
+  .site-header nav a { font-size: 14px; }
+  .site-header .brand-text { display: none; }
+
+  .navbar-mobile-toggle {
+    display: flex;
+  }
+
+  .site-header nav {
+    display: none;
+  }
+
+  .site-header nav.mobile-open {
+    display: flex;
+    position: absolute;
+    top: 70px;
+    left: 0;
+    right: 0;
+    background: #721b28;
+    flex-direction: column;
+    padding: 20px;
+    gap: 16px;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.25);
+  }
 }
 
 .navbar-brand-link {
@@ -2476,3 +2537,221 @@ footer.footer-dypiu {
     display: none !important;
   }
 }
+
+/* ==========================================================================
+   CAREERS & OPEN POSITIONS TIGHTENING OVERRIDES
+   ========================================================================== */
+
+.careers-section,
+.careers-category-section {
+  padding: 24px 20px 20px !important;
+}
+
+.careers-header-row {
+  border-bottom: none !important;
+  padding-bottom: 0 !important;
+  margin-bottom: 14px !important;
+}
+
+.careers-title {
+  font-size: 40px !important;
+  margin: 0 0 14px !important;
+  padding-bottom: 0 !important;
+  border-bottom: none !important;
+}
+.careers-title::after { display: none !important; }
+
+.careers-card,
+.careers-card-box {
+  max-width: 900px !important;
+  margin: 0 auto !important;
+  padding: 22px 30px !important;
+}
+
+.careers-text,
+.careers-instruction-text {
+  font-size: 17px !important;
+  margin: 0 0 18px !important;
+}
+
+.careers-grid,
+.careers-buttons-grid {
+  gap: 20px !important;
+}
+
+.careers-btn,
+.portal-btn {
+  padding: 14px 20px !important;
+  font-size: 15px !important;
+}
+
+.careers-note,
+.careers-subtle-note {
+  margin: 16px 0 0 !important;
+  font-size: 13px !important;
+}
+
+#open-positions,
+.open-positions,
+.open-positions-section {
+  padding-top: 20px !important;
+  margin-top: 0 !important;
+  border-top: none !important;
+}
+
+.section-header-row {
+  border-bottom: none !important;
+  padding-bottom: 0 !important;
+  margin-bottom: 16px !important;
+}
+
+#open-positions h2,
+.open-positions h2,
+.open-positions-title,
+.section-title {
+  margin: 0 0 16px !important;
+  padding-bottom: 0 !important;
+  border-bottom: none !important;
+}
+.open-positions-title::after,
+.section-title::after { display: none !important; }
+
+/* ==========================================================================
+   APPLICATION FORM THEME OVERRIDE (MAROON · GOLD · BLACK ONLY)
+   ========================================================================== */
+
+:root {
+  --maroon: #721b28;
+  --maroon-dark: #54121d;
+  --gold: #d9a43c;
+  --gold-light: #fdf6e7;
+  --black: #111111;
+  --grey: #6b6b6b;
+  --line: #e5e5e5;
+}
+
+body, .form-page { font-family: 'Inter', system-ui, sans-serif; color: var(--black); background: #f7f7f7; }
+
+/* ---- Header bar (White box, Red letters) ---- */
+.app-header {
+  background: #ffffff !important;
+  color: #111111 !important;
+  border-radius: 12px !important;
+  padding: 22px 30px !important;
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  border: 1px solid #111111 !important;
+  margin-bottom: 24px !important;
+}
+.app-header h1 { font-family: 'Playfair Display', Georgia, serif !important; font-size: 28px !important; margin: 0 !important; letter-spacing: 1px !important; text-transform: uppercase !important; color: #721b28 !important; font-weight: 800 !important; }
+.app-header p  { margin: 4px 0 0 !important; font-size: 14px !important; color: #475569 !important; font-weight: 600 !important; }
+.app-dept span   { font-size: 13px !important; color: #475569 !important; text-transform: uppercase !important; letter-spacing: 1px !important; font-weight: 600 !important; }
+.app-dept strong { display: block !important; color: #721b28 !important; font-size: 16px !important; font-weight: 800 !important; }
+
+/* ---- Cards ---- */
+.card, .form-card, .step-card, .stepper-card, fieldset {
+  background: #fff; border: 1px solid var(--line); border-radius: 8px;
+}
+
+/* ---- Stepper ---- */
+.step-label, .step-title, .stepper-title { color: var(--black); font-weight: 700; }
+.step-label span, .step-title span, .current-step { color: var(--maroon) !important; }
+
+.step, .step-circle, .stepper .circle {
+  width: 40px; height: 40px; border-radius: 50%;
+  background: #f1f1f1; color: var(--grey); border: 2px solid var(--line);
+  font-weight: 700; display: inline-flex; align-items: center; justify-content: center;
+}
+.step.active, .step-circle.active, .stepper .circle.active { background: var(--maroon) !important; border-color: var(--maroon) !important; color: #fff !important; }
+.step.done,   .step-circle.done,   .stepper .circle.done   { background: var(--gold) !important;   border-color: var(--gold) !important;   color: var(--black) !important; }
+.step-name { color: var(--grey); font-size: 13px; }
+.step-name.active { color: var(--maroon) !important; font-weight: 700; }
+.stepper-line { background: var(--line); }
+.stepper-line.done { background: var(--gold); }
+
+/* ---- Section headings ---- */
+h2, h3, .section-title, .step-heading, .app-step-title {
+  color: var(--maroon) !important;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-weight: 700;
+  border-bottom: 2px solid var(--maroon) !important;
+  padding-bottom: 10px;
+}
+
+/* ---- Labels & inputs ---- */
+label { color: var(--black); font-weight: 600; font-size: 14px; }
+label .req, .required, label span { color: var(--maroon); }
+
+input[type="text"], input[type="email"], input[type="tel"], input[type="number"],
+input[type="date"], input[type="file"], select, textarea {
+  width: 100%; border: 1px solid #cfcfcf; border-radius: 6px; padding: 12px 14px;
+  font-size: 15px; color: var(--black); background: #fff; outline: none; transition: .2s;
+}
+input:focus, select:focus, textarea:focus {
+  border-color: var(--maroon) !important;
+  box-shadow: 0 0 0 3px rgba(114,27,40,.15) !important;
+}
+input::placeholder, textarea::placeholder { color: #9a9a9a; }
+
+/* radios & checkboxes */
+input[type="radio"], input[type="checkbox"] { accent-color: var(--maroon) !important; width: 18px; height: 18px; }
+
+/* ---- Buttons ---- */
+button, .btn, input[type="submit"], input[type="button"] {
+  border-radius: 6px; padding: 13px 28px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 1px; font-size: 14px;
+  cursor: pointer; transition: .25s; border: 2px solid transparent;
+}
+/* Primary: Next / Submit */
+.btn-primary, .btn-next, .btn-submit, button[type="submit"], input[type="submit"], .app-btn-next {
+  background: var(--maroon) !important; color: #fff !important; border-color: var(--maroon) !important;
+}
+.btn-primary:hover, .btn-next:hover, .btn-submit:hover, button[type="submit"]:hover, .app-btn-next:hover {
+  background: var(--maroon-dark) !important; border-color: var(--maroon-dark) !important;
+}
+/* Secondary: Back / Previous */
+.btn-secondary, .btn-back, .btn-prev, .app-btn-prev {
+  background: #fff !important; color: var(--maroon) !important; border-color: var(--maroon) !important;
+}
+.btn-secondary:hover, .btn-back:hover, .btn-prev:hover, .app-btn-prev:hover { background: var(--gold-light) !important; }
+/* Accent: Add row / Upload */
+.btn-add, .btn-upload, .btn-gold {
+  background: var(--gold) !important; color: var(--black) !important; border-color: var(--gold) !important;
+}
+.btn-add:hover, .btn-upload:hover, .btn-gold:hover { background: #fff !important; color: var(--gold) !important; }
+/* Remove row */
+.btn-remove, .btn-delete { background: #fff !important; color: var(--maroon) !important; border-color: var(--maroon) !important; }
+
+/* ---- Tables (education / experience rows) ---- */
+table { width: 100%; border-collapse: collapse; }
+th { background: var(--maroon) !important; color: #fff !important; font-weight: 600; padding: 12px; text-align: left; }
+td { padding: 10px; border-bottom: 1px solid var(--line); }
+tr:nth-child(even) td { background: #fbf9f6; }
+
+/* ---- Messages / badges ---- */
+.badge, .tag { background: var(--gold-light); color: #8a6516; border: 1px solid var(--gold); border-radius: 20px; padding: 4px 12px; font-size: 12px; font-weight: 700; }
+.error, .invalid-feedback, .text-danger { color: var(--maroon) !important; }
+input.error, .is-invalid { border-color: var(--maroon) !important; }
+.success, .text-success { color: #8a6516 !important; }
+.alert, .info-box { background: var(--gold-light); border-left: 4px solid var(--gold); color: var(--black); padding: 12px 16px; border-radius: 6px; }
+
+/* ---- Progress bar ---- */
+.progress { background: var(--line); border-radius: 10px; height: 8px; }
+.progress-bar, .progress > div { background: var(--gold); border-radius: 10px; }
+
+/* ---- Links ---- */
+a { color: var(--maroon); }
+a:hover { color: var(--gold); }
+
+/* ---- Kill any leftover blue / green / teal ---- */
+.text-blue, .text-primary, .text-info, .text-teal, .text-green { color: var(--maroon) !important; }
+.bg-blue, .bg-primary, .bg-info, .bg-teal, .bg-green { background: var(--maroon) !important; color: #fff !important; }
+.border-blue, .border-primary { border-color: var(--maroon) !important; }
+
+/* Tailwind users */
+.bg-blue-600, .bg-blue-500, .bg-blue-700, .bg-indigo-600, .bg-sky-600, .bg-green-600, .bg-emerald-600 { background-color: var(--maroon) !important; }
+.hover\:bg-blue-700:hover, .hover\:bg-blue-600:hover { background-color: var(--maroon-dark) !important; }
+.text-blue-600, .text-blue-700, .text-blue-900, .text-indigo-600, .text-green-600, .text-emerald-600, .text-teal-600 { color: var(--maroon) !important; }
+.border-blue-500, .border-blue-600, .focus\:border-blue-500:focus { border-color: var(--maroon) !important; }
+.ring-blue-500, .focus\:ring-blue-500:focus { --tw-ring-color: rgba(114,27,40,.35) !important; }

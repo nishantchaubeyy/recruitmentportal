@@ -250,14 +250,14 @@ function PositionsExplorer({ category = 'teaching', title, subtitle }) {
         }
 
         .pos-item:hover {
-          color: #d9a43c;
-          background: #700e2a;
+          color: #ffffff;
+          background: #54121d;
         }
 
         .pos-item.active {
           background: #54121d;
-          color: #d9a43c;
-          box-shadow: inset 6px 0 0 #d9a43c;
+          color: #ffffff;
+          box-shadow: none;
         }
 
         .pos-item::after {
@@ -275,7 +275,6 @@ function PositionsExplorer({ category = 'teaching', title, subtitle }) {
           top: 100px;
           background: #ffffff;
           border: 1px solid #e5e5e5;
-          border-top: 5px solid #d9a43c;
           border-radius: 8px;
           padding: 36px 40px;
           box-shadow: 0 8px 30px rgba(0, 0, 0, 0.06);
@@ -307,12 +306,14 @@ function PositionsExplorer({ category = 'teaching', title, subtitle }) {
           font-weight: 800;
           margin: 0 0 12px 0;
           line-height: 1.25;
+          padding-bottom: 8px;
+          border-bottom: 1px solid #e5e5e5;
         }
 
         .pos-panel p {
           color: #444444;
           line-height: 1.7;
-          margin: 0 0 20px 0;
+          margin: 12px 0 20px 0;
           font-size: 15px;
         }
 
@@ -324,7 +325,7 @@ function PositionsExplorer({ category = 'teaching', title, subtitle }) {
           font-weight: 800;
           margin: 22px 0 10px 0;
           padding-bottom: 6px;
-          border-bottom: 2px solid #f0e2c6;
+          border-bottom: 1px solid #e5e5e5;
         }
 
         .pos-panel ul {
@@ -338,14 +339,15 @@ function PositionsExplorer({ category = 'teaching', title, subtitle }) {
         .pos-panel .badge-container {
           display: flex;
           flex-wrap: wrap;
-          gap: 6px;
+          gap: 8px;
           margin-bottom: 12px;
         }
 
         .pos-panel .badge {
           display: inline-block;
-          background: #fdf6e7;
-          color: #8a6516;
+          background: #fef2f2;
+          color: #721b28;
+          border: 1px solid #fca5a5;
           font-size: 12px;
           font-weight: 700;
           padding: 5px 12px;
@@ -355,9 +357,9 @@ function PositionsExplorer({ category = 'teaching', title, subtitle }) {
         .pos-apply {
           display: inline-block;
           margin-top: 28px;
-          background: #d9a43c;
+          background: #721b28;
           color: #ffffff;
-          border: 2px solid #d9a43c;
+          border: 2px solid #721b28;
           padding: 14px 32px;
           border-radius: 4px;
           font-weight: 700;
@@ -371,8 +373,9 @@ function PositionsExplorer({ category = 'teaching', title, subtitle }) {
         }
 
         .pos-apply:hover {
-          background: #ffffff;
-          color: #d9a43c;
+          background: #54121d;
+          color: #ffffff;
+          border-color: #54121d;
         }
 
         @media (max-width: 900px) {

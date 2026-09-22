@@ -1,57 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiRequest, getMediaUrl } from '../utils/api';
-import DYPIUWatermark from '../components/DYPIUWatermark';
 
 /* ─── STYLES ─────────────────────────────────────────────────── */
 const s = {
-  page: { backgroundColor: '#ffffff', minHeight: '100vh' },
-
-  hero: {
-    position: 'relative',
-    width: '100%',
-    backgroundColor: '#0f172a',
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    overflow: 'hidden',
-    boxSizing: 'border-box',
-  },
-
-  heroImgLayer: {
-    width: '100%',
-    height: 'auto',
-    maxHeight: '540px',
-    objectFit: 'contain',
-    display: 'block',
-  },
-};
-
-const StatCounter = ({ target, duration = 1600, suffix = '+' }) => {
-  const [count, setCount] = useState(0);
-
-  useEffect(() => {
-    let startTimestamp = null;
-    let animationFrameId = null;
-
-    const step = (timestamp) => {
-      if (!startTimestamp) startTimestamp = timestamp;
-      const progress = Math.min((timestamp - startTimestamp) / duration, 1);
-      // Ease out cubic curve for smooth counter animation
-      const current = Math.floor((1 - Math.pow(1 - progress, 3)) * target);
-      setCount(current);
-      if (progress < 1) {
-        animationFrameId = requestAnimationFrame(step);
-      } else {
-        setCount(target);
-      }
-    };
-
-    animationFrameId = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(animationFrameId);
-  }, [target, duration]);
-
-  return <span>{count.toLocaleString()}{suffix}</span>;
+  page: { backgroundColor: '#ffffff', minHeight: '100vh' }
 };
 
 function Home() {
@@ -66,32 +19,6 @@ function Home() {
     TEACHING: false,
     NON_TEACHING: false
   });
-
-  // Hero Background Image Carousel Slider (homeimg.png and image.png)
-  const heroImages = [
-    '/homeimg.png',
-    '/image.png'
-  ];
-  const [heroImageIdx, setHeroImageIdx] = useState(0);
-  const [isPreloading, setIsPreloading] = useState(true);
-
-  useEffect(() => {
-    // Re-enable transitions only after initial first paint to prevent page load flash
-    const timer = requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        setIsPreloading(false);
-      });
-    });
-
-    const sliderTimer = setInterval(() => {
-      setHeroImageIdx((prevIdx) => (prevIdx + 1) % heroImages.length);
-    }, 5000);
-
-    return () => {
-      cancelAnimationFrame(timer);
-      clearInterval(sliderTimer);
-    };
-  }, [heroImages.length]);
 
   // Modal States
   const [selectedJobModal, setSelectedJobModal] = useState(null);
@@ -194,10 +121,14 @@ function Home() {
       {/* ─── Page Custom CSS ─── */}
       <style>{`
         /* ── OPEN POSITIONS SEARCH & FILTERS SECTION ── */
+        #open-positions,
+        .open-positions,
         .open-positions-section {
           max-width: 1200px;
-          margin: 40px auto 80px;
-          padding: 0 24px;
+          margin: 0 auto 80px;
+          padding: 20px 24px 0;
+          padding-top: 20px;
+          border-top: none;
           position: relative;
         }
 
@@ -205,20 +136,27 @@ function Home() {
           display: flex;
           align-items: baseline;
           gap: 12px;
-          margin-bottom: 24px;
-          border-bottom: 2px solid #000000;
-          padding-bottom: 12px;
+          margin-bottom: 16px;
+          border-bottom: none;
+          padding-bottom: 0;
         }
 
+        #open-positions h2,
+        .open-positions h2,
+        .open-positions-title,
         .section-title {
           font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
           font-size: 2.2rem;
           font-weight: 800;
           color: #000000;
           text-transform: uppercase;
-          margin: 0;
+          margin: 0 0 16px;
+          padding-bottom: 0;
+          border-bottom: none;
           letter-spacing: -0.01em;
         }
+        .open-positions-title::after,
+        .section-title::after { display: none; }
 
         .result-count-text {
           font-size: 1rem;
@@ -645,253 +583,21 @@ function Home() {
           color: #F2B01E;
         }
 
-        /* ─── LEFT-SIDE RED SHADE HERO SECTION STYLES ─── */
-        .custom-hero-main {
-          position: relative;
-          overflow: hidden;
-          background-color: #54121d;
-          min-height: 85vh;
-          display: flex;
-          align-items: center;
-        }
-
-        .custom-hero-container {
-          position: relative;
-          width: 100%;
-          min-height: 85vh;
-          height: auto;
-          display: flex;
-          align-items: center;
-          justify-content: flex-start;
-          padding: 0;
-          box-sizing: border-box;
-        }
-
-        @media (max-width: 768px) {
-          .custom-hero-main,
-          .custom-hero-container {
-            min-height: 70vh;
-          }
-        }
-
-        .custom-hero-slider-container {
-          position: absolute;
-          inset: 0;
-          width: 100%;
-          height: 100%;
-          overflow: hidden;
-          z-index: 0;
-          background-color: #54121d;
-        }
-
-        .custom-hero-bg-img {
-          position: absolute;
-          inset: 0;
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-          object-position: center 35%;
-          opacity: 0;
-          transition: opacity 1.2s ease-in-out;
-          will-change: opacity;
-          backface-visibility: hidden;
-          pointer-events: none;
-        }
-
-        .custom-hero-bg-img.active {
-          opacity: 1;
-        }
-
-        /* Disable transitions during the very first paint */
-        .custom-hero-main.preload .custom-hero-bg-img {
-          transition: none !important;
-        }
-
-        @media (max-width: 768px) {
-          .custom-hero-bg-img {
-            object-position: center center;
-          }
-        }
-
-        /* LEFT-SIDE MAROON GRADIENT OVERLAY ONLY (fading to transparent by ~65%) */
-        .custom-hero-overlay-left-maroon {
-          position: absolute;
-          inset: 0;
-          background: linear-gradient(90deg,
-            rgba(84, 18, 29, 0.92) 0%,
-            rgba(84, 18, 29, 0.75) 30%,
-            rgba(84, 18, 29, 0.35) 50%,
-            rgba(84, 18, 29, 0) 65%);
-          z-index: 2;
-        }
-
-        .custom-hero-overlay-top-anchor {
-          position: absolute;
-          inset: 0;
-          background: linear-gradient(180deg, rgba(84, 18, 29, 0.35) 0%, transparent 40%);
-          z-index: 3;
-          pointer-events: none;
-        }
-
-        @media (max-width: 768px) {
-          .custom-hero-overlay-left-maroon {
-            background: rgba(84, 18, 29, 0.75);
-          }
-        }
-
-        .custom-hero-grid-pattern {
-          position: absolute;
-          inset: 0;
-          opacity: 0.04;
-          pointer-events: none;
-          background-image: radial-gradient(rgba(217, 164, 60, 0.4) 1px, transparent 1px);
-          background-size: 24px 24px;
-          z-index: 4;
-        }
-
-        .custom-hero-content {
-          position: relative;
-          z-index: 10;
-          max-width: 640px;
-          padding: 80px 60px;
-          color: #ffffff;
-          width: 100%;
-          box-sizing: border-box;
-          text-align: left;
-        }
-
-        @media (max-width: 768px) {
-          .custom-hero-content {
-            padding: 50px 24px;
-          }
-        }
-
-        .custom-hero-text-block {
-          width: 100%;
-          max-width: 640px;
-          display: flex;
-          flex-direction: column;
-          align-items: flex-start;
-          gap: 16px;
-        }
-
-        .custom-hero-h1 {
-          font-family: 'Playfair Display', Georgia, serif;
-          font-weight: 700;
-          letter-spacing: -0.01em;
-          color: #ffffff;
-          line-height: 1.2;
-          margin: 0;
-          text-align: left;
-          align-self: flex-start;
-          text-shadow: 0 4px 18px rgba(0, 0, 0, 0.75), 0 2px 8px rgba(0, 0, 0, 0.6);
-        }
-
-        .hero-h1-line1 {
-          display: block;
-          text-align: left;
-          font-size: clamp(2rem, 3.6vw, 2.9rem);
-          font-weight: 700;
-          color: #ffffff;
-        }
-
-        .hero-h1-line2 {
-          display: block;
-          text-align: left;
-          font-size: clamp(2.3rem, 4.4vw, 3.5rem);
-          font-weight: 800;
-          color: #d9a43c;
-          font-style: italic;
-          margin: 3px 0;
-        }
-
-        .hero-h1-line3 {
-          display: block;
-          text-align: left;
-          font-size: clamp(1.7rem, 3.2vw, 2.5rem);
-          font-weight: 700;
-          color: #ffffff;
-        }
-
-        .custom-hero-motto-stats-container {
-          width: 100%;
-          display: flex;
-          flex-direction: column;
-          align-items: flex-start;
-          text-align: left;
-          margin-top: 4px;
-        }
-
-        .custom-hero-motto {
-          font-family: 'Playfair Display', Georgia, serif;
-          font-size: clamp(1.5rem, 2.8vw, 2.2rem);
-          font-weight: 900;
-          letter-spacing: 0.04em;
-          color: #ffffff;
-          line-height: 1.2;
-          text-align: left;
-          text-shadow: 0 4px 18px rgba(0, 0, 0, 0.8);
-          margin-bottom: 8px;
-        }
-
-        /* Stats – force single horizontal row on desktop */
-        .hero-stats-grid {
-          display: grid;
-          grid-template-columns: repeat(3, auto);
-          gap: 48px;
-          margin-top: 24px;
-          width: max-content;
-        }
-
-        @media (max-width: 768px) {
-          .hero-stats-grid {
-            grid-template-columns: 1fr;
-            gap: 20px;
-            width: auto;
-          }
-        }
-
-        .hero-stat-card {
-          display: flex;
-          flex-direction: column;
-          align-items: flex-start;
-          justify-content: center;
-        }
-
-        .hero-stat-number {
-          font-family: 'Playfair Display', Georgia, serif;
-          font-size: 44px;
-          font-weight: 800;
-          color: #d9a43c;
-          line-height: 1;
-          margin-bottom: 6px;
-          text-shadow: 0 4px 16px rgba(0, 0, 0, 0.8);
-        }
-
-        .hero-stat-label {
-          font-family: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
-          font-size: 13px;
-          letter-spacing: 1px;
-          text-transform: uppercase;
-          font-weight: 600;
-          color: rgba(255, 255, 255, 0.95);
-          white-space: nowrap;
-          text-shadow: 0 2px 10px rgba(0, 0, 0, 0.7);
-        }
-
         /* ─── CAREERS APPLICATION CATEGORY SELECTOR SECTION ─── */
+        .careers-section,
         .careers-category-section {
           width: 100%;
           background-color: #ffffff;
           border-bottom: 1px solid #f3f4f6;
-          padding: 48px 24px;
+          padding: 24px 20px 20px;
           position: relative;
           overflow: hidden;
         }
 
         @media (min-width: 768px) {
+          .careers-section,
           .careers-category-section {
-            padding: 56px 48px;
+            padding: 24px 20px 20px;
           }
         }
 
@@ -904,24 +610,27 @@ function Home() {
         }
 
         .careers-header-row {
-          margin-bottom: 32px;
+          margin-bottom: 14px;
           display: flex;
           align-items: flex-end;
           justify-content: space-between;
-          border-bottom: 2px solid #000000;
-          padding-bottom: 12px;
+          border-bottom: none;
+          padding-bottom: 0;
           gap: 16px;
         }
 
         .careers-title {
           font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-          font-size: clamp(2.2rem, 4vw, 3rem);
+          font-size: 40px;
           font-weight: 800;
           color: #000000;
           letter-spacing: -0.02em;
-          margin: 0;
+          margin: 0 0 14px;
+          padding-bottom: 0;
+          border-bottom: none;
           line-height: 1;
         }
+        .careers-title::after { display: none; }
 
         .careers-header-logo {
           height: 44px;
@@ -930,33 +639,37 @@ function Home() {
           display: block;
         }
 
+        .careers-card,
         .careers-card-box {
           width: 100%;
-          max-width: 1040px;
+          max-width: 900px;
           margin: 0 auto;
           background-color: #ffffff;
           border: 1px solid #e2e4e8;
           border-radius: 8px;
           box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03);
-          padding: 44px 32px;
+          padding: 22px 30px;
         }
 
         @media (min-width: 768px) {
+          .careers-card,
           .careers-card-box {
-            padding: 56px 52px;
+            padding: 22px 30px;
           }
         }
 
+        .careers-text,
         .careers-instruction-text {
           text-align: center;
           color: #374151;
-          font-size: clamp(1.05rem, 1.8vw, 1.2rem);
+          font-size: 17px;
           font-weight: 500;
           line-height: 1.6;
           max-width: 800px;
-          margin: 0 auto 36px;
+          margin: 0 0 18px;
         }
 
+        .careers-grid,
         .careers-buttons-grid {
           display: grid;
           grid-template-columns: 1fr;
@@ -966,12 +679,14 @@ function Home() {
         }
 
         @media (min-width: 640px) {
+          .careers-grid,
           .careers-buttons-grid {
             grid-template-columns: repeat(2, 1fr);
-            gap: 28px;
+            gap: 20px;
           }
         }
 
+        .careers-btn,
         .portal-btn {
           background-color: #8B1235;
           color: #ffffff;
@@ -980,10 +695,10 @@ function Home() {
           letter-spacing: 0.075em;
           display: block;
           width: 100%;
-          padding: 16px 28px;
+          padding: 14px 20px;
           text-align: center;
           font-weight: 700;
-          font-size: 0.95rem;
+          font-size: 15px;
           text-transform: uppercase;
           border-radius: 4px;
           cursor: pointer;
@@ -1003,105 +718,17 @@ function Home() {
           transform: translateY(1px);
         }
 
+        .careers-note,
         .careers-subtle-note {
-          margin-top: 28px;
+          margin: 16px 0 0;
           text-align: center;
-          font-size: 0.8rem;
+          font-size: 13px;
           color: #9ca3af;
         }
       `}</style>
 
-      {/* BEGIN: Hero Section */}
-      <main className={`custom-hero-main ${isPreloading ? 'preload' : ''}`} id="hero">
-        <div className="custom-hero-container">
-          
-          {/* Hero Background Image Slider (homeimg.png & image.png) */}
-          <div className="custom-hero-slider-container">
-            {heroImages.map((imgSrc, idx) => (
-              <img 
-                key={imgSrc}
-                alt="D Y Patil International University Campus" 
-                className={`custom-hero-bg-img ${idx === heroImageIdx ? 'active' : ''}`}
-                src={imgSrc}
-                loading="eager"
-                decoding={idx === 0 ? "sync" : "async"}
-                fetchPriority={idx === 0 ? "high" : "auto"}
-              />
-            ))}
-          </div>
-          
-          {/* Left-Side Maroon Gradient Overlay (#54121d at ~90% opacity fading to transparent by 45-50%) */}
-          <div className="custom-hero-overlay-left-maroon"></div>
-          <div className="custom-hero-overlay-top-anchor"></div>
-          
-          {/* Subtle Grid Overlay */}
-          <div className="custom-hero-grid-pattern"></div>
-          
-          {/* Foreground Left-Aligned Text Content Panel */}
-          <div className="custom-hero-content">
-            <div className="custom-hero-text-block">
-              
-              {/* LEFT-ALIGNED: Main Headline inside Maroon Panel */}
-              <h1 className="custom-hero-h1">
-                <span className="hero-h1-line1">Shape the Future of</span>
-                <span className="hero-h1-line2">Innovation & Education</span>
-                <span className="hero-h1-line3">at DY Patil International University</span>
-              </h1>
-
-              {/* LEFT-ALIGNED: Motto & Counting Stats inside Maroon Panel */}
-              <div className="custom-hero-motto-stats-container">
-                {/* Motto: Think. Thrive. Transform. */}
-                <div className="custom-hero-motto">
-                  Think. Thrive. Transform.
-                </div>
-
-                {/* Animated Counters Section */}
-                <div className="hero-stats-grid">
-                  
-                  {/* Stat 1: Schools & Departments */}
-                  <div className="hero-stat-card">
-                    <div className="hero-stat-number">
-                      <StatCounter target={10} suffix="+" />
-                    </div>
-                    <div className="hero-stat-label">
-                      SCHOOLS & DEPARTMENTS
-                    </div>
-                  </div>
-
-                  {/* Stat 2: Students */}
-                  <div className="hero-stat-card">
-                    <div className="hero-stat-number">
-                      <StatCounter target={6000} suffix="+" />
-                    </div>
-                    <div className="hero-stat-label">
-                      STUDENTS
-                    </div>
-                  </div>
-
-                  {/* Stat 3: Faculties */}
-                  <div className="hero-stat-card">
-                    <div className="hero-stat-number">
-                      <StatCounter target={200} suffix="+" />
-                    </div>
-                    <div className="hero-stat-label">
-                      FACULTIES
-                    </div>
-                  </div>
-
-                </div>
-              </div>
-
-            </div>
-          </div>
-        </div>
-      </main>
-      {/* END: Hero Section */}
-
       {/* ─── CAREERS APPLICATION CATEGORY SELECTOR SECTION ─── */}
-      <section className="careers-category-section" aria-label="Careers Category Selector">
-        {/* DYPIU Background Watermark shifted to the far right margin */}
-        <DYPIUWatermark top="120px" right="10px" width="260px" opacity={0.18} />
-
+      <section className="careers-category-section careers-section" aria-label="Careers Category Selector">
         <div className="careers-category-wrapper">
           
           {/* Top Section: Large Bold Black Heading on the left */}
@@ -1139,12 +766,6 @@ function Home() {
               </button>
 
             </div>
-
-            {/* Subtle note for applicants */}
-            <div className="careers-subtle-note">
-              <p>Select your category to view active job openings and initiate direct online submission</p>
-            </div>
-
           </div>
 
         </div>

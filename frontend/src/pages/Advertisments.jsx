@@ -115,12 +115,12 @@ function Advertisments() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '48px' }}>
               {/* 1. Faculty / School Official Posters */}
               {schoolPosters.map((sch) => (
-                <VacancyPoster key={`school-${sch.id}`} school={sch} showApplyButton={true} />
+                <VacancyPoster key={`school-${sch.id}`} school={sch} showApplyButton={false} />
               ))}
 
               {/* 2. Individual Vacancy Posters */}
               {jobPosters.map((job) => (
-                <VacancyPoster key={`job-${job.id}`} job={job} showApplyButton={true} />
+                <VacancyPoster key={`job-${job.id}`} job={job} showApplyButton={false} />
               ))}
             </div>
           </>

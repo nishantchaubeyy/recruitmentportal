@@ -2,7 +2,6 @@ import React, { useState, useEffect, useContext, useRef } from 'react';
 import { useSearchParams, useParams, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { apiRequest } from '../utils/api';
-import DYPIUWatermark from '../components/DYPIUWatermark';
 
 const FACULTIES_LIST = [
   'SCHOOL OF COMPUTING',
@@ -179,8 +178,8 @@ function CompactDropdownSelect({ value, options, onChange, placeholder, flex = 1
                   padding: '6px 10px',
                   fontSize: '0.84rem',
                   fontWeight: isSelected ? 700 : 500,
-                  color: isSelected ? '#0f766e' : '#1e293b',
-                  backgroundColor: isSelected ? '#f0fdf4' : 'transparent',
+                  color: isSelected ? '#721b28' : '#1e293b',
+                  backgroundColor: isSelected ? '#fdf6e7' : 'transparent',
                   cursor: 'pointer'
                 }}
                 onMouseEnter={(e) => { if (!isSelected) e.currentTarget.style.backgroundColor = '#f8fafc'; }}
@@ -782,7 +781,6 @@ function ApplicationForm() {
 
   return (
     <div className="page-watermark-wrapper">
-      <DYPIUWatermark top="15px" />
       <div className="container app-form-container" style={{ maxWidth: '1020px', padding: '24px 20px', position: 'relative', zIndex: 1 }}>
       <div style={{ marginBottom: '16px' }}>
         <button
@@ -804,77 +802,58 @@ function ApplicationForm() {
         </button>
       </div>
       
-      {/* FORMAL UNIVERSITY APPLICATION FORM HEADER - STEP 1 ONLY */}
+      {/* FORMAL UNIVERSITY APPLICATION FORM HEADER - STEP 1 ONLY (WHITE BOX, RED LETTERS) */}
       {currentStep === 1 && (
-        <div className="app-header-card" style={{
+        <div className="app-header" style={{
           backgroundColor: '#ffffff',
-          border: '1px solid #111111',
+          color: '#111111',
           borderRadius: '12px',
-          padding: '24px 28px',
+          padding: '22px 30px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          border: '1px solid #111111',
           marginBottom: '24px',
-          boxShadow: 'none'
+          gap: '16px'
         }}>
-          <div className="app-header-flex" style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            flexWrap: 'wrap',
-            gap: '20px'
-          }}>
-            {/* Left: Official Logo + Title + University Location */}
-            <div className="app-header-left" style={{ display: 'flex', alignItems: 'center', gap: '20px', flexWrap: 'wrap' }}>
-              <img
-                src="/logo.dypiu.png"
-                alt="DYPIU Logo"
-                style={{ height: '54px', width: 'auto', objectFit: 'contain' }}
-              />
-              <div>
-                <h1 style={{
-                  margin: 0,
-                  fontSize: '1.55rem',
-                  fontWeight: 800,
-                  color: '#0f172a',
-                  letterSpacing: '-0.3px',
-                  lineHeight: 1.2
-                }}>
-                  APPLICATION FORM
-                </h1>
-                <div style={{ color: '#475569', fontSize: '0.9rem', fontWeight: 600, marginTop: '3px' }}>
-                  D Y Patil International University, Akurdi, Pune
-                </div>
-              </div>
-            </div>
-
-            {/* Right: Department & Post Applied For (Clean text, no pill/badge) */}
-            <div className="app-header-right" style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '4px',
-              textAlign: 'left'
+          <div>
+            <h1 style={{
+              fontFamily: "'Playfair Display', Georgia, serif",
+              fontSize: '28px',
+              margin: 0,
+              letterSpacing: '1px',
+              textTransform: 'uppercase',
+              color: '#721b28',
+              fontWeight: 800
             }}>
-              <div style={{ fontSize: '0.9rem', color: '#0f172a' }}>
-                <strong style={{ fontWeight: 700, color: '#0f172a' }}>Department:</strong>{' '}
-                <span style={{ color: '#334155', fontWeight: 500 }}>{selectedFaculty || loadedVacancy?.department || 'General Faculty'}</span>
-              </div>
-              {(postAppliedFor || loadedVacancy?.position) && (
-                <div style={{ fontSize: '0.9rem', color: '#0f172a' }}>
-                  <strong style={{ fontWeight: 700, color: '#0f172a' }}>Post Applied For:</strong>{' '}
-                  <span style={{ color: '#334155', fontWeight: 500 }}>{postAppliedFor || loadedVacancy?.position}</span>
-                </div>
-              )}
-            </div>
+              APPLICATION FORM
+            </h1>
+            <p style={{ margin: '4px 0 0', fontSize: '14px', color: '#475569', fontWeight: 600 }}>
+              D Y Patil International University, Akurdi, Pune
+            </p>
           </div>
 
-          {/* Subtle Horizontal Divider Line */}
-          <div style={{ borderTop: '1px solid #e2e8f0', marginTop: '18px' }} />
+          <div className="app-dept" style={{ textAlign: 'right' }}>
+            <span style={{ fontSize: '13px', color: '#475569', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 600 }}>Department:</span>{' '}
+            <strong style={{ display: 'block', color: '#721b28', fontSize: '16px', fontWeight: 800 }}>
+              {selectedFaculty || loadedVacancy?.department || 'SCHOOL OF COMPUTING'}
+            </strong>
+            {(postAppliedFor || loadedVacancy?.position) && (
+              <div style={{ marginTop: '4px', fontSize: '13px', color: '#475569' }}>
+                <span style={{ fontSize: '12px', color: '#475569', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 600 }}>Post:</span>{' '}
+                <strong style={{ display: 'inline', color: '#721b28', fontSize: '14px', fontWeight: 800 }}>{postAppliedFor || loadedVacancy?.position}</strong>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
       {/* STEP PROGRESS INDICATOR BAR */}
       <div className="app-step-progress-card" style={{ backgroundColor: '#ffffff', border: '1px solid #111111', borderRadius: '14px', padding: '18px 24px', marginBottom: '24px', boxShadow: 'none' }}>
         <div className="app-step-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-          <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#0f172a' }}>
-            Step {currentStep} of 7: <span style={{ color: '#0f766e' }}>{STEPS[currentStep - 1].title}</span>
+          <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#111111' }}>
+            Step {currentStep} of 7: <span style={{ color: '#721b28' }}>{STEPS[currentStep - 1].title}</span>
           </div>
         </div>
 
@@ -906,19 +885,19 @@ function ApplicationForm() {
                   width: '32px',
                   height: '32px',
                   borderRadius: '50%',
-                  backgroundColor: isDone ? '#0f766e' : isCurrent ? '#0f2b5c' : '#f1f5f9',
-                  color: isDone || isCurrent ? '#ffffff' : '#64748b',
+                  backgroundColor: isDone ? '#d9a43c' : isCurrent ? '#721b28' : '#f1f1f1',
+                  color: isDone ? '#111111' : isCurrent ? '#ffffff' : '#6b6b6b',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   fontWeight: 800,
                   fontSize: '0.84rem',
-                  border: isCurrent ? '3px solid #93c5fd' : '1px solid #cbd5e1',
+                  border: isCurrent ? '3px solid #d9a43c' : isDone ? '1px solid #d9a43c' : '1px solid #cbd5e1',
                   transition: 'all 0.2s ease'
                 }}>
                   {isDone ? '✓' : s.id}
                 </div>
-                <div className="app-step-item-label" style={{ fontSize: '0.72rem', fontWeight: isCurrent ? 800 : 600, color: isCurrent ? '#0f2b5c' : '#64748b', marginTop: '6px' }}>
+                <div className="app-step-item-label" style={{ fontSize: '0.72rem', fontWeight: isCurrent ? 800 : 600, color: isCurrent ? '#721b28' : '#64748b', marginTop: '6px' }}>
                   {s.shortName}
                 </div>
               </div>
@@ -939,7 +918,7 @@ function ApplicationForm() {
         {/* STEP 1: PERSONAL INFORMATION */}
         {currentStep === 1 && (
           <div>
-            <h3 className="app-step-title" style={{ margin: '0 0 18px 0', color: '#0f2b5c', fontSize: '1.15rem', fontWeight: 800, borderBottom: '2px solid #f1f5f9', paddingBottom: '10px' }}>
+            <h3 className="app-step-title" style={{ margin: '0 0 18px 0', color: '#721b28', fontSize: '1.15rem', fontWeight: 800, borderBottom: '2px solid #d9a43c', paddingBottom: '10px' }}>
               STEP 1 — Personal Information & Post Selection
             </h3>
 
@@ -1053,7 +1032,7 @@ function ApplicationForm() {
         {/* STEP 2: CONTACT INFORMATION */}
         {currentStep === 2 && (
           <div>
-            <h3 className="app-step-title" style={{ margin: '0 0 18px 0', color: '#0f2b5c', fontSize: '1.15rem', fontWeight: 800, borderBottom: '2px solid #f1f5f9', paddingBottom: '10px' }}>
+            <h3 className="app-step-title" style={{ margin: '0 0 18px 0', color: '#721b28', fontSize: '1.15rem', fontWeight: 800, borderBottom: '2px solid #d9a43c', paddingBottom: '10px' }}>
               STEP 2 — Contact Information
             </h3>
 
@@ -1166,7 +1145,7 @@ function ApplicationForm() {
         {/* STEP 3: ACADEMIC QUALIFICATIONS */}
         {currentStep === 3 && (
           <div>
-            <h3 className="app-step-title" style={{ margin: '0 0 18px 0', color: '#0f2b5c', fontSize: '1.15rem', fontWeight: 800, borderBottom: '2px solid #f1f5f9', paddingBottom: '10px' }}>
+            <h3 className="app-step-title" style={{ margin: '0 0 18px 0', color: '#721b28', fontSize: '1.15rem', fontWeight: 800, borderBottom: '2px solid #d9a43c', paddingBottom: '10px' }}>
               STEP 3 — Academic Qualifications
             </h3>
 
@@ -1224,11 +1203,11 @@ function ApplicationForm() {
             ))}
 
             <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
-              <button type="button" onClick={handleAddQualification} style={{ backgroundColor: '#ffffff', border: '1.5px solid #0f766e', color: '#0f766e', padding: '8px 16px', borderRadius: '8px', fontWeight: 700, cursor: 'pointer', fontSize: '0.85rem' }}>
+              <button type="button" className="btn-add btn-gold" onClick={handleAddQualification} style={{ backgroundColor: '#d9a43c', border: '1.5px solid #d9a43c', color: '#111111', padding: '8px 16px', borderRadius: '8px', fontWeight: 700, cursor: 'pointer', fontSize: '0.85rem' }}>
                 + Add Qualification Row
               </button>
               {qualifications.length > 1 && (
-                <button type="button" onClick={() => handleRemoveQualification(qualifications.length - 1)} style={{ backgroundColor: '#ffffff', border: '1.5px solid #ef4444', color: '#ef4444', padding: '8px 16px', borderRadius: '8px', fontWeight: 700, cursor: 'pointer', fontSize: '0.85rem' }}>
+                <button type="button" className="btn-remove" onClick={() => handleRemoveQualification(qualifications.length - 1)} style={{ backgroundColor: '#ffffff', border: '1.5px solid #721b28', color: '#721b28', padding: '8px 16px', borderRadius: '8px', fontWeight: 700, cursor: 'pointer', fontSize: '0.85rem' }}>
                   Remove Row
                 </button>
               )}
@@ -1244,7 +1223,7 @@ function ApplicationForm() {
         {/* STEP 4: WORK EXPERIENCE */}
         {currentStep === 4 && (
           <div>
-            <h3 className="app-step-title" style={{ margin: '0 0 18px 0', color: '#0f2b5c', fontSize: '1.15rem', fontWeight: 800, borderBottom: '2px solid #f1f5f9', paddingBottom: '10px' }}>
+            <h3 className="app-step-title" style={{ margin: '0 0 18px 0', color: '#721b28', fontSize: '1.15rem', fontWeight: 800, borderBottom: '2px solid #d9a43c', paddingBottom: '10px' }}>
               STEP 4 — Work Experience
             </h3>
 
@@ -1373,7 +1352,7 @@ function ApplicationForm() {
         {/* STEP 5: RESEARCH & PROFESSIONAL INFORMATION */}
         {currentStep === 5 && (
           <div>
-            <h3 className="app-step-title" style={{ margin: '0 0 18px 0', color: '#0f2b5c', fontSize: '1.15rem', fontWeight: 800, borderBottom: '2px solid #f1f5f9', paddingBottom: '10px' }}>
+            <h3 className="app-step-title" style={{ margin: '0 0 18px 0', color: '#721b28', fontSize: '1.15rem', fontWeight: 800, borderBottom: '2px solid #d9a43c', paddingBottom: '10px' }}>
               STEP 5 — Research & Professional Information
             </h3>
 
@@ -1422,7 +1401,7 @@ function ApplicationForm() {
         {/* STEP 6: DOCUMENTS UPLOAD */}
         {currentStep === 6 && (
           <div>
-            <h3 className="app-step-title" style={{ margin: '0 0 18px 0', color: '#0f2b5c', fontSize: '1.15rem', fontWeight: 800, borderBottom: '2px solid #f1f5f9', paddingBottom: '10px' }}>
+            <h3 className="app-step-title" style={{ margin: '0 0 18px 0', color: '#721b28', fontSize: '1.15rem', fontWeight: 800, borderBottom: '2px solid #d9a43c', paddingBottom: '10px' }}>
               STEP 6 — Document Uploads (PDF format, max 5MB)
             </h3>
 
@@ -1479,7 +1458,7 @@ function ApplicationForm() {
         {/* STEP 7: READ-ONLY FINAL REVIEW & DECLARATION */}
         {currentStep === 7 && (
           <div>
-            <h3 className="app-step-title" style={{ margin: '0 0 18px 0', color: '#0f2b5c', fontSize: '1.15rem', fontWeight: 800, borderBottom: '2px solid #f1f5f9', paddingBottom: '10px' }}>
+            <h3 className="app-step-title" style={{ margin: '0 0 18px 0', color: '#721b28', fontSize: '1.15rem', fontWeight: 800, borderBottom: '2px solid #d9a43c', paddingBottom: '10px' }}>
               STEP 7 — Declaration & Final Review
             </h3>
 
@@ -1530,10 +1509,10 @@ function ApplicationForm() {
             <div style={{ textAlign: 'center', paddingTop: '10px', borderTop: '1px solid #e2e8f0' }}>
               <button
                 type="button"
-                className="app-btn-next"
+                className="app-btn-next btn-submit btn-primary"
                 onClick={handleFinalSubmit}
                 disabled={submitting}
-                style={{ backgroundColor: '#0f766e', color: '#ffffff', border: 'none', padding: '12px 32px', borderRadius: '10px', fontWeight: 800, fontSize: '0.98rem', cursor: 'pointer', boxShadow: '0 4px 14px rgba(15,118,110,0.2)' }}
+                style={{ backgroundColor: '#721b28', color: '#ffffff', border: 'none', padding: '12px 32px', borderRadius: '10px', fontWeight: 800, fontSize: '0.98rem', cursor: 'pointer', boxShadow: '0 4px 14px rgba(114,27,40,0.25)' }}
               >
                 {submitting ? 'SUBMITTING APPLICATION...' : 'SUBMIT APPLICATION'}
               </button>
@@ -1548,9 +1527,9 @@ function ApplicationForm() {
         {currentStep > 1 ? (
           <button
             type="button"
-            className="app-btn-prev"
+            className="app-btn-prev btn-secondary"
             onClick={handlePrevStep}
-            style={{ backgroundColor: '#ffffff', border: '1.5px solid #cbd5e1', color: '#334155', padding: '10px 22px', borderRadius: '8px', fontWeight: 700, fontSize: '0.88rem', cursor: 'pointer' }}
+            style={{ backgroundColor: '#ffffff', border: '1.5px solid #721b28', color: '#721b28', padding: '10px 22px', borderRadius: '8px', fontWeight: 700, fontSize: '0.88rem', cursor: 'pointer' }}
           >
             &larr; Previous Step
           </button>
@@ -1559,9 +1538,9 @@ function ApplicationForm() {
         {currentStep < 7 && (
           <button
             type="button"
-            className="app-btn-next"
+            className="app-btn-next btn-primary"
             onClick={handleNextStep}
-            style={{ backgroundColor: '#0f2b5c', color: '#ffffff', border: 'none', padding: '10px 24px', borderRadius: '8px', fontWeight: 800, fontSize: '0.88rem', cursor: 'pointer' }}
+            style={{ backgroundColor: '#721b28', color: '#ffffff', border: 'none', padding: '10px 24px', borderRadius: '8px', fontWeight: 800, fontSize: '0.88rem', cursor: 'pointer' }}
           >
             Save & Continue &rarr;
           </button>

@@ -7,20 +7,6 @@ function Header() {
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      if (window.scrollY > 25) {
-        setScrolled(true);
-      } else {
-        setScrolled(false);
-      }
-    };
-
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
 
   const handleLogout = () => {
     logout();
@@ -28,21 +14,13 @@ function Header() {
   };
 
   return (
-    <header className={`navbar-dypiu ${scrolled ? 'is-scrolled' : ''}`}>
-      <div className="navbar-container">
-        {/* LEFT SIDE: Logo Crest + Disappearing University Name on Scroll */}
-        <Link to="/" className="navbar-brand-link" onClick={() => setMobileMenuOpen(false)}>
-          <div className={`logo-container ${scrolled ? 'scrolled' : ''}`}>
-            <img 
-              src="/Screenshot_2026-09-18_143910-removebg-preview.png" 
-              alt="D Y Patil Crest" 
-              className="logo-icon" 
-            />
-            <div className={`logo-text-block ${scrolled ? 'scrolled-hide' : ''}`}>
-              <span className="logo-main-title">D Y PATIL</span>
-              <span className="logo-sub-title">INTERNATIONAL UNIVERSITY</span>
-              <span className="logo-tagline">AKURDI PUNE</span>
-            </div>
+    <header className="site-header">
+      <div className="nav-inner">
+        <Link to="/" className="brand" onClick={() => setMobileMenuOpen(false)}>
+          <img src="/logo.png" alt="D Y Patil International University" />
+          <div className="brand-text">
+            <b>D Y PATIL</b>
+            <span>International University · Akurdi Pune</span>
           </div>
         </Link>
 
@@ -57,40 +35,37 @@ function Header() {
           <span className={`hamburger-bar ${mobileMenuOpen ? 'open' : ''}`}></span>
         </button>
 
-        {/* RIGHT SIDE: Navigation Menu (3 Items) */}
-        <div className={`navbar-content ${mobileMenuOpen ? 'is-active' : ''}`}>
-          <nav className="navbar-nav-main">
-            <Link 
-              to="/teaching" 
-              className={`nav-link ${location.pathname === '/teaching' ? 'active' : ''}`} 
-              onClick={() => setMobileMenuOpen(false)}
+        <nav className={mobileMenuOpen ? 'mobile-open' : ''}>
+          <Link 
+            to="/teaching" 
+            className={location.pathname === '/teaching' ? 'active' : ''}
+            onClick={() => setMobileMenuOpen(false)}
+          >
+            Teaching
+          </Link>
+          <Link 
+            to="/non-teaching" 
+            className={location.pathname === '/non-teaching' ? 'active' : ''}
+            onClick={() => setMobileMenuOpen(false)}
+          >
+            Non-Teaching
+          </Link>
+          <Link 
+            to="/advertisments" 
+            className={location.pathname === '/advertisments' || location.pathname === '/advertisements' ? 'active' : ''}
+            onClick={() => setMobileMenuOpen(false)}
+          >
+            Advertisements
+          </Link>
+          {user && (
+            <button 
+              onClick={() => { setMobileMenuOpen(false); handleLogout(); }}
+              className="nav-logout-btn"
             >
-              Teaching
-            </Link>
-            <Link 
-              to="/non-teaching" 
-              className={`nav-link ${location.pathname === '/non-teaching' ? 'active' : ''}`} 
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Non-Teaching
-            </Link>
-            <Link 
-              to="/advertisments" 
-              className={`nav-link ${location.pathname === '/advertisments' ? 'active' : ''}`} 
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Advertisements
-            </Link>
-            {user && (
-              <button 
-                onClick={() => { setMobileMenuOpen(false); handleLogout(); }}
-                className="nav-link-logout-btn"
-              >
-                Logout ({user.name})
-              </button>
-            )}
-          </nav>
-        </div>
+              Logout ({user.name})
+            </button>
+          )}
+        </nav>
       </div>
     </header>
   );

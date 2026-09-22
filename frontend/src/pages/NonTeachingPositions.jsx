@@ -1,6 +1,5 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import DYPIUWatermark from '../components/DYPIUWatermark';
 import PositionsExplorer from '../components/PositionsExplorer';
 
 function NonTeachingPositions() {
@@ -8,7 +7,6 @@ function NonTeachingPositions() {
 
   return (
     <div className="page-watermark-wrapper" style={{ minHeight: '85vh', position: 'relative' }}>
-      <DYPIUWatermark top="120px" right="10px" width="260px" opacity={0.18} />
 
       <div className="container" style={{ maxWidth: '1200px', padding: '30px 24px', position: 'relative', zIndex: 1 }}>
         <div style={{ marginBottom: '10px' }}>
