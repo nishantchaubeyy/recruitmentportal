@@ -2,6 +2,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const prisma = require('../services/prisma');
 const { logAuditAction } = require('../services/auditService');
+const { sendOTPEmail } = require('../services/emailService');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dypiu_recruitment_portal_jwt_secret_key_2026_xyz';
 const REFRESH_SECRET = process.env.REFRESH_SECRET || 'dypiu_recruitment_portal_refresh_secret_key_2026_abc';
@@ -246,6 +247,11 @@ async function sendOTP(req, res) {
   otpStore.set(cleanEmail, { code: otpCode, expiresAt });
 
   console.log(`[OTP] Sent verification OTP "${otpCode}" to ${cleanEmail}`);
+
+  // Dispatch live email in background via ZeptoMail / configured email transporter
+  sendOTPEmail({ to: cleanEmail, otpCode }).catch(err => {
+    console.warn(`[OTP] Email delivery failed for ${cleanEmail}:`, err.message);
+  });
 
   return res.json({
     message: `Verification code sent to ${cleanEmail}.`,

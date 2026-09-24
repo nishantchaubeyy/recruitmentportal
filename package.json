@@ -11,6 +11,7 @@
     "db:seed": "npm run db:seed --prefix backend",
     "db:setup": "npm run prisma:push --prefix backend && npm run db:seed --prefix backend",
     "install:all": "npm install --prefix backend && npm install --prefix frontend",
+    "test:email": "node test-zeptomail.js",
     "mprocs": "npx mprocs"
   },
   "devDependencies": {

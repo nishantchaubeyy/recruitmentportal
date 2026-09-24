@@ -14,10 +14,12 @@ function getEmailConfig() {
   const password = process.env.ZEPTOMAIL_PASSWORD || process.env.SMTP_PASS || '';
   const fromEmail = process.env.ZEPTOMAIL_FROM_EMAIL || process.env.EMAIL_FROM_ADDRESS || 'careers@dypiu.ac.in';
   const fromName = process.env.ZEPTOMAIL_FROM_NAME || process.env.EMAIL_FROM_NAME || 'Recruitment Cell - DYPIU';
+  const token = process.env.ZEPTOMAIL_TOKEN || (password.startsWith('Zoho-enczapikey') ? password : '');
+  const apiUrl = process.env.ZEPTOMAIL_API_URL || 'https://api.zeptomail.in/v1.1/email';
 
   const fromString = `"${fromName}" <${fromEmail}>`;
 
-  return { host, port, username, password, fromEmail, fromName, fromString };
+  return { host, port, username, password, token, apiUrl, fromEmail, fromName, fromString };
 }
 
 function createTransporter() {
@@ -40,11 +42,60 @@ function createTransporter() {
 }
 
 /**
+ * Send email using ZeptoMail official REST API endpoint
+ */
+async function sendViaZeptoApi({ to, subject, html, text }) {
+  const config = getEmailConfig();
+  const token = config.token || config.password;
+  if (!token) {
+    throw new Error('ZeptoMail token not configured');
+  }
+
+  const authHeader = token.startsWith('Zoho-enczapikey') ? token : `Zoho-enczapikey ${token}`;
+
+  const response = await fetch(config.apiUrl, {
+    method: 'POST',
+    headers: {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+      'Authorization': authHeader
+    },
+    body: JSON.stringify({
+      from: {
+        address: config.fromEmail,
+        name: config.fromName
+      },
+      to: [
+        {
+          email_address: {
+            address: to,
+            name: to.split('@')[0]
+          }
+        }
+      ],
+      subject,
+      htmlbody: html,
+      textbody: text || undefined
+    })
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    const errMsg = data.message || (data.error && data.error.message) || JSON.stringify(data);
+    throw new Error(`ZeptoMail API error (${response.status}): ${errMsg}`);
+  }
+
+  const messageId = (data.data && data.data[0] && data.data[0].message_id) || data.request_id || 'zepto-api-sent';
+  console.log(`Confirmation email sent via ZeptoMail API. (Message ID: ${messageId})`);
+  return { success: true, messageId };
+}
+
+/**
  * Generic email dispatcher abstraction.
+ * Tries ZeptoMail REST API first if token is available, otherwise SMTP, else simulation.
  */
 async function sendEmail({ to, subject, html, text }) {
   const config = getEmailConfig();
-  const transporter = createTransporter();
 
   // Save HTML preview file locally for easy inspection during testing
   try {
@@ -57,31 +108,44 @@ async function sendEmail({ to, subject, html, text }) {
     // Non-fatal preview saving error ignored
   }
 
-  if (!transporter) {
-    console.log(`\n==================================================`);
-    console.log(`[ZeptoMail Test Mode] Mail dispatch simulation for: ${to}`);
-    console.log(`[ZeptoMail Test Mode] From: ${config.fromString}`);
-    console.log(`[ZeptoMail Test Mode] Subject: ${subject}`);
-    console.log(`[ZeptoMail Test Mode] HTML Email Preview saved at: backend/uploads/last_application_email.html`);
-    console.log(`Confirmation email sent successfully. (TEST MODE)`);
-    console.log(`==================================================\n`);
-    return { success: true, mode: 'test_simulation' };
+  // 1. Try ZeptoMail REST API if token exists
+  if (config.token || (config.password && config.password.startsWith('Zoho-enczapikey'))) {
+    try {
+      return await sendViaZeptoApi({ to, subject, html, text });
+    } catch (apiErr) {
+      console.error(`[ZeptoMail API] Dispatch error: ${apiErr.message}`);
+      // Fall through to SMTP if configured
+    }
   }
 
-  try {
-    const info = await transporter.sendMail({
-      from: config.fromString,
-      to,
-      subject,
-      text,
-      html
-    });
-    console.log(`Confirmation email sent successfully. (Message ID: ${info.messageId})`);
-    return { success: true, messageId: info.messageId };
-  } catch (error) {
-    console.error(`Confirmation email failed. Reason: ${error.message}`);
-    return { success: false, error: error.message };
+  // 2. Try SMTP Transporter
+  const transporter = createTransporter();
+  if (transporter) {
+    try {
+      const info = await transporter.sendMail({
+        from: config.fromString,
+        to,
+        subject,
+        text,
+        html
+      });
+      console.log(`Confirmation email sent via SMTP. (Message ID: ${info.messageId})`);
+      return { success: true, messageId: info.messageId };
+    } catch (error) {
+      console.error(`Confirmation email via SMTP failed. Reason: ${error.message}`);
+      return { success: false, error: error.message };
+    }
   }
+
+  // 3. Simulation Mode (Fallback when no live credentials are set)
+  console.log(`\n==================================================`);
+  console.log(`[ZeptoMail Test Mode] Mail dispatch simulation for: ${to}`);
+  console.log(`[ZeptoMail Test Mode] From: ${config.fromString}`);
+  console.log(`[ZeptoMail Test Mode] Subject: ${subject}`);
+  console.log(`[ZeptoMail Test Mode] HTML Email Preview saved at: backend/uploads/last_application_email.html`);
+  console.log(`Confirmation email simulated successfully.`);
+  console.log(`==================================================\n`);
+  return { success: true, mode: 'test_simulation' };
 }
 
 /**
@@ -557,8 +621,43 @@ async function sendApplicationStatusEmail({ to, candidateName, applicationNumber
   return sendEmail({ to, subject, html, text: `Dear ${candidateName}, Your application ${applicationNumber} for ${position} status is now: ${status}.` });
 }
 
+/**
+ * Send candidate OTP email for registration / application verification.
+ */
+async function sendOTPEmail({ to, otpCode }) {
+  const subject = `Your Verification Code: ${otpCode} - DYPIU Recruitment Portal`;
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 560px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
+      <div style="background-color: #721b28; padding: 18px 24px; color: #ffffff;">
+        <h2 style="margin: 0; font-size: 1.15rem; font-family: Georgia, serif;">D Y Patil International University</h2>
+        <p style="margin: 4px 0 0 0; font-size: 0.8rem; opacity: 0.9;">Staff & Faculty Recruitment Portal</p>
+      </div>
+      <div style="padding: 24px; color: #334155; line-height: 1.6;">
+        <p>Dear Applicant,</p>
+        <p>Your one-time email verification code is:</p>
+        <div style="text-align: center; margin: 24px 0;">
+          <span style="display: inline-block; font-size: 32px; font-weight: 800; letter-spacing: 8px; color: #721b28; background: #fff5f5; border: 1.5px dashed #721b28; padding: 12px 28px; border-radius: 8px;">
+            ${otpCode}
+          </span>
+        </div>
+        <p style="font-size: 0.9rem; color: #64748b;">This code will expire in 10 minutes. If you did not initiate this request, please disregard this email.</p>
+        <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
+        <p style="margin: 0; font-size: 0.85rem; color: #64748b;">D Y Patil International University · Sector 29, Nigdi Pradhikaran, Akurdi, Pune</p>
+      </div>
+    </div>
+  `;
+
+  return sendEmail({
+    to,
+    subject,
+    html,
+    text: `Your DYPIU recruitment portal verification code is: ${otpCode}. It expires in 10 minutes.`
+  });
+}
+
 module.exports = {
   sendEmail,
+  sendOTPEmail,
   sendSubmissionConfirmationEmail,
   sendApplicationStatusEmail
 };
