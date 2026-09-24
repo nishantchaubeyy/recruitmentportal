@@ -3,23 +3,30 @@ import { useSearchParams, useParams, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { apiRequest } from '../utils/api';
 
-const FACULTIES_LIST = [
-  'SCHOOL OF COMPUTING',
-  'SCHOOL OF MANAGEMENT',
-  'SCHOOL OF BIOSCIENCES & BIOENGINEERING',
-  'SCHOOL OF ARCHITECTURE & DESIGN',
-  'SCHOOL OF MEDIA & COMMUNICATION',
-  'SCHOOL OF PHARMACY',
-  'SCHOOL OF HUMANITIES & SOCIAL SCIENCES',
-  'RESEARCH & INNOVATION CENTRES',
-  'UNIVERSITY ADMINISTRATION & OPERATIONS',
-  'SYSTEMS & IT INFRASTRUCTURE',
-  'TECHNICAL & LABORATORY SERVICES',
-  'FINANCE & ACCOUNTS DEPARTMENT',
-  'LIBRARY & INFORMATION SERVICES',
-  'BRANDING, MEDIA & PROMOTION',
-  'ESTATE & CIVIL ENGINEERING'
+const TEACHING_SCHOOLS = [
+  'School of Computer Science Engineering & Applications',
+  'School of Continuing Education',
+  'School of Engineering, Management & Research',
+  'School of Biosciences & Bioengineering',
+  'School of Commerce & Management',
+  'School of Media & Journalism',
+  'School of Design',
+  'School of Applied Arts & Crafts',
+  'School of Humanities & Social Sciences',
+  'School of Law'
 ];
+
+const NON_TEACHING_DIVISIONS = [
+  'University Administration & Operations',
+  'Systems & IT Infrastructure',
+  'Technical & Laboratory Services',
+  'Finance & Accounts',
+  'Library & Information Services',
+  'Branding, Media & Promotion',
+  'Estate & Civil Engineering'
+];
+
+const FACULTIES_LIST = [...TEACHING_SCHOOLS, ...NON_TEACHING_DIVISIONS];
 
 const POSTS_BY_TYPE = {
   TEACHING: [
@@ -215,7 +222,7 @@ function ApplicationForm() {
   const [loadedVacancy, setLoadedVacancy] = useState(null);
 
   // STEP 1: Post & Personal Info
-  const [selectedFaculty, setSelectedFaculty] = useState(urlFaculty || 'SCHOOL OF COMPUTING');
+  const [selectedFaculty, setSelectedFaculty] = useState(urlFaculty || 'School of Computer Science Engineering & Applications');
   const [postAppliedFor, setPostAppliedFor] = useState('');
   const [title, setTitle] = useState('Select');
   const [firstName, setFirstName] = useState(user?.name?.split(' ')[0] || '');
@@ -837,7 +844,7 @@ function ApplicationForm() {
           <div className="app-dept" style={{ textAlign: 'right' }}>
             <span style={{ fontSize: '13px', color: '#475569', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 600 }}>Department:</span>{' '}
             <strong style={{ display: 'block', color: '#721b28', fontSize: '16px', fontWeight: 800 }}>
-              {selectedFaculty || loadedVacancy?.department || 'SCHOOL OF COMPUTING'}
+              {selectedFaculty || loadedVacancy?.department || 'School of Computer Science Engineering & Applications'}
             </strong>
             {(postAppliedFor || loadedVacancy?.position) && (
               <div style={{ marginTop: '4px', fontSize: '13px', color: '#475569' }}>

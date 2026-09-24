@@ -54,6 +54,7 @@ model School {
   id        String   @id @default(uuid())
   name      String   @unique
   type      String   // TEACHING, NON_TEACHING
+  faculty   String?  // Faculty e.g. Faculty of Engineering & Technology
   code      String?
   bannerUrl String?
   posterUrl String?
@@ -75,10 +76,22 @@ model Department {
   updatedAt DateTime @updatedAt
 
   positions        Position[]
+  programs         Program[]
   jobs             Job[]
   vacancyInterests VacancyInterest[]
 
   @@unique([name, schoolId])
+}
+
+model Program {
+  id           String     @id @default(uuid())
+  name         String
+  departmentId String
+  department   Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@unique([name, departmentId])
 }
 
 model Position {

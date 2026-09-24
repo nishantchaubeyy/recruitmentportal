@@ -4,10 +4,22 @@ import { useNavigate } from 'react-router-dom';
 export const POSITIONS_DATA = {
   teaching: [
     {
-      id: 'soc',
-      name: 'SCHOOL OF COMPUTING',
-      about: 'Offers B.Tech, M.Tech and Ph.D. programs in Computer Science, AI & Data Science, Cyber Security and allied areas with strong industry linkage.',
-      roles: ['Professor', 'Associate Professor', 'Assistant Professor'],
+      id: 'scse',
+      name: 'SCHOOL OF COMPUTER SCIENCE ENGINEERING & APPLICATIONS',
+      faculty: 'Faculty of Engineering & Technology',
+      about: 'Offers B.Tech., M.Tech., M.Sc. and MCA programs in Computer Science & Engineering, Quantum Computing, Computational Mathematics, and Computer Applications.',
+      departments: [
+        'Department of Computer Science & Engineering',
+        'Department of Computer Applications'
+      ],
+      programs: [
+        'B.Tech. - Computer Science and Engineering (CSE)',
+        'M.Tech. - Computer Science (Quantum Computing)',
+        'M.Sc. - Computational Mathematics',
+        'B.C.A. (Hons.)',
+        'MCA'
+      ],
+      roles: ['Professor', 'Associate Professor', 'Assistant Professor', 'Adjunct Professor'],
       qualifications: [
         'Ph.D. in Computer Science / IT or a relevant discipline',
         'B.E./B.Tech and M.E./M.Tech with First Class throughout',
@@ -16,77 +28,188 @@ export const POSITIONS_DATA = {
       ],
       experience: ['Assistant Professor: 0–5 years', 'Associate Professor: min. 8 years', 'Professor: min. 10 years with research publications'],
       skills: ['Research publications in SCI/Scopus journals', 'Experience in funded projects preferred', 'Strong teaching & mentoring ability'],
-      link: '/apply?type=TEACHING&faculty=SCHOOL%20OF%20COMPUTING'
+      link: '/apply?type=TEACHING&faculty=School%20of%20Computer%20Science%20Engineering%20%26%20Applications'
     },
     {
-      id: 'som',
-      name: 'SCHOOL OF MANAGEMENT',
-      about: 'Delivers BBA, MBA and doctoral programs focused on analytics, finance, marketing, HR and entrepreneurship.',
-      roles: ['Professor', 'Associate Professor', 'Assistant Professor'],
-      qualifications: ['Ph.D. in Management or related area', 'MBA / PGDM with First Class', 'NET/SET (as per UGC norms)'],
-      experience: ['2–10 years of teaching / industry / research experience depending on level'],
-      skills: ['Case-based teaching', 'Corporate consulting exposure', 'Research & publications'],
-      link: '/apply?type=TEACHING&faculty=SCHOOL%20OF%20MANAGEMENT'
+      id: 'sce',
+      name: 'SCHOOL OF CONTINUING EDUCATION',
+      faculty: 'Faculty of Engineering & Technology',
+      about: 'Delivers professional engineering education in Electrical, Mechanical, and cutting-edge Electric Vehicles & Smart Manufacturing domains.',
+      departments: [
+        'Department of Electrical Engineering',
+        'Department of Mechanical Engineering',
+        'Department of Electric Vehicles Engineering'
+      ],
+      programs: [
+        'B.Tech. - Electrical Engineering (EE)',
+        'B.Tech. - Mechanical Engineering (ME)',
+        'M.Tech. - Electric Vehicles',
+        'M.Tech. - Smart Manufacturing'
+      ],
+      roles: ['Professor', 'Associate Professor', 'Assistant Professor', 'Adjunct Professor'],
+      qualifications: ['Ph.D. / M.Tech with First Class in relevant branch', 'As per AICTE/UGC norms'],
+      experience: ['0–10 years depending on cadre'],
+      skills: ['Core engineering domain expertise', 'Lab & simulation tools', 'Industry-academia collaboration'],
+      link: '/apply?type=TEACHING&faculty=School%20of%20Continuing%20Education'
     },
     {
-      id: 'bio',
+      id: 'semr',
+      name: 'SCHOOL OF ENGINEERING, MANAGEMENT & RESEARCH',
+      faculty: 'Faculty of Engineering & Technology',
+      about: 'Offers specialized programs in Semiconductor, Mechanical, Civil, and Chemical Engineering with a research-driven pedagogy.',
+      departments: [
+        'Department of Semiconductor Engineering',
+        'Department of Mechanical Engineering',
+        'Department of Civil Engineering',
+        'Department of Chemical Engineering'
+      ],
+      programs: [
+        'B.Tech. - Semiconductor Engineering (SCE)',
+        'B.Tech. - Mechanical Engineering (ME)',
+        'B.Tech. - Civil Engineering (CE)',
+        'B.Tech. - Chemical Engineering (CME)'
+      ],
+      roles: ['Professor', 'Associate Professor', 'Assistant Professor', 'Adjunct Professor'],
+      qualifications: ['Ph.D. / M.Tech in relevant discipline', 'AICTE/UGC norms applicable'],
+      experience: ['0–10 years depending on cadre'],
+      skills: ['Applied engineering research', 'Industry linkages', 'Curriculum development'],
+      link: '/apply?type=TEACHING&faculty=School%20of%20Engineering%2C%20Management%20%26%20Research'
+    },
+    {
+      id: 'sob',
       name: 'SCHOOL OF BIOSCIENCES & BIOENGINEERING',
-      about: 'Interdisciplinary research-driven school covering biotechnology, bioinformatics and bioengineering.',
-      roles: ['Professor', 'Associate Professor', 'Assistant Professor'],
+      faculty: 'Faculty of Engineering & Technology',
+      about: 'Interdisciplinary research-driven school covering Biotechnology, Bioengineering, Life Sciences, Forensic Sciences, Physics, Chemistry, and Mathematics.',
+      departments: [
+        'Department of Biotechnology',
+        'Department of Bioengineering',
+        'Department of Life Sciences',
+        'Department of Forensic Sciences',
+        'Department of Physics',
+        'Department of Chemistry',
+        'Department of Mathematics'
+      ],
+      programs: [
+        'M.Sc. - Medical Biotechnology',
+        'B.Tech. - Bioengineering',
+        'M.Sc. - Medicinal Chemistry',
+        'B.Sc. - Forensic Sciences (FS)'
+      ],
+      roles: ['Professor', 'Associate Professor', 'Assistant Professor', 'Post-Doctoral Fellow'],
       qualifications: ['Ph.D. in Life Sciences / Biotechnology / Bioengineering', 'Post-doctoral experience preferred'],
       experience: ['As per UGC norms for each cadre'],
       skills: ['Wet-lab expertise', 'Grant writing', 'Publications in high-impact journals'],
-      link: '/apply?type=TEACHING&faculty=SCHOOL%20OF%20BIOSCIENCES%20%26%20BIOENGINEERING'
+      link: '/apply?type=TEACHING&faculty=School%20of%20Biosciences%20%26%20Bioengineering'
     },
     {
-      id: 'design',
-      name: 'SCHOOL OF ARCHITECTURE & DESIGN',
-      about: 'Fosters creative design thinking, sustainable architecture, urban planning, visual communication and product design.',
-      roles: ['Professor', 'Associate Professor', 'Assistant Professor'],
-      qualifications: ['B.Arch + M.Arch / M.Des', 'Council of Architecture (COA) registration'],
-      experience: ['As per COA / UGC norms for academic & professional practice'],
-      skills: ['Studio teaching', 'Design & CAD/BIM software proficiency', 'Portfolio review & mentoring'],
-      link: '/apply?type=TEACHING&faculty=SCHOOL%20OF%20ARCHITECTURE%20%26%20DESIGN'
+      id: 'scm',
+      name: 'SCHOOL OF COMMERCE & MANAGEMENT',
+      faculty: 'Faculty of Commerce & Business Management',
+      about: 'Delivers BBA (Hons.), MBA – Digital Business, and MBA – Executive programs focused on analytics, digital innovation, marketing, HR, and leadership.',
+      departments: [
+        'Department of Business Management'
+      ],
+      programs: [
+        'BBA (Hons.)',
+        'MBA - Digital Business',
+        'MBA - Executive'
+      ],
+      roles: ['Professor', 'Associate Professor', 'Assistant Professor', 'Adjunct Professor'],
+      qualifications: ['Ph.D. in Management or related area', 'MBA / PGDM with First Class', 'NET/SET (as per UGC norms)'],
+      experience: ['2–10 years of teaching / industry / research experience depending on level'],
+      skills: ['Case-based teaching', 'Corporate consulting exposure', 'Research & publications'],
+      link: '/apply?type=TEACHING&faculty=School%20of%20Commerce%20%26%20Management'
     },
     {
-      id: 'media',
-      name: 'SCHOOL OF MEDIA & COMMUNICATION',
-      about: 'Prepares media professionals in journalism, digital film production, public relations and corporate advertising.',
+      id: 'smj',
+      name: 'SCHOOL OF MEDIA & JOURNALISM',
+      faculty: 'Faculty of Design, Media & Communication',
+      about: 'Prepares media professionals in journalism, digital news production, mass communication, and contemporary public affairs reporting.',
+      departments: [
+        'Department of Journalism & Mass Communication'
+      ],
+      programs: [
+        'B.A.J. - Journalism & Mass Communication (Hons.)',
+        'M.A. - Journalism & Mass Communication'
+      ],
       roles: ['Professor', 'Associate Professor', 'Assistant Professor'],
       qualifications: ["Master's in Journalism / Mass Communication", 'Ph.D. preferred / NET qualified'],
       experience: ['3+ years industry or academic experience in media production'],
-      skills: ['Digital media studio production', 'Broadcasting & editing', 'Journalistic writing'],
-      link: '/apply?type=TEACHING&faculty=SCHOOL%20OF%20MEDIA%20%26%20COMMUNICATION'
+      skills: ['Digital media production', 'Broadcasting & editing', 'Journalistic writing'],
+      link: '/apply?type=TEACHING&faculty=School%20of%20Media%20%26%20Journalism'
     },
     {
-      id: 'pharmacy',
-      name: 'SCHOOL OF PHARMACY',
-      about: 'Offers PCI-approved pharmaceutical education, drug discovery research and clinical trial studies.',
+      id: 'sod',
+      name: 'SCHOOL OF DESIGN',
+      faculty: 'Faculty of Design, Media & Communication',
+      about: 'Fosters creative design thinking, sustainable design, visual communication, user experience, and product design.',
+      departments: [
+        'Department of Design'
+      ],
+      programs: [
+        'B.Design'
+      ],
       roles: ['Professor', 'Associate Professor', 'Assistant Professor'],
-      qualifications: ['M.Pharm / Ph.D. in Pharmaceutics / Pharmacology', 'PCI registration mandatory'],
-      experience: ['As per Pharmacy Council of India (PCI) norms'],
-      skills: ['Pharmaceutical lab research', 'Drug formulation', 'Scopus-indexed publications'],
-      link: '/apply?type=TEACHING&faculty=SCHOOL%20OF%20PHARMACY'
+      qualifications: ['B.Des + M.Des / MFA from NID/IIT/reputed institution', 'Strong portfolio required'],
+      experience: ['As per UGC norms for academic & professional practice'],
+      skills: ['Studio teaching', 'Design & UX software proficiency', 'Portfolio review & mentoring'],
+      link: '/apply?type=TEACHING&faculty=School%20of%20Design'
     },
     {
-      id: 'humanities',
+      id: 'saac',
+      name: 'SCHOOL OF APPLIED ARTS & CRAFTS',
+      faculty: 'Faculty of Humanities & Sciences',
+      about: 'Excellence in visual arts, fine arts, painting, applied crafts, and creative studio practices with a BFA (Bachelor of Fine Arts) program.',
+      departments: [
+        'Department of Fine Arts'
+      ],
+      programs: [
+        'Bachelor of Fine Arts (BFA)'
+      ],
+      roles: ['Professor', 'Associate Professor', 'Assistant Professor'],
+      qualifications: ['MFA / M.Vis.A or equivalent in Fine Arts', 'NET/SET preferred'],
+      experience: ['2+ years studio practice or academic teaching'],
+      skills: ['Studio art practice', 'Portfolio critique', 'Art history & criticism'],
+      link: '/apply?type=TEACHING&faculty=School%20of%20Applied%20Arts%20%26%20Crafts'
+    },
+    {
+      id: 'shss',
       name: 'SCHOOL OF HUMANITIES & SOCIAL SCIENCES',
-      about: 'Provides foundational and advanced instruction in English literature, psychology, economics and interdisciplinary social studies.',
+      faculty: 'Faculty of Humanities & Sciences',
+      about: 'Provides foundational and advanced instruction in Liberal Arts, Economics, and interdisciplinary social studies.',
+      departments: [
+        'Department of Liberal Arts',
+        'Department of Social Sciences'
+      ],
+      programs: [
+        'B.A. - Liberal Arts',
+        'B.Sc. - Economics (Hons.)'
+      ],
       roles: ['Professor', 'Associate Professor', 'Assistant Professor'],
       qualifications: ["Master's degree with min. 55% + NET/SET or Ph.D."],
       experience: ['0–5 years teaching and research experience'],
       skills: ['Interdisciplinary pedagogy', 'Academic writing', 'Student counseling'],
-      link: '/apply?type=TEACHING&faculty=SCHOOL%20OF%20HUMANITIES%20%26%20SOCIAL%20SCIENCES'
+      link: '/apply?type=TEACHING&faculty=School%20of%20Humanities%20%26%20Social%20Sciences'
     },
     {
-      id: 'research',
-      name: 'RESEARCH & INNOVATION CENTRES',
-      about: 'Hub for multi-institutional interdisciplinary scientific research, technology incubation and patenting.',
-      roles: ['Research Scientist', 'Post-doctoral Fellow', 'Principal Investigator'],
-      qualifications: ['Ph.D. in relevant discipline with strong research track record'],
-      experience: ['Post-doc experience and proven grant writing capabilities'],
-      skills: ['Grant proposal writing', 'Patenting & IP creation', 'High-impact journal publishing'],
-      link: '/apply?type=TEACHING&faculty=RESEARCH%20%26%20INNOVATION%20CENTRES'
+      id: 'sol',
+      name: 'SCHOOL OF LAW',
+      faculty: 'Faculty of Law',
+      about: 'Comprehensive legal education with a focus on constitutional advocacy, corporate jurisprudence, and international law.',
+      departments: [
+        'Department of Law'
+      ],
+      programs: [
+        'B.A. LL.B. (Hons.)',
+        'B.B.A. LL.B. (Hons.)',
+        'LL.B.',
+        'LL.M.'
+      ],
+      roles: ['Professor', 'Associate Professor', 'Assistant Professor'],
+      qualifications: ['LL.M. with min. 55%, NET/SET or Ph.D. in Law', 'Bar Council registration preferred'],
+      experience: ['2+ years academic teaching or legal practice'],
+      skills: ['Moot court coaching', 'Legal research', 'Advocacy & litigation'],
+      link: '/apply?type=TEACHING&faculty=School%20of%20Law'
     }
   ],
 

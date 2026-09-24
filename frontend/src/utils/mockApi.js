@@ -17,21 +17,29 @@ const delay = (ms = 120) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // ── Reference data ────────────────────────────────────────────
 const DEFAULT_SCHOOLS = [
-  { id: 'sch-1', name: 'School of Computing', type: 'TEACHING', code: 'SOC', posterUrl: null },
-  { id: 'sch-2', name: 'School of Management', type: 'TEACHING', code: 'SOM', posterUrl: null },
-  { id: 'sch-3', name: 'School of Biosciences & Bioengineering', type: 'TEACHING', code: 'SOB', posterUrl: null },
-  { id: 'sch-4', name: 'School of Architecture & Design', type: 'TEACHING', code: 'SOA', posterUrl: null },
-  { id: 'sch-5', name: 'School of Media & Communication', type: 'TEACHING', code: 'SOMC', posterUrl: null },
-  { id: 'sch-6', name: 'School of Pharmacy', type: 'TEACHING', code: 'SOP', posterUrl: null },
-  { id: 'sch-7', name: 'School of Humanities & Social Sciences', type: 'TEACHING', code: 'SOH', posterUrl: null },
-  { id: 'sch-8', name: 'Research & Innovation Centres', type: 'TEACHING', code: 'RIC', posterUrl: null },
-  { id: 'sch-9', name: 'University Administration & Operations', type: 'NON_TEACHING', code: 'ADM', posterUrl: null },
-  { id: 'sch-10', name: 'Systems & IT Infrastructure', type: 'NON_TEACHING', code: 'IT', posterUrl: null },
-  { id: 'sch-11', name: 'Technical & Laboratory Services', type: 'NON_TEACHING', code: 'LAB', posterUrl: null },
-  { id: 'sch-12', name: 'Finance & Accounts', type: 'NON_TEACHING', code: 'FIN', posterUrl: null },
-  { id: 'sch-13', name: 'Library & Information Services', type: 'NON_TEACHING', code: 'LIB', posterUrl: null },
-  { id: 'sch-14', name: 'Branding, Media & Promotion', type: 'NON_TEACHING', code: 'BMP', posterUrl: null },
-  { id: 'sch-15', name: 'Estate & Civil Engineering', type: 'NON_TEACHING', code: 'ECE', posterUrl: null }
+  // ── Faculty of Engineering & Technology ────────────────────────
+  { id: 'sch-scse', name: 'School of Computer Science Engineering & Applications', type: 'TEACHING', code: 'SCSE', faculty: 'Faculty of Engineering & Technology', posterUrl: null },
+  { id: 'sch-sce',  name: 'School of Continuing Education',                        type: 'TEACHING', code: 'SCE',  faculty: 'Faculty of Engineering & Technology', posterUrl: null },
+  { id: 'sch-semr', name: 'School of Engineering, Management & Research',           type: 'TEACHING', code: 'SEMR', faculty: 'Faculty of Engineering & Technology', posterUrl: null },
+  { id: 'sch-sob',  name: 'School of Biosciences & Bioengineering',                 type: 'TEACHING', code: 'SOB',  faculty: 'Faculty of Engineering & Technology', posterUrl: null },
+  // ── Faculty of Commerce & Business Management ───────────────────
+  { id: 'sch-scm',  name: 'School of Commerce & Management',                        type: 'TEACHING', code: 'SCM',  faculty: 'Faculty of Commerce & Business Management', posterUrl: null },
+  // ── Faculty of Design, Media & Communication ────────────────────
+  { id: 'sch-smj',  name: 'School of Media & Journalism',                           type: 'TEACHING', code: 'SMJ',  faculty: 'Faculty of Design, Media & Communication', posterUrl: null },
+  { id: 'sch-sod',  name: 'School of Design',                                       type: 'TEACHING', code: 'SOD',  faculty: 'Faculty of Design, Media & Communication', posterUrl: null },
+  // ── Faculty of Humanities & Sciences ───────────────────────────
+  { id: 'sch-saac', name: 'School of Applied Arts & Crafts',                        type: 'TEACHING', code: 'SAAC', faculty: 'Faculty of Humanities & Sciences', posterUrl: null },
+  { id: 'sch-shss', name: 'School of Humanities & Social Sciences',                 type: 'TEACHING', code: 'SHSS', faculty: 'Faculty of Humanities & Sciences', posterUrl: null },
+  // ── Faculty of Law ─────────────────────────────────────────────
+  { id: 'sch-sol',  name: 'School of Law',                                          type: 'TEACHING', code: 'SOL',  faculty: 'Faculty of Law', posterUrl: null },
+  // ── Administrative & Operational Divisions (Non-Teaching) ──────
+  { id: 'sch-adm',  name: 'University Administration & Operations',                 type: 'NON_TEACHING', code: 'ADM',  faculty: 'Administrative & Operational Divisions', posterUrl: null },
+  { id: 'sch-it',   name: 'Systems & IT Infrastructure',                            type: 'NON_TEACHING', code: 'IT',   faculty: 'Administrative & Operational Divisions', posterUrl: null },
+  { id: 'sch-lab',  name: 'Technical & Laboratory Services',                        type: 'NON_TEACHING', code: 'LAB',  faculty: 'Administrative & Operational Divisions', posterUrl: null },
+  { id: 'sch-fin',  name: 'Finance & Accounts',                                     type: 'NON_TEACHING', code: 'FIN',  faculty: 'Administrative & Operational Divisions', posterUrl: null },
+  { id: 'sch-lib',  name: 'Library & Information Services',                         type: 'NON_TEACHING', code: 'LIB',  faculty: 'Administrative & Operational Divisions', posterUrl: null },
+  { id: 'sch-bmp',  name: 'Branding, Media & Promotion',                            type: 'NON_TEACHING', code: 'BMP',  faculty: 'Administrative & Operational Divisions', posterUrl: null },
+  { id: 'sch-ece',  name: 'Estate & Civil Engineering',                             type: 'NON_TEACHING', code: 'ECE',  faculty: 'Administrative & Operational Divisions', posterUrl: null }
 ];
 
 const getStoredSchools = () => {
@@ -39,13 +47,21 @@ const getStoredSchools = () => {
     const stored = localStorage.getItem('MOCK_SCHOOLS_PERSIST');
     if (stored) {
       const parsed = JSON.parse(stored);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      // Reset cache if it contains old school names that are no longer in the approved structure
+      const hasOldData = parsed.some(s => ['School of Computing', 'School of Management', 'School of Architecture & Design', 'School of Media & Communication', 'School of Pharmacy', 'Research & Innovation Centres'].includes(s.name));
+      if (hasOldData) {
+        localStorage.removeItem('MOCK_SCHOOLS_PERSIST');
+      } else {
+        return parsed;
+      }
     }
   } catch (e) {
     console.error('Failed to parse stored schools:', e);
   }
   return JSON.parse(JSON.stringify(DEFAULT_SCHOOLS));
 };
+
+
 
 let schools = getStoredSchools();
 

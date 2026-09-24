@@ -56,121 +56,129 @@ async function main() {
     console.log(`[Seed] Demo applicant created. Credentials: ${demoApplicantEmail} / ${demoApplicantPassword}`);
   }
 
-  // 2. Create Schools / Faculties / Divisions
-  const schoolsData = [
-    { name: 'School of Computing', type: 'TEACHING', code: 'SOC' },
-    { name: 'School of Management', type: 'TEACHING', code: 'SOM' },
-    { name: 'School of Biosciences & Bioengineering', type: 'TEACHING', code: 'SOB' },
-    { name: 'School of Architecture & Design', type: 'TEACHING', code: 'SOA' },
-    { name: 'School of Media & Communication', type: 'TEACHING', code: 'SOMC' },
-    { name: 'School of Pharmacy', type: 'TEACHING', code: 'SOP' },
-    { name: 'School of Humanities & Social Sciences', type: 'TEACHING', code: 'SOH' },
-    { name: 'University Administration & Operations', type: 'NON_TEACHING', code: 'ADM' },
-    { name: 'Systems & IT Infrastructure', type: 'NON_TEACHING', code: 'IT' },
-    { name: 'Technical & Laboratory Services', type: 'NON_TEACHING', code: 'LAB' },
-    { name: 'Finance & Accounts', type: 'NON_TEACHING', code: 'FIN' },
-    { name: 'Library & Information Services', type: 'NON_TEACHING', code: 'LIB' },
-    { name: 'Branding, Media & Promotion', type: 'NON_TEACHING', code: 'BMP' },
-    { name: 'Estate & Civil Engineering', type: 'NON_TEACHING', code: 'ECE' }
-  ];
+  // ─────────────────────────────────────────────────────────────────────
+  // 2. APPROVED UNIVERSITY STRUCTURE - Replace old data with new official
+  //    Faculty → School → Department → Program hierarchy
+  // ─────────────────────────────────────────────────────────────────────
+  const { APPROVED_UNIVERSITY_STRUCTURE } = require('./constants/universityStructure');
 
+  console.log('[Seed] Seeding approved university structure...');
+
+  // Delete obsolete schools not in the approved list
+  const approvedSchoolNames = [];
+  for (const fac of APPROVED_UNIVERSITY_STRUCTURE) {
+    for (const sch of fac.schools) {
+      approvedSchoolNames.push(sch.name);
+    }
+  }
+
+  // Mark obsolete schools by renaming them (safe - keeps job references intact)
+  const allExistingSchools = await prisma.school.findMany();
+  for (const existing of allExistingSchools) {
+    if (!approvedSchoolNames.includes(existing.name)) {
+      console.log(`[Seed] Renaming obsolete school: ${existing.name}`);
+      await prisma.school.update({
+        where: { id: existing.id },
+        data: { name: `[ARCHIVED] ${existing.name}`, code: `ARCH-${existing.code || existing.id.slice(0, 6)}` }
+      });
+    }
+  }
+
+  // Create/update approved schools, departments, and programs
   const schoolsMap = {};
-  for (const s of schoolsData) {
-    let school = await prisma.school.findUnique({ where: { name: s.name } });
-    if (!school) {
-      school = await prisma.school.create({ data: s });
-      console.log(`[Seed] Created school: ${school.name}`);
-    }
-    schoolsMap[s.name] = school;
-  }
-
-  // 3. Create Departments under Schools
-  const departmentsData = [
-    { name: 'Computer Science & Engineering', schoolName: 'School of Computing' },
-    { name: 'Artificial Intelligence & Data Science', schoolName: 'School of Computing' },
-    { name: 'Business Administration & Management', schoolName: 'School of Management' },
-    { name: 'Biotechnology & Bioengineering', schoolName: 'School of Biosciences & Bioengineering' },
-    { name: 'Graphic & Visual Communication Design', schoolName: 'School of Architecture & Design' },
-    { name: 'Journalism & Mass Media', schoolName: 'School of Media & Communication' },
-    { name: 'Registrar & Secretarial Office', schoolName: 'University Administration & Operations' },
-    { name: 'Campus IT & Network Systems', schoolName: 'Systems & IT Infrastructure' },
-    { name: 'University Administrative Services', schoolName: 'University Administration & Operations' },
-    { name: 'Media Studio & Photography', schoolName: 'Branding, Media & Promotion' },
-    { name: 'Civil Infrastructure & Planning', schoolName: 'Estate & Civil Engineering' }
-  ];
-
   const departmentsMap = {};
-  for (const d of departmentsData) {
-    const school = schoolsMap[d.schoolName];
-    if (!school) continue;
 
-    let dept = await prisma.department.findFirst({
-      where: { name: d.name, schoolId: school.id }
-    });
+  for (const fac of APPROVED_UNIVERSITY_STRUCTURE) {
+    for (const schData of fac.schools) {
+      // Upsert school
+      let school = await prisma.school.findUnique({ where: { name: schData.name } });
+      if (!school) {
+        school = await prisma.school.create({
+          data: {
+            name: schData.name,
+            code: schData.code,
+            type: schData.type,
+            faculty: fac.faculty,
+            description: schData.description
+          }
+        });
+        console.log(`[Seed] Created school: ${school.name}`);
+      } else {
+        // Update faculty & description
+        await prisma.school.update({
+          where: { id: school.id },
+          data: { faculty: fac.faculty, description: schData.description, code: schData.code }
+        });
+      }
+      schoolsMap[schData.name] = school;
 
-    if (!dept) {
-      dept = await prisma.department.create({
-        data: {
-          name: d.name,
-          schoolId: school.id
+      // Upsert departments
+      for (const deptData of schData.departments) {
+        let dept = await prisma.department.findFirst({
+          where: { name: deptData.name, schoolId: school.id }
+        });
+        if (!dept) {
+          dept = await prisma.department.create({
+            data: { name: deptData.name, schoolId: school.id }
+          });
+          console.log(`[Seed]   + Department: ${dept.name}`);
         }
-      });
-      console.log(`[Seed] Created department: ${dept.name} (${d.schoolName})`);
+        const deptKey = `${deptData.name}-${schData.name}`;
+        departmentsMap[deptKey] = dept;
+
+        // Upsert programs
+        for (const progName of (deptData.programs || [])) {
+          const existingProg = await prisma.program.findFirst({
+            where: { name: progName, departmentId: dept.id }
+          });
+          if (!existingProg) {
+            await prisma.program.create({
+              data: { name: progName, departmentId: dept.id }
+            });
+            console.log(`[Seed]     ~ Program: ${progName}`);
+          }
+        }
+
+        // Upsert positions
+        for (const posTitle of (deptData.positions || [])) {
+          const cat = schData.type === 'NON_TEACHING' ? 'NON_TEACHING' : 'TEACHING';
+          const existing = await prisma.position.findFirst({
+            where: { title: posTitle, departmentId: dept.id }
+          });
+          if (!existing) {
+            await prisma.position.create({
+              data: { title: posTitle, category: cat, departmentId: dept.id }
+            });
+          }
+        }
+      }
     }
-    departmentsMap[`${d.name}-${d.schoolName}`] = dept;
   }
 
-  // 4. Create Positions under Departments
-  const positionsData = [
-    { title: 'Assistant Professor', category: 'TEACHING', deptKey: 'Computer Science & Engineering-School of Computing' },
-    { title: 'Associate Professor', category: 'TEACHING', deptKey: 'Computer Science & Engineering-School of Computing' },
-    { title: 'Assistant Professor', category: 'TEACHING', deptKey: 'Business Administration & Management-School of Management' },
-    { title: 'Assistant Professor', category: 'TEACHING', deptKey: 'Graphic & Visual Communication Design-School of Architecture & Design' },
-    { title: 'Graphic Designer', category: 'NON_TEACHING', deptKey: 'Media Studio & Photography-Branding, Media & Promotion' },
-    { title: 'HR Executive', category: 'NON_TEACHING', deptKey: 'University Administrative Services-University Administration & Operations' },
-    { title: 'Systems Administrator', category: 'NON_TEACHING', deptKey: 'Campus IT & Network Systems-Systems & IT Infrastructure' },
-    { title: 'Civil Engineer', category: 'NON_TEACHING', deptKey: 'Civil Infrastructure & Planning-Estate & Civil Engineering' },
-    { title: 'Senior Architect', category: 'NON_TEACHING', deptKey: 'Civil Infrastructure & Planning-Estate & Civil Engineering' }
-  ];
-
+  // Build positionsMap for sample vacancies
   const positionsMap = {};
-  for (const p of positionsData) {
-    const dept = departmentsMap[p.deptKey];
-    if (!dept) continue;
-
-    let pos = await prisma.position.findFirst({
-      where: { title: p.title, departmentId: dept.id }
-    });
-
-    if (!pos) {
-      pos = await prisma.position.create({
-        data: {
-          title: p.title,
-          category: p.category,
-          departmentId: dept.id
-        }
-      });
-      console.log(`[Seed] Created position: ${pos.title} (${p.deptKey})`);
-    }
-    positionsMap[`${p.title}-${p.deptKey}`] = pos;
+  const allPositions = await prisma.position.findMany({ include: { department: { include: { school: true } } } });
+  for (const p of allPositions) {
+    const key = `${p.title}-${p.department.name}-${p.department.school?.name}`;
+    positionsMap[key] = p;
   }
 
-  // 5. Create Sample Vacancies (Jobs)
-  const socSchool = schoolsMap['School of Computing'];
-  const cseDept = departmentsMap['Computer Science & Engineering-School of Computing'];
-  const asstProfCsePos = positionsMap['Assistant Professor-Computer Science & Engineering-School of Computing'];
+  // Resolve school/dept refs for sample vacancies using new approved names
+  const socSchool = schoolsMap['School of Computer Science Engineering & Applications'];
+  const cseDept = departmentsMap['Department of Computer Science & Engineering-School of Computer Science Engineering & Applications'];
+  const asstProfCsePos = positionsMap['Assistant Professor-Department of Computer Science & Engineering-School of Computer Science Engineering & Applications'];
 
-  const somSchool = schoolsMap['School of Management'];
-  const mgmtDept = departmentsMap['Business Administration & Management-School of Management'];
-  const asstProfMgmtPos = positionsMap['Assistant Professor-Business Administration & Management-School of Management'];
+  const somSchool = schoolsMap['School of Commerce & Management'];
+  const mgmtDept = departmentsMap['Department of Business Management-School of Commerce & Management'];
+  const asstProfMgmtPos = positionsMap['Assistant Professor-Department of Business Management-School of Commerce & Management'];
 
-  const soaSchool = schoolsMap['School of Architecture & Design'];
-  const designDept = departmentsMap['Graphic & Visual Communication Design-School of Architecture & Design'];
-  const asstProfDesignPos = positionsMap['Assistant Professor-Graphic & Visual Communication Design-School of Architecture & Design'];
+  const soaSchool = schoolsMap['School of Design'];
+  const designDept = departmentsMap['Department of Design-School of Design'];
+  const asstProfDesignPos = positionsMap['Assistant Professor-Department of Design-School of Design'];
 
   const bmpSchool = schoolsMap['Branding, Media & Promotion'];
-  const mediaDept = departmentsMap['Media Studio & Photography-Branding, Media & Promotion'];
-  const graphicDesignerPos = positionsMap['Graphic Designer-Media Studio & Photography-Branding, Media & Promotion'];
+  const mediaDept = departmentsMap['Media Studio & Communications-Branding, Media & Promotion'];
+  const graphicDesignerPos = positionsMap['Graphic Designer-Media Studio & Communications-Branding, Media & Promotion'];
 
   const adminSchool = schoolsMap['University Administration & Operations'];
   const adminDept = departmentsMap['University Administrative Services-University Administration & Operations'];
@@ -179,9 +187,9 @@ async function main() {
   const sampleVacancies = [
     {
       vacancyNumber: 'VAC-2026-001',
-      position: 'Assistant Professor – Computer Science',
+      position: 'Assistant Professor – Computer Science & Engineering',
       type: 'TEACHING',
-      department: 'School of Computing',
+      department: 'School of Computer Science Engineering & Applications',
       schoolId: socSchool?.id,
       departmentId: cseDept?.id,
       positionId: asstProfCsePos?.id,
@@ -202,9 +210,9 @@ async function main() {
     },
     {
       vacancyNumber: 'VAC-2026-002',
-      position: 'Assistant Professor – Management',
+      position: 'Assistant Professor – Business Management',
       type: 'TEACHING',
-      department: 'School of Management',
+      department: 'School of Commerce & Management',
       schoolId: somSchool?.id,
       departmentId: mgmtDept?.id,
       positionId: asstProfMgmtPos?.id,
@@ -227,7 +235,7 @@ async function main() {
       vacancyNumber: 'VAC-2026-003',
       position: 'Assistant Professor – Design',
       type: 'TEACHING',
-      department: 'School of Architecture & Design',
+      department: 'School of Design',
       schoolId: soaSchool?.id,
       departmentId: designDept?.id,
       positionId: asstProfDesignPos?.id,
@@ -338,7 +346,7 @@ async function main() {
       email: 'aarav.sharma@example.com',
       mobile: '9876543210',
       schoolId: socSchool?.id,
-      interestedPosition: 'Assistant Professor – Computer Science',
+      interestedPosition: 'Assistant Professor – Computer Science & Engineering',
       category: 'TEACHING',
       message: 'Interested in AI & Data Science teaching roles.',
       status: 'PENDING'
