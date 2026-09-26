@@ -238,7 +238,7 @@ function ApplicationForm() {
 
   // STEP 2: Contact Information
   const [email, setEmail] = useState(user?.email || '');
-  const [emailVerified, setEmailVerified] = useState(true);
+  const [emailVerified, setEmailVerified] = useState(Boolean(user?.email));
   const [otpSent, setOtpSent] = useState(false);
   const [otpInput, setOtpInput] = useState('');
   const [otpMessage, setOtpMessage] = useState('');
@@ -553,7 +553,8 @@ function ApplicationForm() {
       });
 
       setOtpSent(true);
-      setOtpMessage(res.message || `Verification code sent to ${email}. (Demo OTP: ${res.demoOTP || '123456'})`);
+      const hint = res.demoOTP ? ` (Development code: ${res.demoOTP})` : '';
+      setOtpMessage((res.message || `Verification code sent to ${email}.`) + hint);
     } catch (err) {
       setError(err.message || 'Failed to send verification OTP.');
     } finally {
@@ -1045,14 +1046,86 @@ function ApplicationForm() {
 
             <div className="app-form-grid-2col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
               <div className="form-group">
-                <label style={{ fontWeight: 700, fontSize: '0.85rem' }}>Email Address <span className="required">*</span></label>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                  <label style={{ fontWeight: 700, fontSize: '0.85rem', margin: 0 }}>
+                    Email Address <span className="required">*</span>
+                  </label>
+                  {emailVerified ? (
+                    <span style={{ fontSize: '0.78rem', color: '#16a34a', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      ✓ Verified (No Login Required)
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleSendOtp}
+                      disabled={sendingOtp || !email}
+                      style={{
+                        background: '#0f2b5c',
+                        color: '#ffffff',
+                        border: 'none',
+                        borderRadius: '4px',
+                        padding: '2px 10px',
+                        fontSize: '0.75rem',
+                        fontWeight: 600,
+                        cursor: sendingOtp || !email ? 'not-allowed' : 'pointer'
+                      }}
+                    >
+                      {sendingOtp ? 'Sending Code...' : otpSent ? 'Resend OTP' : 'Verify Email (Send OTP)'}
+                    </button>
+                  )}
+                </div>
                 <input
                   type="email"
                   placeholder="Enter candidate email address"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    if (emailVerified && e.target.value !== (user?.email || '')) {
+                      setEmailVerified(false);
+                    }
+                  }}
                   required
                 />
+                {otpMessage && (
+                  <p style={{ margin: '6px 0 0 0', fontSize: '0.8rem', color: emailVerified ? '#16a34a' : '#0f2b5c', fontWeight: 600 }}>
+                    {otpMessage}
+                  </p>
+                )}
+
+                {otpSent && !emailVerified && (
+                  <div style={{ marginTop: '10px', padding: '12px', background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '6px' }}>
+                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
+                      Enter 6-Digit Verification Code:
+                    </label>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <input
+                        type="text"
+                        maxLength={6}
+                        placeholder="e.g. 123456"
+                        value={otpInput}
+                        onChange={(e) => setOtpInput(e.target.value.replace(/\D/g, ''))}
+                        style={{ width: '130px', letterSpacing: '3px', textAlign: 'center', fontWeight: 'bold', fontSize: '0.95rem' }}
+                      />
+                      <button
+                        type="button"
+                        onClick={handleVerifyOtp}
+                        disabled={verifyingOtp || otpInput.length < 4}
+                        style={{
+                          backgroundColor: '#16a34a',
+                          color: '#fff',
+                          border: 'none',
+                          borderRadius: '4px',
+                          padding: '6px 14px',
+                          fontSize: '0.82rem',
+                          fontWeight: 700,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        {verifyingOtp ? 'Verifying...' : 'Confirm OTP'}
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="form-group">

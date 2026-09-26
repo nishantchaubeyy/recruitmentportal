@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const nodemailer = require('nodemailer');
 const prisma = require('./prisma');
+const { generateApplicationPdf } = require('./pdfService');
 
 /**
  * ZeptoMail & Standard SMTP Configuration
@@ -44,7 +45,7 @@ function createTransporter() {
 /**
  * Send email using ZeptoMail official REST API endpoint
  */
-async function sendViaZeptoApi({ to, subject, html, text }) {
+async function sendViaZeptoApi({ to, subject, html, text, attachments }) {
   const config = getEmailConfig();
   const token = config.token || config.password;
   if (!token) {
@@ -53,6 +54,32 @@ async function sendViaZeptoApi({ to, subject, html, text }) {
 
   const authHeader = token.startsWith('Zoho-enczapikey') ? token : `Zoho-enczapikey ${token}`;
 
+  const payload = {
+    from: {
+      address: config.fromEmail,
+      name: config.fromName
+    },
+    to: [
+      {
+        email_address: {
+          address: to,
+          name: to.split('@')[0]
+        }
+      }
+    ],
+    subject,
+    htmlbody: html,
+    textbody: text || undefined
+  };
+
+  if (attachments && Array.isArray(attachments) && attachments.length > 0) {
+    payload.attachments = attachments.map(att => ({
+      content: Buffer.isBuffer(att.content) ? att.content.toString('base64') : att.content,
+      mime_type: att.contentType || 'application/pdf',
+      name: att.filename
+    }));
+  }
+
   const response = await fetch(config.apiUrl, {
     method: 'POST',
     headers: {
@@ -60,28 +87,15 @@ async function sendViaZeptoApi({ to, subject, html, text }) {
       'Content-Type': 'application/json',
       'Authorization': authHeader
     },
-    body: JSON.stringify({
-      from: {
-        address: config.fromEmail,
-        name: config.fromName
-      },
-      to: [
-        {
-          email_address: {
-            address: to,
-            name: to.split('@')[0]
-          }
-        }
-      ],
-      subject,
-      htmlbody: html,
-      textbody: text || undefined
-    })
+    body: JSON.stringify(payload)
   });
 
   const data = await response.json();
   if (!response.ok) {
     const errMsg = data.message || (data.error && data.error.message) || JSON.stringify(data);
+    if (errMsg.includes('Sender Address not available') || errMsg.includes('SM_147')) {
+      console.warn(`\n⚠️ [ZeptoMail Notice] The sender address "${config.fromEmail}" has not been verified in ZeptoMail Mail Agent. Please add and verify "${config.fromEmail}" in your ZeptoMail console.\n`);
+    }
     throw new Error(`ZeptoMail API error (${response.status}): ${errMsg}`);
   }
 
@@ -94,7 +108,7 @@ async function sendViaZeptoApi({ to, subject, html, text }) {
  * Generic email dispatcher abstraction.
  * Tries ZeptoMail REST API first if token is available, otherwise SMTP, else simulation.
  */
-async function sendEmail({ to, subject, html, text }) {
+async function sendEmail({ to, subject, html, text, attachments }) {
   const config = getEmailConfig();
 
   // Save HTML preview file locally for easy inspection during testing
@@ -104,6 +118,16 @@ async function sendEmail({ to, subject, html, text }) {
       fs.mkdirSync(uploadsDir, { recursive: true });
     }
     fs.writeFileSync(path.join(uploadsDir, 'last_application_email.html'), html, 'utf8');
+
+    if (attachments && attachments.length > 0) {
+      attachments.forEach((att, idx) => {
+        if (att.content) {
+          const filePath = path.join(uploadsDir, att.filename || `attachment_${idx}.pdf`);
+          fs.writeFileSync(filePath, Buffer.isBuffer(att.content) ? att.content : Buffer.from(att.content, 'base64'));
+          console.log(`[Email Preview] Attachment saved at: backend/uploads/${att.filename}`);
+        }
+      });
+    }
   } catch (err) {
     // Non-fatal preview saving error ignored
   }
@@ -111,7 +135,7 @@ async function sendEmail({ to, subject, html, text }) {
   // 1. Try ZeptoMail REST API if token exists
   if (config.token || (config.password && config.password.startsWith('Zoho-enczapikey'))) {
     try {
-      return await sendViaZeptoApi({ to, subject, html, text });
+      return await sendViaZeptoApi({ to, subject, html, text, attachments });
     } catch (apiErr) {
       console.error(`[ZeptoMail API] Dispatch error: ${apiErr.message}`);
       // Fall through to SMTP if configured
@@ -122,16 +146,28 @@ async function sendEmail({ to, subject, html, text }) {
   const transporter = createTransporter();
   if (transporter) {
     try {
-      const info = await transporter.sendMail({
+      const mailOptions = {
         from: config.fromString,
         to,
         subject,
         text,
         html
-      });
+      };
+      if (attachments && attachments.length > 0) {
+        mailOptions.attachments = attachments.map(att => ({
+          filename: att.filename,
+          content: att.content,
+          contentType: att.contentType || 'application/pdf'
+        }));
+      }
+
+      const info = await transporter.sendMail(mailOptions);
       console.log(`Confirmation email sent via SMTP. (Message ID: ${info.messageId})`);
       return { success: true, messageId: info.messageId };
     } catch (error) {
+      if (error.message.includes('Sender is not allowed to relay emails') || error.message.includes('553')) {
+        console.warn(`\n⚠️ [ZeptoMail SMTP Notice] Sender address "${config.fromEmail}" is not allowed to relay. Please verify domain/sender in ZeptoMail.\n`);
+      }
       console.error(`Confirmation email via SMTP failed. Reason: ${error.message}`);
       return { success: false, error: error.message };
     }
@@ -142,6 +178,9 @@ async function sendEmail({ to, subject, html, text }) {
   console.log(`[ZeptoMail Test Mode] Mail dispatch simulation for: ${to}`);
   console.log(`[ZeptoMail Test Mode] From: ${config.fromString}`);
   console.log(`[ZeptoMail Test Mode] Subject: ${subject}`);
+  if (attachments && attachments.length > 0) {
+    console.log(`[ZeptoMail Test Mode] Attachments: ${attachments.map(a => a.filename).join(', ')}`);
+  }
   console.log(`[ZeptoMail Test Mode] HTML Email Preview saved at: backend/uploads/last_application_email.html`);
   console.log(`Confirmation email simulated successfully.`);
   console.log(`==================================================\n`);
@@ -289,11 +328,16 @@ function buildApplicationFormDossierHtml(app) {
   <div style="max-width: 680px; margin: 20px auto; padding: 30px; background-color: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px;">
     
     <!-- TOP SUCCESS ACKNOWLEDGEMENT BANNER -->
-    <div style="background-color: #0f2b5c; color: #ffffff; padding: 16px 20px; border-radius: 4px; margin-bottom: 24px;">
-      <h3 style="margin: 0; font-size: 15px; letter-spacing: 0.5px; text-transform: uppercase;">Application Received</h3>
-      <p style="margin: 4px 0 0 0; font-size: 13px; opacity: 0.95;">
-        Dear <strong>${applicantName}</strong>, thank you for applying for the position of <strong>${postName}</strong> at D Y Patil International University, Akurdi, Pune.
+    <div style="background-color: #0f2b5c; color: #ffffff; padding: 20px 24px; border-radius: 6px; margin-bottom: 24px; border-left: 5px solid #d9a43c;">
+      <h3 style="margin: 0; font-size: 16px; letter-spacing: 0.5px; text-transform: uppercase;">Application Received</h3>
+      <p style="margin: 8px 0 0 0; font-size: 14px; line-height: 1.6;">
+        Dear <strong>${applicantName}</strong>,<br /><br />
+        Thank you for applying at <strong>D Y Patil International University</strong>.<br />
+        We have received your application for the post of <strong>${postName}</strong> (Application No: <strong>${appNumber}</strong>). Our team will review your application and reach out to you soon.
       </p>
+      <div style="margin-top: 14px; padding: 8px 12px; background-color: rgba(255,255,255,0.12); border-radius: 4px; font-size: 12px;">
+        📎 <strong>Official Application Dossier Attached</strong> — A PDF copy of your submitted application has been attached to this email for your records.
+      </div>
     </div>
 
     <!-- OFFICIAL APPLICATION FORM HEADER -->
@@ -534,7 +578,7 @@ async function sendSubmissionConfirmationEmail(applicationId) {
     const formattedDate = formatDate(app.submittedAt || app.createdAt);
 
     // EMAIL SUBJECT
-    const subject = `Application Received – ${postName} | D Y Patil International University`;
+    const subject = `Application Received – D Y Patil International University`;
 
     // EMAIL HTML BODY (Renders Full Application Form Dossier)
     const htmlBody = buildApplicationFormDossierHtml(app);
@@ -543,30 +587,50 @@ async function sendSubmissionConfirmationEmail(applicationId) {
     const textBody = `D Y PATIL INTERNATIONAL UNIVERSITY
 Akurdi, Pune
 
-APPLICATION FORM DOSSIER
+Dear ${applicantName},
+
+Thank you for applying at D Y Patil International University.
+We have received your application for the post of ${postName} (Application No: ${appNumber}). Our team will review your application and reach out to you soon.
+
+APPLICATION DETAILS:
 Application ID: ${appNumber}
 Position Applied For: ${postName}
 School / Department: ${schoolName}
 Application Date: ${formattedDate}
 
-CANDIDATE DETAILS
+CANDIDATE DETAILS:
 Name: ${applicantName}
 Email: ${recipientEmail}
 
-Our recruitment team will review your application dossier. If your profile is shortlisted for further consideration, our team will contact you using the contact details provided in your application.
-
-Thank you for your interest in joining D Y Patil International University.
+Your official application form PDF is attached to this email.
 
 Regards,
 Recruitment Cell
 D Y Patil International University
 Akurdi, Pune`;
 
+    // GENERATE APPLICATION DOSSIER PDF
+    let attachments = [];
+    try {
+      const pdfBuffer = await generateApplicationPdf(app);
+      if (pdfBuffer && pdfBuffer.length > 0) {
+        attachments.push({
+          filename: `Application_${appNumber}.pdf`,
+          content: pdfBuffer,
+          contentType: 'application/pdf'
+        });
+        console.log(`[Confirmation Email] Generated PDF dossier for ${appNumber} (${pdfBuffer.length} bytes)`);
+      }
+    } catch (pdfErr) {
+      console.error(`[Confirmation Email] Failed to generate PDF dossier for ${appNumber}:`, pdfErr.message);
+    }
+
     const sendResult = await sendEmail({
       to: recipientEmail,
       subject,
       html: htmlBody,
-      text: textBody
+      text: textBody,
+      attachments
     });
 
     if (sendResult.success) {
