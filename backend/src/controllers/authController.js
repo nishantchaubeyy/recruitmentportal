@@ -263,7 +263,7 @@ async function sendOTP(req, res) {
  * Verify OTP code entered by user in application Step 2.
  */
 async function verifyOTP(req, res) {
-  const { email, otp, name, mobile } = req.body;
+  const { email, otp, name, mobile, draftAppId } = req.body;
   if (!email || !otp) {
     return res.status(400).json({ error: 'Email and OTP code are required.' });
   }
@@ -308,6 +308,14 @@ async function verifyOTP(req, res) {
         });
         return { ...u, applicant: app };
       });
+    }
+
+    // Link current draft if present
+    if (user.applicant?.id && draftAppId) {
+      await prisma.application.updateMany({
+        where: { id: draftAppId, status: 'DRAFT' },
+        data: { applicantId: user.applicant.id, emailVerified: true }
+      }).catch(linkErr => console.warn('[OTP] Could not link draft to verified user:', linkErr.message));
     }
 
     const { accessToken, refreshToken } = generateTokens(user);

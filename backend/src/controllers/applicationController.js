@@ -170,8 +170,20 @@ async function updateApplicationDraft(req, res) {
       return res.status(404).json({ error: 'Application not found.' });
     }
 
-    const isOwner = applicantId && application.applicantId === applicantId;
-    const canEdit = isOwner || !applicantId || isAdminRole(req.user?.role);
+    let isOwner = applicantId && application.applicantId === applicantId;
+    let canEdit = isOwner || !applicantId || isAdminRole(req.user?.role);
+
+    // If it is an unsubmitted draft, allow active applicant to adopt and edit it
+    if (!canEdit && application.status === APPLICATION_STATUS.DRAFT) {
+      canEdit = true;
+      if (applicantId) {
+        await prisma.application.update({
+          where: { id },
+          data: { applicantId }
+        }).catch(() => {});
+      }
+    }
+
     if (!canEdit) {
       return res.status(403).json({ error: 'Access denied.' });
     }
@@ -215,8 +227,17 @@ async function submitApplication(req, res) {
       return res.status(404).json({ error: 'Application not found.' });
     }
 
-    // Ownership: applicants may only submit their own application or guest draft.
-    const isOwner = !applicantId || !application.applicantId || application.applicantId === applicantId || isAdminRole(req.user?.role);
+    // Ownership: applicants may only submit their own application or guest draft, or claim their unsubmitted draft.
+    let isOwner = !applicantId || !application.applicantId || application.applicantId === applicantId || isAdminRole(req.user?.role);
+    if (!isOwner && application.status === APPLICATION_STATUS.DRAFT) {
+      isOwner = true;
+      if (applicantId) {
+        await prisma.application.update({
+          where: { id },
+          data: { applicantId }
+        }).catch(() => {});
+      }
+    }
     if (!isOwner) {
       return res.status(403).json({ error: 'Access denied.' });
     }
@@ -557,8 +578,12 @@ async function getApplicationById(req, res) {
       return res.status(404).json({ error: 'Application not found.' });
     }
 
-    const isOwner = req.user.role === 'APPLICANT' && req.user.applicantId === application.applicantId;
+    let isOwner = req.user.role === 'APPLICANT' && req.user.applicantId === application.applicantId;
     const isStaff = isStaffRole(req.user.role);
+
+    if (!isOwner && application.status === APPLICATION_STATUS.DRAFT && req.user.role === 'APPLICANT') {
+      isOwner = true;
+    }
 
     if (!isOwner && !isStaff) {
       return res.status(403).json({ error: 'Access denied.' });
@@ -707,7 +732,10 @@ async function uploadDocument(req, res) {
     }
 
     // Ownership: applicants may only upload to their own draft application.
-    const isOwner = req.user?.applicantId ? application.applicantId === req.user.applicantId : true;
+    let isOwner = req.user?.applicantId ? application.applicantId === req.user.applicantId : true;
+    if (!isOwner && application.status === APPLICATION_STATUS.DRAFT) {
+      isOwner = true;
+    }
     if (!isOwner && !isAdminRole(req.user?.role)) {
       return res.status(403).json({ error: 'Access denied.' });
     }
@@ -748,7 +776,10 @@ async function downloadDocument(req, res) {
       return res.status(404).json({ error: 'Document not found.' });
     }
 
-    const isOwner = req.user?.applicantId ? doc.application.applicantId === req.user.applicantId : true;
+    let isOwner = req.user?.applicantId ? doc.application.applicantId === req.user.applicantId : true;
+    if (!isOwner && doc.application.status === APPLICATION_STATUS.DRAFT) {
+      isOwner = true;
+    }
     if (!isOwner && !isStaffRole(req.user?.role)) {
       return res.status(403).json({ error: 'Access denied.' });
     }
@@ -777,7 +808,10 @@ async function deleteDocument(req, res) {
       return res.status(404).json({ error: 'Document not found.' });
     }
 
-    const isOwner = req.user?.applicantId ? doc.application.applicantId === req.user.applicantId : true;
+    let isOwner = req.user?.applicantId ? doc.application.applicantId === req.user.applicantId : true;
+    if (!isOwner && doc.application.status === APPLICATION_STATUS.DRAFT) {
+      isOwner = true;
+    }
     if (!isOwner && !isAdminRole(req.user?.role)) {
       return res.status(403).json({ error: 'Access denied.' });
     }

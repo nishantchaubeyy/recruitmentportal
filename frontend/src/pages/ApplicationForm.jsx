@@ -573,7 +573,7 @@ function ApplicationForm() {
     try {
       const res = await apiRequest('/auth/verify-otp', {
         method: 'POST',
-        body: JSON.stringify({ email, otp: otpInput, name: `${firstName} ${lastName}`.trim(), mobile })
+        body: JSON.stringify({ email, otp: otpInput, name: `${firstName} ${lastName}`.trim(), mobile, draftAppId })
       });
 
       if (res.token) {
