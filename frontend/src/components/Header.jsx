@@ -17,7 +17,7 @@ function Header() {
     <header className="site-header">
       <div className="nav-inner">
         <Link to="/" className="brand" onClick={() => setMobileMenuOpen(false)}>
-          <img src="/footerlogo.png" alt="D Y Patil International University" className="navbar-logo-img" />
+          <img src={`${import.meta.env.BASE_URL}footerlogo.png`} alt="D Y Patil International University" className="navbar-logo-img" />
         </Link>
 
         {/* Mobile Hamburger Toggle */}

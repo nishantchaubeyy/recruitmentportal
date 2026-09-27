@@ -91,7 +91,7 @@ function PublicLayout({ children }) {
 function App() {
   return (
     <AuthProvider>
-      <Router>
+      <Router basename="/recruitment">
         <ScrollToTop />
         <Routes>
           {/* Public Routes */}

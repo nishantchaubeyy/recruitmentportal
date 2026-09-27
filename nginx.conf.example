@@ -1,10 +1,9 @@
-# Nginx Virtual Host Configuration for DYPIU Recruitment Portal
-# File location on Ubuntu: /etc/nginx/sites-available/recruitment-portal
-# Link to active sites: sudo ln -sf /etc/nginx/sites-available/recruitment-portal /etc/nginx/sites-enabled/
+# NOTE: This configuration is for STANDALONE domain/root hosting.
+# For sub-path deployment under /recruitment/ on an existing server, see SUBPATH_DEPLOYMENT.md.
 
 server {
     listen 80;
-    server_name 10.100.0.37;
+    server_name <YOUR_SERVER_IP_OR_DOMAIN>;
 
     # Client upload size limit (allows PDF dossier, large poster uploads up to 50MB)
     client_max_body_size 50M;

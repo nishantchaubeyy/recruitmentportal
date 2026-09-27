@@ -1,14 +1,14 @@
 #!/bin/bash
 set -e
 
-echo "🚀 Starting DYPIU Recruitment Portal Deployment on 10.100.0.37..."
+echo "🚀 Starting DYPIU Recruitment Portal Deployment..."
 
 # 1. Project Directory
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$PROJECT_DIR"
 
 # 2. Check for persistent environment configuration
-PERSISTENT_ENV="/var/www/recruitment-portal/.env"
+PERSISTENT_ENV="/var/www/recruitment/.env"
 
 if [ -f "$PERSISTENT_ENV" ]; then
     echo "📋 Using persistent environment configuration from $PERSISTENT_ENV..."
@@ -46,12 +46,12 @@ fi
 # 5. Build Frontend SPA for Production
 echo "🏗️ Building Frontend React Application..."
 cd "$PROJECT_DIR/frontend"
-export VITE_API_URL="http://10.100.0.37/api"
+export VITE_API_URL="/recruitment/api"
 npm run build
 
 # 6. Ensure Web & Upload Directories Exist
-WEB_ROOT="/var/www/recruitment-portal/html"
-UPLOADS_DIR="/var/www/recruitment-portal/uploads"
+WEB_ROOT="/var/www/recruitment"
+UPLOADS_DIR="/var/www/recruitment/uploads"
 
 echo "📁 Ensuring target directories exist..."
 mkdir -p "$WEB_ROOT" 2>/dev/null || sudo -n mkdir -p "$WEB_ROOT" || true
@@ -83,4 +83,4 @@ if command -v systemctl &> /dev/null; then
 fi
 
 echo "✅ DEPLOYMENT COMPLETED SUCCESSFULLY!"
-echo "🌐 Portal is live at: http://10.100.0.37"
+echo "🌐 Portal is live at: https://intranet.dypiu.ac.in/recruitment/"

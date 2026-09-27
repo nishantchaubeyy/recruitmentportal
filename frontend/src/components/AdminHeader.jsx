@@ -26,7 +26,7 @@ function AdminHeader() {
       <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
         <Link to="/admin/dashboard" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
           <img
-            src="/logo.dypiu.png"
+            src={`${import.meta.env.BASE_URL}logo.dypiu.png`}
             alt="DYPIU Logo"
             style={{ height: '42px', width: 'auto', objectFit: 'contain', display: 'block' }}
           />

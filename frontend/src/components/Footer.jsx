@@ -20,7 +20,7 @@ function Footer() {
         {/* LEFT COLUMN: BRAND LOGO & UNIVERSITY ADDRESS */}
         <div style={{ textAlign: 'left', maxWidth: '440px', flex: '1 1 340px' }}>
           <img 
-            src="/footerlogo.png" 
+            src={`${import.meta.env.BASE_URL}footerlogo.png`} 
             alt="D Y PATIL INTERNATIONAL UNIVERSITY" 
             className="footer-logo-img"
             style={{ 

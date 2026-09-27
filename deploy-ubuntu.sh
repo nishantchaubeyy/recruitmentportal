@@ -1,4 +1,12 @@
 #!/usr/bin/env bash
+# ============================================================
+# WARNING: STANDALONE DEPLOYMENT ONLY
+# This script is for fresh/standalone Ubuntu server deployment.
+# DO NOT run this on the existing intranet server
+# (intranet.dypiu.ac.in) — it will overwrite UniOne and
+# Keycloak configurations.
+# For intranet sub-path deployment, see SUBPATH_DEPLOYMENT.md
+# ============================================================
 # ==============================================================================
 # DYPIU RECRUITMENT PORTAL — UBUNTU SERVER AUTOMATED DEPLOYMENT SCRIPT
 # ==============================================================================
@@ -30,7 +38,7 @@ APP_DIR="/var/www/dypiu-recruitment"
 STORAGE_DIR="/var/www/dypiu-recruitment/storage"
 DB_NAME="dypiu_recruitment"
 DB_USER="dypiu_user"
-DB_PASS="DypiuSecurePass2026!"
+DB_PASS="<CHANGE_ME_STRONG_PASSWORD>"
 APP_PORT="5000"
 
 echo -e "\n${YELLOW}[1/7] Updating Ubuntu packages & installing dependencies...${NC}"
@@ -84,21 +92,21 @@ NODE_ENV=production
 CORS_ORIGIN="*"
 DATABASE_URL="postgresql://$DB_USER:$DB_PASS@localhost:5432/$DB_NAME?schema=public"
 
-JWT_SECRET="dypiu_prod_jwt_secret_key_$(date +%s)_key"
-REFRESH_SECRET="dypiu_prod_refresh_secret_key_$(date +%s)_key"
+JWT_SECRET="<CHANGE_ME_RANDOM_SECRET>"
+REFRESH_SECRET="<CHANGE_ME_REFRESH_SECRET>"
 
 UPLOAD_DIR="$STORAGE_DIR"
 
 SMTP_HOST="smtp.gmail.com"
 SMTP_PORT=587
 SMTP_USER="careers@dypiu.ac.in"
-SMTP_PASS="change_this_password"
+SMTP_PASS="<CHANGE_ME_SMTP_PASSWORD>"
 EMAIL_FROM='"DYPIU Recruitment Cell" <careers@dypiu.ac.in>'
 
 SEED_ADMIN_EMAIL="admin@dypiu.edu"
-SEED_ADMIN_PASSWORD="AdminPassword123"
+SEED_ADMIN_PASSWORD="<CHANGE_ME_ADMIN_PASSWORD>"
 SEED_APPLICANT_EMAIL="demo@applicant.com"
-SEED_APPLICANT_PASSWORD="Demo@1234"
+SEED_APPLICANT_PASSWORD="<CHANGE_ME_APPLICANT_PASSWORD>"
 EOT
   echo -e "${GREEN}✓ Created production .env file at $ENV_FILE${NC}"
 else

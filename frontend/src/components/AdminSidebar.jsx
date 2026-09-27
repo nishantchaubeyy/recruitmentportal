@@ -47,7 +47,7 @@ function AdminSidebar() {
       <div style={{ padding: '20px 20px 18px 20px', borderBottom: '1px solid #E2E8F0' }}>
         <Link to="/admin/dashboard" style={{ display: 'flex', alignItems: 'center', gap: '12px', textDecoration: 'none' }}>
           <img
-            src="/logo.dypiu.png"
+            src={`${import.meta.env.BASE_URL}logo.dypiu.png`}
             alt="DYPIU Logo"
             style={{ height: '36px', width: 'auto', objectFit: 'contain' }}
           />

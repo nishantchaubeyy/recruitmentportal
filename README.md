@@ -24,21 +24,25 @@ Copy `backend/.env.example` to `backend/.env`:
 ```env
 PORT=5000
 NODE_ENV=development
-CORS_ORIGIN=*
-DATABASE_URL="postgresql://dypiu_user:DypiuSecurePass2026!@localhost:5432/dypiu_recruitment?schema=public"
-JWT_SECRET="your_jwt_access_secret_key"
-REFRESH_SECRET="your_jwt_refresh_secret_key"
+CORS_ORIGIN=https://intranet.dypiu.ac.in
+DATABASE_URL="postgresql://<DB_USER>:<DB_PASSWORD>@localhost:5432/dypiu_recruitment?schema=public"
+JWT_SECRET="<CHANGE_ME_RANDOM_SECRET>"
+REFRESH_SECRET="<CHANGE_ME_REFRESH_SECRET>"
 UPLOAD_DIR="uploads"
 SEED_ADMIN_EMAIL="admin@dypiu.edu"
-SEED_ADMIN_PASSWORD="AdminPassword123"
+SEED_ADMIN_PASSWORD="<CHANGE_ME_ADMIN_PASSWORD>"
 SEED_APPLICANT_EMAIL="demo@applicant.com"
-SEED_APPLICANT_PASSWORD="Demo@1234"
+SEED_APPLICANT_PASSWORD="<CHANGE_ME_APPLICANT_PASSWORD>"
 ```
 
 ### Frontend Environment Configuration
 Copy `frontend/.env.example` to `frontend/.env`:
 ```env
-VITE_API_URL=http://localhost:5000/api
+# For local development:
+# VITE_API_URL=http://localhost:5000/api
+
+# For intranet sub-path production:
+VITE_API_URL=/recruitment/api
 VITE_MOCK_API=false
 ```
 
@@ -78,8 +82,8 @@ npm run frontend
 
 ## 3. Key Seed Credentials
 
-- **Admin Account**: `admin@dypiu.edu` / `AdminPassword123`
-- **Demo Applicant Account**: `demo@applicant.com` / `Demo@1234`
+- **Admin Account**: `admin@dypiu.edu` / `<CHANGE_ME_ADMIN_PASSWORD>`
+- **Demo Applicant Account**: `demo@applicant.com` / `<CHANGE_ME_APPLICANT_PASSWORD>`
 
 ---
 
@@ -91,10 +95,19 @@ The platform uses single-source-of-truth machine status enums defined in `backen
 
 ---
 
-## 5. Production Deployment (Ubuntu)
+## 5. Deployment Options
 
-Execute the automated setup script on your Ubuntu server:
+### A. Intranet Sub-path Deployment (/recruitment/)
+For deploying under `/recruitment/` on `https://intranet.dypiu.ac.in` alongside UniOne and Keycloak, please follow:
+👉 **[SUBPATH_DEPLOYMENT.md](SUBPATH_DEPLOYMENT.md)**
+
+Use the safe deployment script:
+```bash
+bash deploy-intranet.sh
+```
+
+### B. Standalone Ubuntu Server Deployment
+For dedicated standalone servers (NOT for the shared intranet server):
 ```bash
 sudo bash deploy-ubuntu.sh
 ```
-This installs Node.js, PostgreSQL, Nginx, PM2, configures database permissions, runs Prisma migrations & seeds, and sets up Nginx reverse proxying to Express on port 5000.

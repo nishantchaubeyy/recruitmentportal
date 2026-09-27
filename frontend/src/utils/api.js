@@ -8,7 +8,8 @@ const USE_MOCK = import.meta.env.VITE_MOCK_API === 'true';
 // Exposed so UI can hide mock-only affordances when talking to a real backend.
 export const IS_MOCK = USE_MOCK;
 
-export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+export const API_URL = import.meta.env.VITE_API_URL || 
+  (import.meta.env.DEV ? 'http://localhost:5000/api' : '/recruitment/api');
 export const API_BASE_URL = API_URL;
 
 /**
@@ -43,7 +44,7 @@ async function apiRequest(endpoint, options = {}) {
   if (response.status === 401 && token) {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    window.location.href = '/login';
+    window.location.href = `${import.meta.env.BASE_URL}login`;
     throw new Error('Session expired. Please log in again.');
   }
 
@@ -79,9 +80,11 @@ export function getMediaUrl(path) {
   if (path.startsWith('data:') || path.startsWith('blob:') || path.startsWith('http://') || path.startsWith('https://')) {
     return path;
   }
-  const backendBase = API_URL.replace(/\/api\/?$/, '');
-  const cleanPath = path.startsWith('/') ? path : `/${path}`;
-  return `${backendBase}${cleanPath}`;
+  const baseUrl = import.meta.env.VITE_API_URL || 
+    (import.meta.env.DEV ? 'http://localhost:5000' : '/recruitment');
+  // Remove /api suffix if present to get the server root
+  const serverBase = baseUrl.replace(/\/api\/?$/, '');
+  return `${serverBase}${path.startsWith('/') ? path : '/' + path}`;
 }
 
 export { apiRequest };

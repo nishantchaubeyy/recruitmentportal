@@ -9,9 +9,9 @@ async function main() {
 
   // 1. Create Default Admin User (override via env for production).
   const adminEmail = (process.env.SEED_ADMIN_EMAIL || 'admin@dypiu.edu').toLowerCase();
-  const defaultAdminPassword = process.env.SEED_ADMIN_PASSWORD || 'AdminPassword123';
+  const defaultAdminPassword = process.env.SEED_ADMIN_PASSWORD || '<CHANGE_ME_ADMIN_PASSWORD>';
   if (process.env.NODE_ENV === 'production' && !process.env.SEED_ADMIN_PASSWORD) {
-    console.warn('[Seed] WARNING: Using the default admin password in production. Set SEED_ADMIN_PASSWORD and change it immediately.');
+    console.warn('[Seed] WARNING: Using placeholder admin password in production. Set SEED_ADMIN_PASSWORD and change it immediately.');
   }
 
   let adminUser = await prisma.user.findUnique({
@@ -41,7 +41,7 @@ async function main() {
 
   // 1b. Create a demo Applicant account (applying now requires login).
   const demoApplicantEmail = (process.env.SEED_APPLICANT_EMAIL || 'demo@applicant.com').toLowerCase();
-  const demoApplicantPassword = process.env.SEED_APPLICANT_PASSWORD || 'Demo@1234';
+  const demoApplicantPassword = process.env.SEED_APPLICANT_PASSWORD || '<CHANGE_ME_APPLICANT_PASSWORD>';
   const existingApplicant = await prisma.user.findUnique({ where: { email: demoApplicantEmail } });
   if (!existingApplicant) {
     const hashed = await bcrypt.hash(demoApplicantPassword, 10);

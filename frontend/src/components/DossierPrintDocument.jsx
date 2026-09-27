@@ -85,7 +85,7 @@ function DossierPrintDocument({ app }) {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <img
-              src="/logo.dypiu.png"
+              src={`${import.meta.env.BASE_URL}logo.dypiu.png`}
               alt="DYPIU Logo"
               style={{ height: '54px', width: 'auto', objectFit: 'contain' }}
             />
