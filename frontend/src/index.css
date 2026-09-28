@@ -2818,3 +2818,58 @@ a:hover { color: var(--gold); }
 .section-title::before,
 .open-positions-title::after,
 .open-positions-title::before { display: none !important; }
+
+/* ==========================================================================
+   ADMIN PANEL THEME OVERRIDES (Protect Admin from App Form Bleed)
+   ========================================================================== */
+
+.admin-layout-container th {
+  background: #f8fafc !important;
+  color: #475569 !important;
+  font-weight: 700 !important;
+  padding: 14px 16px !important;
+  text-align: left !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif !important;
+}
+
+.admin-layout-container td {
+  background: transparent !important;
+}
+
+.admin-layout-container tr:nth-child(even) td {
+  background: transparent !important;
+}
+
+.admin-layout-container input[type="text"],
+.admin-layout-container input[type="email"],
+.admin-layout-container input[type="tel"],
+.admin-layout-container input[type="number"],
+.admin-layout-container input[type="date"],
+.admin-layout-container input[type="file"],
+.admin-layout-container select,
+.admin-layout-container textarea {
+  border: 1px solid #cbd5e1 !important;
+}
+
+.admin-layout-container input:focus,
+.admin-layout-container select:focus,
+.admin-layout-container textarea:focus {
+  border-color: #0F172A !important;
+  box-shadow: 0 0 0 2px rgba(15, 23, 42, 0.2) !important;
+}
+
+.admin-layout-container button[type="submit"],
+.admin-layout-container .btn-primary {
+  background: #0F172A !important;
+  border-color: #0F172A !important;
+  color: #fff !important;
+}
+
+.admin-layout-container button[type="submit"]:hover,
+.admin-layout-container .btn-primary:hover {
+  background: #1e293b !important;
+  border-color: #1e293b !important;
+}
+
+

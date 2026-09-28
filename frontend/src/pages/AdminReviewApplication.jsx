@@ -601,7 +601,7 @@ function AdminReviewApplication() {
                       type="button"
                       onClick={(e) => handleViewFile(e, doc)} 
                       style={{
-                        backgroundColor: '#0f766e',
+                        backgroundColor: '#721b28',
                         border: 'none',
                         color: '#ffffff',
                         padding: '6px 14px',

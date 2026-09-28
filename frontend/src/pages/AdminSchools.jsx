@@ -187,7 +187,7 @@ function AdminSchools() {
             <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>
               Posters Active
             </div>
-            <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0f766e' }}>
+            <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#721b28' }}>
               {totalWithPoster} / {totalSchools} Schools
             </div>
           </div>
@@ -312,8 +312,8 @@ function AdminSchools() {
                       {/* Type Tag */}
                       <td style={{ padding: '16px 16px' }}>
                         <span style={{
-                          backgroundColor: school.type === 'TEACHING' ? '#ccfbf1' : '#e0e7ff',
-                          color: school.type === 'TEACHING' ? '#0f766e' : '#3730a3',
+                          backgroundColor: school.type === 'TEACHING' ? '#f1f5f9' : '#e0e7ff',
+                          color: school.type === 'TEACHING' ? '#475569' : '#3730a3',
                           padding: '3px 8px',
                           borderRadius: '6px',
                           fontSize: '0.72rem',
@@ -374,7 +374,7 @@ function AdminSchools() {
                               style={{
                                 background: 'none',
                                 border: 'none',
-                                color: '#0f766e',
+                                color: '#721b28',
                                 fontSize: '0.78rem',
                                 fontWeight: 700,
                                 cursor: 'pointer',
@@ -523,7 +523,7 @@ function AdminSchools() {
                       alt="Selected Preview"
                       style={{ maxHeight: '220px', maxWidth: '100%', objectFit: 'contain', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}
                     />
-                    <div style={{ marginTop: '10px', fontSize: '0.85rem', fontWeight: 700, color: '#0f766e' }}>
+                    <div style={{ marginTop: '10px', fontSize: '0.85rem', fontWeight: 700, color: '#721b28' }}>
                       {selectedFile?.name} ({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)
                     </div>
                     <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>
@@ -624,7 +624,7 @@ function AdminSchools() {
 
             <div style={{ padding: '14px 24px', backgroundColor: '#f8fafc', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ fontSize: '0.8rem', color: '#64748b' }}>
-                Status: <strong style={{ color: '#0f766e' }}>Active on website</strong>
+                Status: <strong style={{ color: '#721b28' }}>Active on website</strong>
               </span>
               <button
                 onClick={() => setPreviewModalSchool(null)}
@@ -675,7 +675,7 @@ const inputStyle = {
 };
 
 const primaryBtnStyle = {
-  backgroundColor: '#0f766e',
+  backgroundColor: '#721b28',
   color: '#ffffff',
   border: 'none',
   padding: '7px 14px',

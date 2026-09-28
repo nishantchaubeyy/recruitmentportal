@@ -60,13 +60,7 @@ function AdminTopBar() {
 
       {/* 3. RIGHT ACTIONS (POST NEW VACANCY & NOTIFICATIONS) */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-        <Link
-          to="/admin/jobs/create"
-          style={primaryActionButtonStyle}
-        >
-          <IconPlus size={15} color="#FFFFFF" />
-          <span>Post New Vacancy</span>
-        </Link>
+
 
         <button
           style={iconButtonStyle}

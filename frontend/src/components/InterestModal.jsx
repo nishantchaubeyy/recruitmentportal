@@ -287,7 +287,7 @@ const submitBtnStyle = {
   padding: '10px 22px',
   borderRadius: '8px',
   border: 'none',
-  backgroundColor: '#0f766e',
+  backgroundColor: '#721b28',
   color: '#ffffff',
   fontWeight: 700,
   fontSize: '0.9rem',

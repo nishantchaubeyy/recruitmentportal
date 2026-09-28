@@ -90,14 +90,14 @@ function AdminJobs() {
         <Link
           to="/admin/jobs/create"
           style={{
-            backgroundColor: '#0f766e',
+            backgroundColor: '#721b28',
             color: '#ffffff',
             padding: '10px 20px',
             borderRadius: '8px',
             textDecoration: 'none',
             fontWeight: 700,
             fontSize: '0.9rem',
-            boxShadow: '0 2px 4px rgba(15,118,110,0.2)'
+            boxShadow: '0 2px 4px rgba(114,27,40,0.2)'
           }}
         >
           + Create Vacancy
@@ -196,8 +196,8 @@ function AdminJobs() {
                   </td>
                   <td style={tdStyle}>
                     <span style={{
-                      backgroundColor: v.type === 'TEACHING' ? '#ccfbf1' : '#e0e7ff',
-                      color: v.type === 'TEACHING' ? '#0f766e' : '#3730a3',
+                      backgroundColor: v.type === 'TEACHING' ? '#f1f5f9' : '#e0e7ff',
+                      color: v.type === 'TEACHING' ? '#475569' : '#3730a3',
                       padding: '3px 8px',
                       borderRadius: '12px',
                       fontSize: '0.74rem',
@@ -212,7 +212,7 @@ function AdminJobs() {
                   <td style={tdStyle}>
                     <Link
                       to={`/admin/vacancy-interests?position=${encodeURIComponent(v.position)}`}
-                      style={{ fontWeight: 700, color: '#0f766e', textDecoration: 'none' }}
+                      style={{ fontWeight: 700, color: '#0f172a', textDecoration: 'none' }}
                       title="View interested candidates"
                     >
                       {v.interestCount || 0}
@@ -269,7 +269,7 @@ function AdminJobs() {
                           </div>
                         )}
                         <hr style={{ margin: '4px 0', border: 'none', borderTop: '1px solid #f1f5f9' }} />
-                        <div style={{ ...menuItemStyle, color: '#0f766e' }} onClick={() => handleTriggerNotify(v.id, v.position)}>
+                        <div style={{ ...menuItemStyle, color: '#721b28' }} onClick={() => handleTriggerNotify(v.id, v.position)}>
                           Notify Interested ({v.interestCount || 0})
                         </div>
                       </div>

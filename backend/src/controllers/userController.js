@@ -8,7 +8,9 @@ const { logAuditAction } = require('../services/auditService');
 async function getAllUsers(req, res) {
   const { role, status, search } = req.query;
 
-  const where = {};
+  const where = {
+    role: { not: 'APPLICANT' }
+  };
   if (role) where.role = role;
   if (status) where.status = status;
   if (search) {

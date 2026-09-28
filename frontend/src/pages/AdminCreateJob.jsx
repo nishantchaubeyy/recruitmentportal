@@ -710,7 +710,7 @@ const publishBtnStyle = {
   padding: '10px 24px',
   borderRadius: '8px',
   border: 'none',
-  backgroundColor: '#0f766e',
+  backgroundColor: '#721b28',
   color: '#ffffff',
   fontWeight: 700,
   fontSize: '0.9rem',

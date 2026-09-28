@@ -67,7 +67,7 @@ function AdminInterestedApplicants() {
         </div>
 
         <div style={cardSummaryStyle}>
-          <div style={{ ...summaryNumberStyle, color: '#0f766e' }}>
+          <div style={{ ...summaryNumberStyle, color: '#721b28' }}>
             {interests.filter(i => i.category === 'TEACHING').length}
           </div>
           <div style={summaryLabelStyle}>Teaching Candidates Waiting</div>
@@ -202,8 +202,8 @@ function AdminInterestedApplicants() {
                   </td>
                   <td style={tdStyle}>
                     <span style={{
-                      backgroundColor: item.category === 'TEACHING' ? '#ccfbf1' : '#e0e7ff',
-                      color: item.category === 'TEACHING' ? '#0f766e' : '#3730a3',
+                      backgroundColor: item.category === 'TEACHING' ? '#f1f5f9' : '#e0e7ff',
+                      color: item.category === 'TEACHING' ? '#475569' : '#3730a3',
                       padding: '3px 8px',
                       borderRadius: '12px',
                       fontSize: '0.75rem',

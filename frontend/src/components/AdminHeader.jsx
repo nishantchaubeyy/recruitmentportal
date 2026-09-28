@@ -101,7 +101,7 @@ function AdminHeader() {
           <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#0f172a' }}>
             {user?.name || 'HR Administrator'}
           </div>
-          <div style={{ fontSize: '0.72rem', color: '#0f766e', fontWeight: 700 }}>
+          <div style={{ fontSize: '0.72rem', color: '#721b28', fontWeight: 700 }}>
             {user?.role || 'ADMIN'}
           </div>
         </div>
@@ -146,7 +146,7 @@ const activeLinkStyle = {
   padding: '8px 14px',
   borderRadius: '6px',
   backgroundColor: '#f1f5f9',
-  color: '#0f766e',
+  color: '#721b28',
   fontSize: '0.88rem',
   fontWeight: 800,
   textDecoration: 'none'
