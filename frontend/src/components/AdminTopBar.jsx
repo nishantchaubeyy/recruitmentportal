@@ -63,12 +63,23 @@ function AdminTopBar() {
 
 
         <button
-          style={iconButtonStyle}
+          className="notif-btn"
           title="Notifications"
           onClick={() => navigate('/admin/applications')}
         >
-          <IconBell size={18} color="#475569" />
-          <span style={notificationDotStyle} />
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            width="20"
+            height="20"
+          >
+            <path fill="none" d="M0 0h24v24H0z" />
+            <path
+              fill="currentColor"
+              d="M20 17h2v2H2v-2h2v-7a8 8 0 1 1 16 0v7zm-2 0v-7a6 6 0 1 0-12 0v7h12zm-9 4h6v2H9v-2z"
+            />
+          </svg>
+          <span className="notif-dot" />
         </button>
       </div>
     </header>
@@ -128,28 +139,6 @@ const primaryActionButtonStyle = {
   boxShadow: '0 1px 2px rgba(15, 23, 42, 0.1)'
 };
 
-const iconButtonStyle = {
-  position: 'relative',
-  background: '#FFFFFF',
-  border: '1px solid #E2E8F0',
-  borderRadius: '8px',
-  width: '36px',
-  height: '36px',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  cursor: 'pointer'
-};
-
-const notificationDotStyle = {
-  position: 'absolute',
-  top: '7px',
-  right: '7px',
-  width: '7px',
-  height: '7px',
-  backgroundColor: '#EF4444',
-  borderRadius: '50%',
-  border: '1.5px solid #FFFFFF'
-};
+/* notif-btn & notif-dot styles are in index.css */
 
 export default AdminTopBar;
