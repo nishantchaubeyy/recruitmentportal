@@ -553,8 +553,7 @@ function ApplicationForm() {
       });
 
       setOtpSent(true);
-      const hint = res.demoOTP ? ` (Development code: ${res.demoOTP})` : '';
-      setOtpMessage((res.message || `Verification code sent to ${email}.`) + hint);
+      setOtpMessage(res.message || `Verification code sent to ${email}.`);
     } catch (err) {
       setError(err.message || 'Failed to send verification OTP.');
     } finally {

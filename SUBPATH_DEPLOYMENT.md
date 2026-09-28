@@ -55,19 +55,20 @@ The built files should be placed at:
 
 ## Backend Environment
 
-Create `backend/.env` with production values:
+Create `/opt/dypiu-recruitment/.env` (or `backend/.env`) with production values:
 
 ```env
-DATABASE_URL=postgresql://user:password@localhost:5432/recruitment_db
+DATABASE_URL=postgresql://<DB_USER>:<DB_PASSWORD>@localhost:5432/<DB_NAME>?schema=public
 JWT_SECRET=<GENERATE_STRONG_RANDOM_SECRET>
-JWT_REFRESH_SECRET=<GENERATE_STRONG_RANDOM_SECRET>
+REFRESH_SECRET=<GENERATE_STRONG_RANDOM_SECRET>
 CORS_ORIGIN=https://intranet.dypiu.ac.in
 PORT=5000
+UPLOAD_DIR=/var/lib/dypiu-recruitment/uploads
 SMTP_HOST=<your-smtp-host>
 SMTP_PORT=587
 SMTP_USER=<your-smtp-user>
 SMTP_PASS=<your-smtp-password>
-SMTP_FROM=recruitment@dypiu.ac.in
+SMTP_FROM=careers@dypiu.ac.in
 ```
 
 ## NGINX Configuration

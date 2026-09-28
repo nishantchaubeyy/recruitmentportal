@@ -28,7 +28,7 @@ CORS_ORIGIN=https://intranet.dypiu.ac.in
 DATABASE_URL="postgresql://<DB_USER>:<DB_PASSWORD>@localhost:5432/dypiu_recruitment?schema=public"
 JWT_SECRET="<CHANGE_ME_RANDOM_SECRET>"
 REFRESH_SECRET="<CHANGE_ME_REFRESH_SECRET>"
-UPLOAD_DIR="uploads"
+UPLOAD_DIR="uploads" # In production: /var/lib/dypiu-recruitment/uploads
 SEED_ADMIN_EMAIL="admin@dypiu.edu"
 SEED_ADMIN_PASSWORD="<CHANGE_ME_ADMIN_PASSWORD>"
 SEED_APPLICANT_EMAIL="demo@applicant.com"

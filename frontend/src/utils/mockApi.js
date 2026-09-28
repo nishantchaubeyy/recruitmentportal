@@ -794,7 +794,7 @@ export async function mockApiRequest(endpoint, options = {}) {
   if (path === '/auth/me' && method === 'GET') return mockGetMe();
   if ((path === '/auth/send-otp' || path === '/applicant/auth/send-otp') && method === 'POST') {
     await delay();
-    return { success: true, message: `Verification code sent to ${body.email || 'your email'}.`, demoOTP: '123456' };
+    return { success: true, message: `Verification code sent to ${body.email || 'your email'}.` };
   }
   if ((path === '/auth/verify-otp' || path === '/applicant/auth/verify-otp') && method === 'POST') {
     await delay();

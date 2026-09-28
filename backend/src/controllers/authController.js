@@ -1,11 +1,12 @@
+const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const prisma = require('../services/prisma');
 const { logAuditAction } = require('../services/auditService');
 const { sendOTPEmail } = require('../services/emailService');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'dypiu_recruitment_portal_jwt_secret_key_2026_xyz';
-const REFRESH_SECRET = process.env.REFRESH_SECRET || 'dypiu_recruitment_portal_refresh_secret_key_2026_abc';
+const JWT_SECRET = process.env.JWT_SECRET;
+const REFRESH_SECRET = process.env.REFRESH_SECRET;
 
 /**
  * Generate Access Token & Refresh Token pair.
@@ -246,7 +247,9 @@ async function sendOTP(req, res) {
 
   otpStore.set(cleanEmail, { code: otpCode, expiresAt });
 
-  console.log(`[OTP] Sent verification OTP "${otpCode}" to ${cleanEmail}`);
+  if (process.env.NODE_ENV !== 'production') {
+    console.log(`[OTP] Sent verification OTP to ${cleanEmail}`);
+  }
 
   // Dispatch live email in background via ZeptoMail / configured email transporter
   sendOTPEmail({ to: cleanEmail, otpCode }).catch(err => {
@@ -254,8 +257,7 @@ async function sendOTP(req, res) {
   });
 
   return res.json({
-    message: `Verification code sent to ${cleanEmail}.`,
-    demoOTP: otpCode
+    message: `Verification code sent to ${cleanEmail}.`
   });
 }
 
@@ -271,8 +273,8 @@ async function verifyOTP(req, res) {
   const cleanEmail = email.toLowerCase().trim();
   const stored = otpStore.get(cleanEmail);
 
-  // Accept valid stored OTP or fallback demo code '123456'
-  const isValid = (stored && stored.code === otp.trim() && stored.expiresAt > Date.now()) || otp.trim() === '123456';
+  // Verify only the stored unexpired OTP
+  const isValid = stored && stored.code === otp.trim() && stored.expiresAt > Date.now();
 
   if (!isValid) {
     return res.status(400).json({ error: 'Invalid or expired OTP code. Please request a new code.' });
@@ -289,8 +291,8 @@ async function verifyOTP(req, res) {
     });
 
     if (!user) {
-      const defaultPass = 'Applicant@1234';
-      const hashedPassword = await bcrypt.hash(defaultPass, 10);
+      const randomPassword = crypto.randomBytes(32).toString('hex');
+      const hashedPassword = await bcrypt.hash(randomPassword, 10);
       user = await prisma.$transaction(async (tx) => {
         const u = await tx.user.create({
           data: {
@@ -303,7 +305,7 @@ async function verifyOTP(req, res) {
           data: {
             userId: u.id,
             name: name || cleanEmail.split('@')[0],
-            mobile: mobile || '0000000000'
+            mobile: mobile || ''
           }
         });
         return { ...u, applicant: app };

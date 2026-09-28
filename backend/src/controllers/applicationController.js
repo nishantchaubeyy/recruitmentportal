@@ -92,21 +92,26 @@ async function createApplicationDraft(req, res) {
 
     // Provision an applicant record if user is starting without logging in upfront
     if (!applicantId) {
-      const targetEmail = (email || `candidate_${Date.now()}@temp.dypiu.edu`).toLowerCase().trim();
+      if (!email || !email.includes('@')) {
+        return res.status(400).json({ error: 'A valid applicant email address is required to initialize an application draft.' });
+      }
+      const targetEmail = email.toLowerCase().trim();
       let user = await prisma.user.findUnique({
         where: { email: targetEmail },
         include: { applicant: true }
       });
 
       if (!user) {
+        const crypto = require('crypto');
         const bcrypt = require('bcryptjs');
-        const hashedPassword = await bcrypt.hash('Applicant@1234', 10);
+        const randomPassword = crypto.randomBytes(32).toString('hex');
+        const hashedPassword = await bcrypt.hash(randomPassword, 10);
         user = await prisma.$transaction(async (tx) => {
           const u = await tx.user.create({
             data: { email: targetEmail, password: hashedPassword, role: 'APPLICANT' }
           });
           const app = await tx.applicant.create({
-            data: { userId: u.id, name: name || 'Applicant', mobile: mobile || '0000000000' }
+            data: { userId: u.id, name: name || 'Applicant', mobile: mobile || '' }
           });
           return { ...u, applicant: app };
         });

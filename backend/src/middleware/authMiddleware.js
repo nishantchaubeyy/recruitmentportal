@@ -1,7 +1,7 @@
 const jwt = require('jsonwebtoken');
 const prisma = require('../services/prisma');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'dypiu_recruitment_portal_jwt_secret_key_2026_xyz';
+const JWT_SECRET = process.env.JWT_SECRET;
 
 /**
  * Primary Authentication Middleware.

@@ -174,16 +174,20 @@ async function sendEmail({ to, subject, html, text, attachments }) {
   }
 
   // 3. Simulation Mode (Fallback when no live credentials are set)
-  console.log(`\n==================================================`);
-  console.log(`[ZeptoMail Test Mode] Mail dispatch simulation for: ${to}`);
-  console.log(`[ZeptoMail Test Mode] From: ${config.fromString}`);
-  console.log(`[ZeptoMail Test Mode] Subject: ${subject}`);
-  if (attachments && attachments.length > 0) {
-    console.log(`[ZeptoMail Test Mode] Attachments: ${attachments.map(a => a.filename).join(', ')}`);
+  if (process.env.NODE_ENV !== 'production') {
+    console.log(`\n==================================================`);
+    console.log(`[ZeptoMail Test Mode] Mail dispatch simulation for: ${to}`);
+    console.log(`[ZeptoMail Test Mode] From: ${config.fromString}`);
+    console.log(`[ZeptoMail Test Mode] Subject: ${subject}`);
+    if (attachments && attachments.length > 0) {
+      console.log(`[ZeptoMail Test Mode] Attachments: ${attachments.map(a => a.filename).join(', ')}`);
+    }
+    console.log(`[ZeptoMail Test Mode] HTML Email Preview saved at: backend/uploads/last_application_email.html`);
+    console.log(`Confirmation email simulated successfully.`);
+    console.log(`==================================================\n`);
+  } else {
+    console.warn(`[Mail] Mail dispatched in simulation mode (no mail provider configured).`);
   }
-  console.log(`[ZeptoMail Test Mode] HTML Email Preview saved at: backend/uploads/last_application_email.html`);
-  console.log(`Confirmation email simulated successfully.`);
-  console.log(`==================================================\n`);
   return { success: true, mode: 'test_simulation' };
 }
 

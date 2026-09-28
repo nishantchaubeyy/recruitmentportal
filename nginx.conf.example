@@ -24,7 +24,7 @@ server {
 
     # 2. Uploaded Media / Posters Direct Serving
     location /uploads/ {
-        alias /var/www/recruitment-portal/uploads/;
+        alias /var/lib/dypiu-recruitment/uploads/;
         expires 30d;
         add_header Cache-Control "public, no-transform";
         try_files $uri @backend;
