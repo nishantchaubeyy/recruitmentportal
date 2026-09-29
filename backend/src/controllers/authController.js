@@ -262,10 +262,12 @@ async function sendOTP(req, res) {
 }
 
 /**
- * Verify OTP code entered by user in application Step 2.
+ * Verify OTP code entered by user.
+ * Used during Registration to gate account creation.
+ * Does NOT auto-create user accounts — that is handled exclusively by /register.
  */
 async function verifyOTP(req, res) {
-  const { email, otp, name, mobile, draftAppId } = req.body;
+  const { email, otp } = req.body;
   if (!email || !otp) {
     return res.status(400).json({ error: 'Email and OTP code are required.' });
   }
@@ -280,68 +282,15 @@ async function verifyOTP(req, res) {
     return res.status(400).json({ error: 'Invalid or expired OTP code. Please request a new code.' });
   }
 
-  // Clear used OTP
+  // Clear used OTP so it cannot be replayed
   otpStore.delete(cleanEmail);
 
-  try {
-    // Find or automatically provision Applicant User account for seamless draft saving
-    let user = await prisma.user.findUnique({
-      where: { email: cleanEmail },
-      include: { applicant: true }
-    });
-
-    if (!user) {
-      const randomPassword = crypto.randomBytes(32).toString('hex');
-      const hashedPassword = await bcrypt.hash(randomPassword, 10);
-      user = await prisma.$transaction(async (tx) => {
-        const u = await tx.user.create({
-          data: {
-            email: cleanEmail,
-            password: hashedPassword,
-            role: 'APPLICANT'
-          }
-        });
-        const app = await tx.applicant.create({
-          data: {
-            userId: u.id,
-            name: name || cleanEmail.split('@')[0],
-            mobile: mobile || ''
-          }
-        });
-        return { ...u, applicant: app };
-      });
-    }
-
-    // Link current draft if present
-    if (user.applicant?.id && draftAppId) {
-      await prisma.application.updateMany({
-        where: { id: draftAppId, status: 'DRAFT' },
-        data: { applicantId: user.applicant.id, emailVerified: true }
-      }).catch(linkErr => console.warn('[OTP] Could not link draft to verified user:', linkErr.message));
-    }
-
-    const { accessToken, refreshToken } = generateTokens(user);
-
-    return res.json({
-      message: 'Email verified successfully.',
-      verified: true,
-      token: accessToken,
-      refreshToken,
-      user: {
-        id: user.id,
-        email: user.email,
-        role: user.role,
-        name: user.applicant?.name || cleanEmail
-      }
-    });
-  } catch (err) {
-    console.error('OTP verification provisioning error:', err);
-    return res.json({
-      message: 'Email verified successfully.',
-      verified: true
-    });
-  }
+  return res.json({
+    message: 'Email verified successfully.',
+    verified: true
+  });
 }
+
 
 module.exports = {
   register,

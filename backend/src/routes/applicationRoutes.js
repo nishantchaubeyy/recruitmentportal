@@ -4,8 +4,8 @@ const applicationController = require('../controllers/applicationController');
 const { authenticate, optionalAuthenticate, requireAdmin, requireApplicant } = require('../middleware/authMiddleware');
 const upload = require('../middleware/uploadMiddleware');
 
-// Application Creation (supports direct/guest or logged-in applicants) & Applicant List
-router.post('/', optionalAuthenticate, applicationController.createApplicationDraft);
+// Application Creation (requires login) & Applicant List
+router.post('/', authenticate, applicationController.createApplicationDraft);
 router.get('/my', authenticate, requireApplicant, applicationController.getMyApplications);
 
 // Screening / listing list (applicant sees own, staff see all)

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 export const POSITIONS_DATA = {
@@ -290,9 +290,20 @@ export const POSITIONS_DATA = {
 function PositionsExplorer({ category = 'teaching', title, subtitle }) {
   const navigate = useNavigate();
   const [selectedItem, setSelectedItem] = useState(null);
+  const detailRef = useRef(null);
 
   const handleItemClick = (item) => {
     setSelectedItem(item);
+    if (typeof window !== 'undefined' && window.innerWidth < 768) {
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          detailRef.current?.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start',
+          });
+        }, 50);
+      });
+    }
   };
 
   const handleApplyClick = (linkUrl) => {
@@ -531,7 +542,7 @@ function PositionsExplorer({ category = 'teaching', title, subtitle }) {
           </div>
 
           {/* Right Column: Sticky Detail Panel */}
-          <aside className={`pos-panel ${selectedItem ? 'show' : ''}`} id="posPanel">
+          <aside ref={detailRef} className={`pos-panel ${selectedItem ? 'show' : ''}`} id="posPanel">
             {selectedItem ? (
               <div>
                 <h3>{selectedItem.name}</h3>

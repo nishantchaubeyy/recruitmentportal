@@ -73,54 +73,27 @@ async function generateApplicationNumber() {
  */
 async function createApplicationDraft(req, res) {
   try {
-    const { jobId, email, name, mobile } = req.body;
-  let applicantId = req.user?.applicantId;
+    const { jobId } = req.body;
+    const applicantId = req.user?.applicantId;
 
-  let job = null;
-  if (jobId) {
-    job = await prisma.job.findFirst({
-      where: { OR: [{ id: jobId }, { vacancyNumber: jobId }] }
-    });
-  }
-  if (!job) {
-    job = await prisma.job.findFirst({ where: { status: 'PUBLISHED' } }) || await prisma.job.findFirst();
-  }
-
-  if (!job) {
-    return res.status(404).json({ error: 'No active job position available for application.' });
-  }
-
-    // Provision an applicant record if user is starting without logging in upfront
+    // Authentication required — the /apply route is protected on the frontend.
+    // Reject unauthenticated requests so no dummy accounts are ever created.
     if (!applicantId) {
-      if (!email || !email.includes('@')) {
-        return res.status(400).json({ error: 'A valid applicant email address is required to initialize an application draft.' });
-      }
-      const targetEmail = email.toLowerCase().trim();
-      let user = await prisma.user.findUnique({
-        where: { email: targetEmail },
-        include: { applicant: true }
-      });
-
-      if (!user) {
-        const crypto = require('crypto');
-        const bcrypt = require('bcryptjs');
-        const randomPassword = crypto.randomBytes(32).toString('hex');
-        const hashedPassword = await bcrypt.hash(randomPassword, 10);
-        user = await prisma.$transaction(async (tx) => {
-          const u = await tx.user.create({
-            data: { email: targetEmail, password: hashedPassword, role: 'APPLICANT' }
-          });
-          const app = await tx.applicant.create({
-            data: { userId: u.id, name: name || 'Applicant', mobile: mobile || '' }
-          });
-          return { ...u, applicant: app };
-        });
-      }
-      applicantId = user.applicant?.id;
+      return res.status(401).json({ error: 'Authentication required. Please login to start an application.' });
     }
 
-    if (!applicantId) {
-      return res.status(400).json({ error: 'Applicant account could not be initialized.' });
+    let job = null;
+    if (jobId) {
+      job = await prisma.job.findFirst({
+        where: { OR: [{ id: jobId }, { vacancyNumber: jobId }] }
+      });
+    }
+    if (!job) {
+      job = await prisma.job.findFirst({ where: { status: 'PUBLISHED' } }) || await prisma.job.findFirst();
+    }
+
+    if (!job) {
+      return res.status(404).json({ error: 'No active job position available for application.' });
     }
 
     // Reuse an existing draft for the same (applicant, job) instead of creating duplicates.

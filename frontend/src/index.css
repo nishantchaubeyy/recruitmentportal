@@ -283,7 +283,7 @@ body {
   display: block;
   width: 24px;
   height: 2px;
-  background-color: #ffffff;
+  background-color: #d9a43c;
   transition: all 0.3s ease;
 }
 
@@ -601,7 +601,7 @@ body {
 .hamburger-bar {
   width: 24px;
   height: 2.5px;
-  background-color: var(--dypiu-blue);
+  background-color: #d9a43c;
   border-radius: 2px;
   transition: all 0.3s ease;
 }

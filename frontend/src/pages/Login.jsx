@@ -52,11 +52,19 @@ function Login() {
       <div style={{ maxWidth: '400px', margin: '60px auto', padding: '30px', border: '2px solid #8B1235', borderRadius: '8px', backgroundColor: '#ffffff', boxShadow: '0 4px 20px rgba(139, 18, 53, 0.08)' }}>
         <h2 style={{ border: 'none', margin: '0 0 20px 0', padding: 0, textAlign: 'center', color: '#8B1235', fontWeight: 800 }}>Applicant Login</h2>
         
+        {/* Show message when redirected from a protected route */}
+        {location.state?.message && (
+          <div style={{ padding: '10px', backgroundColor: '#fef3c7', border: '1px solid #fcd34d', color: '#92400e', marginBottom: '15px', fontSize: '0.85rem', borderRadius: '4px', fontWeight: 600 }}>
+            ℹ {location.state.message}
+          </div>
+        )}
+
         {error && (
           <div style={{ padding: '10px', backgroundColor: '#fee2e2', border: '1px solid #fca5a5', color: '#991b1b', marginBottom: '15px', fontSize: '0.85rem' }}>
             {error}
           </div>
         )}
+
 
         <form onSubmit={handleSubmit}>
           <div className="form-group">
@@ -94,12 +102,6 @@ function Login() {
 
         <div style={{ marginTop: '20px', textAlign: 'center', fontSize: '0.85rem', color: '#64748b' }}>
           Don't have an account? <Link to="/register" style={{ fontWeight: 700, color: '#8B1235' }}>Register here</Link>
-        </div>
-
-        <div style={{ marginTop: '30px', borderTop: '1px solid #cbd5e1', paddingTop: '15px', textAlign: 'center', fontSize: '0.85rem' }}>
-          <Link to="/admin/login" style={{ color: '#475569', textDecoration: 'none' }}>
-            &rarr; Access Admin / HR Portal
-          </Link>
         </div>
       </div>
     </div>

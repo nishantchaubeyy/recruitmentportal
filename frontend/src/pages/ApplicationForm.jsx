@@ -236,17 +236,13 @@ function ApplicationForm() {
   const [gender, setGender] = useState('Male');
   const [maritalStatus, setMaritalStatus] = useState('Married');
 
-  // STEP 2: Contact Information
+  // STEP 2: Contact Information — pre-filled from verified account
   const [email, setEmail] = useState(user?.email || '');
-  const [emailVerified, setEmailVerified] = useState(Boolean(user?.email));
-  const [otpSent, setOtpSent] = useState(false);
-  const [otpInput, setOtpInput] = useState('');
-  const [otpMessage, setOtpMessage] = useState('');
-  const [sendingOtp, setSendingOtp] = useState(false);
-  const [verifyingOtp, setVerifyingOtp] = useState(false);
+  const [emailVerified] = useState(true);
+  // Mobile is pre-filled from the user profile via useEffect below
 
   const [alternateEmail, setAlternateEmail] = useState('');
-  const [mobile, setMobile] = useState('');
+  const [mobile, setMobile] = useState(user?.mobile || '');
   const [alternateMobile, setAlternateMobile] = useState('');
   const [address, setAddress] = useState('');
   const [city, setCity] = useState('Pune');
@@ -336,6 +332,19 @@ function ApplicationForm() {
         .catch((err) => console.error('Error fetching vacancy:', err));
     }
   }, [activeJobId]);
+
+  // Load user profile to get mobile number (not stored in JWT payload)
+  useEffect(() => {
+    if (user) {
+      apiRequest('/auth/me')
+        .then((profile) => {
+          if (profile?.profileDetails?.mobile) {
+            setMobile(profile.profileDetails.mobile);
+          }
+        })
+        .catch(() => {}); // silently ignore — mobile field just stays empty
+    }
+  }, [user]);
 
   // Load existing draft or restore progress if draftId / activeJobId present
   useEffect(() => {
@@ -536,59 +545,8 @@ function ApplicationForm() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // OTP Email Verification Handlers
-  const handleSendOtp = async () => {
-    if (!email || !email.includes('@')) {
-      setError('Please enter a valid email address first.');
-      return;
-    }
-    setError('');
-    setSendingOtp(true);
-    setOtpMessage('');
-
-    try {
-      const res = await apiRequest('/auth/send-otp', {
-        method: 'POST',
-        body: JSON.stringify({ email })
-      });
-
-      setOtpSent(true);
-      setOtpMessage(res.message || `Verification code sent to ${email}.`);
-    } catch (err) {
-      setError(err.message || 'Failed to send verification OTP.');
-    } finally {
-      setSendingOtp(false);
-    }
-  };
-
-  const handleVerifyOtp = async () => {
-    if (!otpInput || otpInput.trim().length < 4) {
-      setError('Please enter the 6-digit OTP code received.');
-      return;
-    }
-    setError('');
-    setVerifyingOtp(true);
-
-    try {
-      const res = await apiRequest('/auth/verify-otp', {
-        method: 'POST',
-        body: JSON.stringify({ email, otp: otpInput, name: `${firstName} ${lastName}`.trim(), mobile, draftAppId })
-      });
-
-      if (res.token) {
-        localStorage.setItem('token', res.token);
-      }
-
-      setEmailVerified(true);
-      setOtpSent(false);
-      setOtpMessage('✓ Email Verified Successfully!');
-      triggerAutosave(currentStep);
-    } catch (err) {
-      setError(err.message || 'Invalid OTP code. Please try again.');
-    } finally {
-      setVerifyingOtp(false);
-    }
-  };
+  // OTP handlers removed — verification now happens at Registration.
+  // Email and mobile are pre-filled and locked from the authenticated user account.
 
   // Qualification Row Helpers
   const handleAddQualification = () => {
@@ -1043,88 +1001,25 @@ function ApplicationForm() {
               STEP 2 — Contact Information
             </h3>
 
+            {/* Pre-filled contact note */}
+            <div style={{ padding: '10px 14px', background: '#f0fdf4', border: '1px solid #86efac', borderRadius: '6px', marginBottom: '16px', fontSize: '0.82rem', color: '#166534', fontWeight: 600 }}>
+              ✓ Contact details are pre-filled from your verified account and cannot be changed here.
+            </div>
+
             <div className="app-form-grid-2col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
               <div className="form-group">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
                   <label style={{ fontWeight: 700, fontSize: '0.85rem', margin: 0 }}>
                     Email Address <span className="required">*</span>
                   </label>
-                  {emailVerified ? (
-                    <span style={{ fontSize: '0.78rem', color: '#16a34a', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                      ✓ Verified (No Login Required)
-                    </span>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={handleSendOtp}
-                      disabled={sendingOtp || !email}
-                      style={{
-                        background: '#0f2b5c',
-                        color: '#ffffff',
-                        border: 'none',
-                        borderRadius: '4px',
-                        padding: '2px 10px',
-                        fontSize: '0.75rem',
-                        fontWeight: 600,
-                        cursor: sendingOtp || !email ? 'not-allowed' : 'pointer'
-                      }}
-                    >
-                      {sendingOtp ? 'Sending Code...' : otpSent ? 'Resend OTP' : 'Verify Email (Send OTP)'}
-                    </button>
-                  )}
+                  <span style={{ fontSize: '0.78rem', color: '#16a34a', fontWeight: 700 }}>✓ Verified</span>
                 </div>
                 <input
                   type="email"
-                  placeholder="Enter candidate email address"
                   value={email}
-                  onChange={(e) => {
-                    setEmail(e.target.value);
-                    if (emailVerified && e.target.value !== (user?.email || '')) {
-                      setEmailVerified(false);
-                    }
-                  }}
-                  required
+                  readOnly
+                  style={{ backgroundColor: '#f0fdf4', borderColor: '#86efac', cursor: 'not-allowed', color: '#374151' }}
                 />
-                {otpMessage && (
-                  <p style={{ margin: '6px 0 0 0', fontSize: '0.8rem', color: emailVerified ? '#16a34a' : '#0f2b5c', fontWeight: 600 }}>
-                    {otpMessage}
-                  </p>
-                )}
-
-                {otpSent && !emailVerified && (
-                  <div style={{ marginTop: '10px', padding: '12px', background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '6px' }}>
-                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                      Enter 6-Digit Verification Code:
-                    </label>
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      <input
-                        type="text"
-                        maxLength={6}
-                        placeholder="e.g. 123456"
-                        value={otpInput}
-                        onChange={(e) => setOtpInput(e.target.value.replace(/\D/g, ''))}
-                        style={{ width: '130px', letterSpacing: '3px', textAlign: 'center', fontWeight: 'bold', fontSize: '0.95rem' }}
-                      />
-                      <button
-                        type="button"
-                        onClick={handleVerifyOtp}
-                        disabled={verifyingOtp || otpInput.length < 4}
-                        style={{
-                          backgroundColor: '#16a34a',
-                          color: '#fff',
-                          border: 'none',
-                          borderRadius: '4px',
-                          padding: '6px 14px',
-                          fontSize: '0.82rem',
-                          fontWeight: 700,
-                          cursor: 'pointer'
-                        }}
-                      >
-                        {verifyingOtp ? 'Verifying...' : 'Confirm OTP'}
-                      </button>
-                    </div>
-                  </div>
-                )}
               </div>
 
               <div className="form-group">
@@ -1135,22 +1030,17 @@ function ApplicationForm() {
 
             <div className="app-form-grid-2col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
               <div className="form-group">
-                <label style={{ fontWeight: 700, fontSize: '0.85rem' }}>
-                  Mobile Number <span className="required">*</span>
-                  {mobile && mobile.length !== 10 && (
-                    <span style={{ color: '#ef4444', fontSize: '0.78rem', marginLeft: '8px', fontWeight: 600 }}>
-                      (Invalid - must be 10 digits)
-                    </span>
-                  )}
-                </label>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                  <label style={{ fontWeight: 700, fontSize: '0.85rem', margin: 0 }}>
+                    Mobile Number <span className="required">*</span>
+                  </label>
+                  <span style={{ fontSize: '0.78rem', color: '#16a34a', fontWeight: 700 }}>✓ Pre-filled</span>
+                </div>
                 <input
                   type="tel"
-                  placeholder="10-digit Mobile Number"
                   value={mobile}
-                  maxLength={10}
-                  onChange={(e) => setMobile(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                  required
-                  style={{ borderColor: mobile && mobile.length !== 10 ? '#ef4444' : undefined }}
+                  readOnly
+                  style={{ backgroundColor: '#f0fdf4', borderColor: '#86efac', cursor: 'not-allowed', color: '#374151' }}
                 />
               </div>
 
