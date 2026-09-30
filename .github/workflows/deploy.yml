@@ -1,26 +1,38 @@
-name: Deploy DYPIU Recruitment Portal to College Server
+name: Deploy DYPIU Recruitment Portal
 
 on:
   push:
     branches:
       - main
 
+concurrency:
+  group: recruitment-production
+  cancel-in-progress: false
+
 jobs:
   deploy:
-    name: Build & Deploy on Server
-    runs-on: self-hosted
+    name: Deploy Recruitment to Intranet
+    runs-on: [self-hosted, Linux, X64]
 
     steps:
-      - name: 1. Checkout repository
-        uses: actions/checkout@v4
-
-      - name: 2. Setup Node.js 20 environment
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - name: 3. Execute automated deployment script
+      - name: Update production repository
         run: |
-          chmod +x ./deploy.sh
-          ./deploy.sh
+          cd /opt/dypiu-recruitment/repo
+          git fetch origin main
+          git reset --hard origin/main
 
+      - name: Deploy application
+        run: |
+          cd /opt/dypiu-recruitment/repo
+          chmod +x deploy-intranet.sh
+          ./deploy-intranet.sh
+
+      - name: Verify backend
+        run: |
+          curl --fail --silent --show-error \
+            http://127.0.0.1:5000/api/health
+
+      - name: Verify public deployment
+        run: |
+          curl --fail --silent --show-error \
+            https://intranet.dypiu.ac.in/recruitment/api/health
