@@ -12,7 +12,7 @@ concurrency:
 jobs:
   deploy:
     name: Deploy Recruitment to Intranet
-    runs-on: [self-hosted, Linux, X64]
+    runs-on: [self-hosted, recruitment]
 
     steps:
       - name: Update production repository
