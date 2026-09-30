@@ -26,7 +26,16 @@ function isVacancyOpen(job) {
   const now = new Date();
   const isPublished = job.status === 'PUBLISHED';
   const openingValid = !job.openingDate || new Date(job.openingDate) <= now;
-  const deadlineValid = !job.deadline || new Date(job.deadline) >= now;
+
+  let deadlineValid = true;
+  if (job.deadline) {
+    const d = new Date(job.deadline);
+    // If deadline time is midnight (date-only), consider active until end of that day
+    if (d.getHours() === 0 && d.getMinutes() === 0 && d.getSeconds() === 0) {
+      d.setHours(23, 59, 59, 999);
+    }
+    deadlineValid = d >= now;
+  }
 
   return isPublished && openingValid && deadlineValid;
 }
@@ -40,12 +49,14 @@ async function getPublicVacancies(req, res) {
   const { category, type, school, department, search } = req.query;
   const targetCategory = category || type;
 
-  const now = new Date();
+  // Filter out any vacancy where the deadline is in the past.
+  // Compare against start of today (00:00:00) so vacancies remain active through the deadline day.
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
 
   const where = {
     status: 'PUBLISHED',
-    openingDate: { lte: now },
-    deadline: { gte: now }
+    deadline: { gte: startOfToday }
   };
 
   if (targetCategory && (targetCategory === 'TEACHING' || targetCategory === 'NON_TEACHING')) {

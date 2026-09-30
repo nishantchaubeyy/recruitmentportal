@@ -65,12 +65,13 @@ function ApplyRoute({ children }) {
   const location = useLocation();
   if (loading) return <div className="container"><p>Verifying authentication...</p></div>;
   if (!user) {
+    const target = location.pathname + location.search;
     return (
       <Navigate
-        to="/login"
+        to={`/login?redirect=${encodeURIComponent(target)}`}
         replace
         state={{
-          from: location.pathname + location.search,
+          from: target,
           message: 'Please login or register to apply for a position.'
         }}
       />

@@ -419,6 +419,28 @@ function Home() {
           color: #F2B01E;
         }
 
+        .btn-elongated-apply {
+          background-color: #8B1235;
+          color: #FCD34D;
+          font-weight: 800;
+          font-size: 0.88rem;
+          padding: 10px 20px;
+          border-radius: 8px;
+          border: none;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          white-space: nowrap;
+          box-shadow: 0 2px 8px rgba(139, 18, 53, 0.25);
+        }
+
+        .btn-elongated-apply:hover {
+          background-color: #700e2a;
+          color: #ffffff;
+        }
+
         .empty-jobs-container {
           text-align: center;
           padding: 60px 24px;
@@ -915,6 +937,14 @@ function Home() {
                       onClick={() => setSelectedJobModal(job)}
                     >
                       View Details →
+                    </button>
+
+                    <button
+                      className="btn-elongated-apply"
+                      onClick={() => navigate(`/apply?jobId=${job.id}`)}
+                      title="Apply directly for this position"
+                    >
+                      Apply Now &rarr;
                     </button>
                   </div>
                 </div>

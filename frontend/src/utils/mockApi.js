@@ -190,7 +190,15 @@ const saveApplications = () => {
   }
 };
 
-const isOpen = (job) => job.status === 'PUBLISHED' && (!job.deadline || new Date(job.deadline) >= new Date());
+const isOpen = (job) => {
+  if (job.status !== 'PUBLISHED') return false;
+  if (!job.deadline) return true;
+  const d = new Date(job.deadline);
+  if (d.getHours() === 0 && d.getMinutes() === 0 && d.getSeconds() === 0) {
+    d.setHours(23, 59, 59, 999);
+  }
+  return d >= new Date();
+};
 
 // ── AUTH ──────────────────────────────────────────────────────
 async function mockLogin(body) {
@@ -268,7 +276,20 @@ function publicVacancy(j) {
 
 async function mockGetPublicVacancies(params) {
   await delay();
-  let result = jobs.filter((j) => j.status === 'PUBLISHED');
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
+
+  let result = jobs.filter((j) => {
+    if (j.status !== 'PUBLISHED') return false;
+    if (j.deadline) {
+      const d = new Date(j.deadline);
+      if (d.getHours() === 0 && d.getMinutes() === 0 && d.getSeconds() === 0) {
+        return d >= startOfToday;
+      }
+      return d >= new Date();
+    }
+    return true;
+  });
   const type = params.get('type') || params.get('category');
   if (type) result = result.filter((j) => j.type === type);
   if (params.get('search')) {

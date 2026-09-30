@@ -85,6 +85,7 @@ export const STATUS_TABS = [
  */
 export function statusBadgeClass(status) {
   switch (status) {
+    case APPLICATION_STATUS.DRAFT: return 'status-draft';
     case APPLICATION_STATUS.SUBMITTED: return 'status-submitted';
     case APPLICATION_STATUS.UNDER_REVIEW: return 'status-under-review';
     case APPLICATION_STATUS.SHORTLISTED: return 'status-shortlisted';

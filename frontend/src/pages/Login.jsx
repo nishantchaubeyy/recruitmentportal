@@ -32,11 +32,13 @@ function Login() {
 
       login(data.token, data.user);
 
-      // Return to the page the user was trying to reach (e.g. an apply link),
-      // otherwise route by role.
-      const from = location.state?.from;
-      if (from && !isStaffRole(data.user.role)) {
-        navigate(from, { replace: true });
+      // Return to the page the user was trying to reach (e.g. /apply or /apply?jobId=...),
+      // checking URL query params (?redirect= or ?returnTo=) as well as router state.
+      const searchParams = new URLSearchParams(location.search);
+      const redirectTarget = searchParams.get('redirect') || searchParams.get('returnTo') || location.state?.from;
+
+      if (redirectTarget && !isStaffRole(data.user.role)) {
+        navigate(redirectTarget, { replace: true });
       } else {
         navigate(homePathForRole(data.user.role), { replace: true });
       }
@@ -101,7 +103,17 @@ function Login() {
         </form>
 
         <div style={{ marginTop: '20px', textAlign: 'center', fontSize: '0.85rem', color: '#64748b' }}>
-          Don't have an account? <Link to="/register" style={{ fontWeight: 700, color: '#8B1235' }}>Register here</Link>
+          Don't have an account?{' '}
+          {(() => {
+            const searchParams = new URLSearchParams(location.search);
+            const redirectTarget = searchParams.get('redirect') || searchParams.get('returnTo') || location.state?.from;
+            const regTarget = redirectTarget ? `/register?redirect=${encodeURIComponent(redirectTarget)}` : '/register';
+            return (
+              <Link to={regTarget} state={{ from: redirectTarget }} style={{ fontWeight: 700, color: '#8B1235' }}>
+                Register here
+              </Link>
+            );
+          })()}
         </div>
       </div>
     </div>

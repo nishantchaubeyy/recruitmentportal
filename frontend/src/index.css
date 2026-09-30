@@ -1103,16 +1103,22 @@ body {
   line-height: 1.2;
 }
 
+.status-draft {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
+}
+
 .status-submitted {
-  background: var(--dypiu-teal-light);
-  color: var(--dypiu-teal);
-  border: 1px solid rgba(8, 145, 178, 0.25);
+  background: #f1f5f9;
+  color: #334155;
+  border: 1px solid #cbd5e1;
 }
 
 .status-under-review {
-  background: var(--dypiu-blue-light);
-  color: var(--dypiu-blue);
-  border: 1px solid rgba(15, 43, 92, 0.2);
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
 }
 
 .status-shortlisted {
