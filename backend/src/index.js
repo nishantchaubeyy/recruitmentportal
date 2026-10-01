@@ -106,14 +106,14 @@ app.use('/api', jobRoutes);
 // Global Error Handler
 app.use((err, req, res, next) => {
   console.error('Unhandled Server Error:', err);
-  
+
   if (
     err.message === 'Only PDF files are accepted.' ||
     err.message === 'Only JPEG, JPG, PNG, and WebP image files are accepted.' ||
     err.code === 'LIMIT_FILE_SIZE'
   ) {
-    const message = err.code === 'LIMIT_FILE_SIZE' 
-      ? 'File size exceeds the allowed limit.' 
+    const message = err.code === 'LIMIT_FILE_SIZE'
+      ? 'File size exceeds the allowed limit.'
       : err.message;
     return res.status(400).json({ error: message });
   }
@@ -127,7 +127,7 @@ app.use((err, req, res, next) => {
 if (process.env.NODE_ENV !== 'test' && !process.env.VERCEL) {
   const server = app.listen(PORT, async () => {
     console.log(`[Server] Running on port ${PORT}`);
-    
+
     // Verify database connection
     try {
       await prisma.$connect();

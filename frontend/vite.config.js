@@ -5,4 +5,6 @@ import { defineConfig } from 'vite'
 export default defineConfig({
   base: '/recruitment/',
   plugins: [react()],
+  server: { host: true },
+  preview: { host: true }
 })
