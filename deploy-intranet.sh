@@ -54,11 +54,12 @@ npm install --include=dev --no-audit --no-fund
 cd "$PROJECT_DIR/frontend"
 npm install --include=dev --no-audit --no-fund
 
-# 3. Prisma Generate & Migrate Deploy
-echo -e "\n${YELLOW}[3/6] Running Prisma generate and migrations...${NC}"
+# 3. Prisma Generate, Migrate Deploy & Seed
+echo -e "\n${YELLOW}[3/6] Running Prisma generate, migrations, and database seed...${NC}"
 cd "$PROJECT_DIR/backend"
 npx prisma generate --schema=../prisma/schema.prisma
 npx prisma migrate deploy --schema=../prisma/schema.prisma
+node src/seed.js
 
 # 4. Build Frontend SPA for /recruitment/ Sub-Path
 echo -e "\n${YELLOW}[4/6] Building Frontend React SPA (VITE_API_URL=/recruitment/api)...${NC}"

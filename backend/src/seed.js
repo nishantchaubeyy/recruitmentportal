@@ -8,52 +8,105 @@ async function main() {
   console.log('[Seed] Starting database seeding...');
 
   // 1. Create Default Admin User (override via env for production).
-  const adminEmail = 'admin@dypiu.edu';
-  const defaultAdminPassword = 'AdminPassword123';
-  if (process.env.NODE_ENV === 'production') {
-    console.warn('[Seed] WARNING: Using default hardcoded admin password in production. Change it immediately.');
+  const adminEmail = (process.env.SEED_ADMIN_EMAIL || 'admin@dypiu.edu').toLowerCase();
+  const rawAdminPassword = process.env.SEED_ADMIN_PASSWORD;
+  const defaultAdminPassword = (rawAdminPassword && rawAdminPassword !== '<CHANGE_ME_ADMIN_PASSWORD>')
+    ? rawAdminPassword
+    : 'AdminPassword123';
+
+  if (process.env.NODE_ENV === 'production' && !rawAdminPassword) {
+    console.warn('[Seed] Using default admin password. Set SEED_ADMIN_PASSWORD in production to customize.');
   }
 
   let adminUser = await prisma.user.findUnique({
-    where: { email: adminEmail }
+    where: { email: adminEmail },
+    include: { admin: true }
   });
+
+  const hashedPassword = await bcrypt.hash(defaultAdminPassword, 10);
 
   if (!adminUser) {
     console.log(`[Seed] Creating default Admin user: ${adminEmail}`);
-    const hashedPassword = await bcrypt.hash(defaultAdminPassword, 10);
-
     adminUser = await prisma.user.create({
       data: {
         email: adminEmail,
         password: hashedPassword,
         role: 'ADMIN',
+        status: 'ACTIVE',
         admin: {
           create: {
             name: 'HR Administrator'
           }
         }
-      }
+      },
+      include: { admin: true }
     });
     console.log(`[Seed] Admin created successfully. Credentials: ${adminEmail} / ${defaultAdminPassword}`);
   } else {
-    console.log(`[Seed] Admin user ${adminEmail} already exists.`);
+    console.log(`[Seed] Admin user ${adminEmail} already exists. Refreshing credentials and status...`);
+    adminUser = await prisma.user.update({
+      where: { id: adminUser.id },
+      data: {
+        password: hashedPassword,
+        role: 'ADMIN',
+        status: 'ACTIVE'
+      },
+      include: { admin: true }
+    });
+    if (!adminUser.admin) {
+      await prisma.admin.create({
+        data: {
+          userId: adminUser.id,
+          name: 'HR Administrator'
+        }
+      });
+    }
+    console.log(`[Seed] Admin credentials refreshed successfully: ${adminEmail} / ${defaultAdminPassword}`);
   }
 
   // 1b. Create a demo Applicant account (applying now requires login).
-  const demoApplicantEmail = 'demo@applicant.com';
-  const demoApplicantPassword = 'Demo@1234';
-  const existingApplicant = await prisma.user.findUnique({ where: { email: demoApplicantEmail } });
+  const demoApplicantEmail = (process.env.SEED_APPLICANT_EMAIL || 'demo@applicant.com').toLowerCase();
+  const rawDemoPassword = process.env.SEED_APPLICANT_PASSWORD;
+  const demoApplicantPassword = (rawDemoPassword && rawDemoPassword !== '<CHANGE_ME_APPLICANT_PASSWORD>')
+    ? rawDemoPassword
+    : 'Demo@1234';
+
+  const demoHashed = await bcrypt.hash(demoApplicantPassword, 10);
+  const existingApplicant = await prisma.user.findUnique({
+    where: { email: demoApplicantEmail },
+    include: { applicant: true }
+  });
+
   if (!existingApplicant) {
-    const hashed = await bcrypt.hash(demoApplicantPassword, 10);
     await prisma.user.create({
       data: {
         email: demoApplicantEmail,
-        password: hashed,
+        password: demoHashed,
         role: 'APPLICANT',
+        status: 'ACTIVE',
         applicant: { create: { name: 'Demo Applicant', mobile: '9000000000' } }
       }
     });
     console.log(`[Seed] Demo applicant created. Credentials: ${demoApplicantEmail} / ${demoApplicantPassword}`);
+  } else {
+    await prisma.user.update({
+      where: { id: existingApplicant.id },
+      data: {
+        password: demoHashed,
+        role: 'APPLICANT',
+        status: 'ACTIVE'
+      }
+    });
+    if (!existingApplicant.applicant) {
+      await prisma.applicant.create({
+        data: {
+          userId: existingApplicant.id,
+          name: 'Demo Applicant',
+          mobile: '9000000000'
+        }
+      });
+    }
+    console.log(`[Seed] Demo applicant refreshed: ${demoApplicantEmail} / ${demoApplicantPassword}`);
   }
 
   // ─────────────────────────────────────────────────────────────────────
