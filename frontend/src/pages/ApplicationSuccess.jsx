@@ -31,7 +31,7 @@ function ApplicationSuccess() {
               Form Submitted — Details Registered
             </h2>
             <p style={{ fontSize: '0.95rem', color: '#4B5563', margin: '0 0 32px 0', lineHeight: '1.6' }}>
-              {state.message || 'Thank you for submitting your form! Applications for this position are currently closed. We have registered your details in our system and will automatically notify you as soon as a relevant vacancy opens at D Y Patil International University.'}
+              {state.message || 'Thank you for applying. We will reach out to you soon when the vacancies are open. We have securely registered your details in our recruitment system.'}
             </p>
           </>
         ) : (
@@ -87,6 +87,15 @@ function ApplicationSuccess() {
 
         <hr style={{ border: 'none', borderTop: '1px solid #E5E7EB', margin: '0 0 28px 0' }} />
 
+        <div style={{ backgroundColor: '#fef2f2', border: '1px solid #fecaca', borderRadius: '6px', padding: '14px 18px', marginBottom: '28px', textAlign: 'left' }}>
+          <p style={{ margin: '0 0 6px 0', fontSize: '0.9rem', color: '#721b28', fontWeight: 700 }}>
+            📧 Confirmation & Login Credentials Emailed
+          </p>
+          <p style={{ margin: 0, fontSize: '0.85rem', color: '#0f172a', lineHeight: '1.5' }}>
+            A confirmation email containing your complete application dossier has been sent. Your portal login credentials have also been created and sent to your email so you can check your application status at any time.
+          </p>
+        </div>
+
         <p style={{ fontSize: '0.875rem', color: '#4B5563', marginBottom: '32px', lineHeight: '1.6' }}>
           {isInterest
             ? 'We have recorded your credentials. Our HR team will reach out to you via email and mobile as soon as a vacancy is officially opened for this position.'
@@ -95,13 +104,13 @@ function ApplicationSuccess() {
 
         <div style={{ display: 'flex', gap: '14px', justifyContent: 'center', flexWrap: 'wrap' }}>
           <Link 
-            to="/" 
+            to="/login" 
             style={{ 
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
               height: '44px', 
-              padding: '0 32px', 
+              padding: '0 28px', 
               borderRadius: '6px', 
               border: 'none', 
               backgroundColor: '#8B1235',
@@ -110,6 +119,26 @@ function ApplicationSuccess() {
               fontWeight: 800, 
               fontSize: '0.92rem',
               boxShadow: '0 2px 8px rgba(139,18,53,0.25)',
+              transition: 'background-color 0.15s ease'
+            }}
+          >
+            Login to Track Application &rarr;
+          </Link>
+          <Link 
+            to="/" 
+            style={{ 
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              height: '44px', 
+              padding: '0 24px', 
+              borderRadius: '6px', 
+              border: '1px solid #cbd5e1', 
+              backgroundColor: '#ffffff',
+              color: '#334155', 
+              textDecoration: 'none', 
+              fontWeight: 700, 
+              fontSize: '0.92rem',
               transition: 'background-color 0.15s ease'
             }}
           >

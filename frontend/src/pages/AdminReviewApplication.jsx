@@ -299,7 +299,7 @@ function AdminReviewApplication() {
           </div>
 
           {statusSuccess && (
-            <div style={{ padding: '10px 14px', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', color: '#166534', borderRadius: '4px', marginBottom: '16px', fontSize: '0.84rem', fontWeight: 600 }}>
+            <div style={{ padding: '10px 14px', backgroundColor: '#fef2f2', border: '1px solid #fecaca', color: '#721b28', borderRadius: '4px', marginBottom: '16px', fontSize: '0.84rem', fontWeight: 600 }}>
               {statusSuccess}
             </div>
           )}

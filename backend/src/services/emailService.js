@@ -259,7 +259,7 @@ function formatDate(dateInput) {
 /**
  * Generates the complete official Application Form Dossier HTML for the confirmation email.
  */
-function buildApplicationFormDossierHtml(app) {
+function buildApplicationFormDossierHtml(app, options = {}) {
   const personal = safeParseJSON(app.personalInfo);
   const contact = safeParseJSON(app.contactDetails);
   const qualifications = safeParseArray(app.qualifications);
@@ -332,17 +332,52 @@ function buildApplicationFormDossierHtml(app) {
   <div style="max-width: 680px; margin: 20px auto; padding: 30px; background-color: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px;">
     
     <!-- TOP SUCCESS ACKNOWLEDGEMENT BANNER -->
-    <div style="background-color: #0f2b5c; color: #ffffff; padding: 20px 24px; border-radius: 6px; margin-bottom: 24px; border-left: 5px solid #d9a43c;">
-      <h3 style="margin: 0; font-size: 16px; letter-spacing: 0.5px; text-transform: uppercase;">Application Received</h3>
+    <div style="background-color: #721b28; color: #ffffff; padding: 20px 24px; border-radius: 6px; margin-bottom: 24px; border-left: 5px solid #d9a43c;">
+      <h3 style="margin: 0; font-size: 16px; letter-spacing: 0.5px; text-transform: uppercase;">
+        ${options.isInterest ? 'Application & Interest Registered' : 'Application Received'}
+      </h3>
       <p style="margin: 8px 0 0 0; font-size: 14px; line-height: 1.6;">
         Dear <strong>${applicantName}</strong>,<br /><br />
         Thank you for applying at <strong>D Y Patil International University</strong>.<br />
-        We have received your application for the post of <strong>${postName}</strong> (Application No: <strong>${appNumber}</strong>). Our team will review your application and reach out to you soon.
+        ${options.isInterest 
+          ? `We have received your application for the post of <strong>${postName}</strong> (Registration / Ref No: <strong>${appNumber}</strong>). Applications for this position are currently closed, but we have securely recorded your credentials and qualifications in our database. We will reach out to you as soon as the vacancy is officially opened.`
+          : `We have received your application for the post of <strong>${postName}</strong> (Application No: <strong>${appNumber}</strong>). Our team will review your application and reach out to you soon.`
+        }
       </p>
       <div style="margin-top: 14px; padding: 8px 12px; background-color: rgba(255,255,255,0.12); border-radius: 4px; font-size: 12px;">
         📎 <strong>Official Application Dossier Attached</strong> — A PDF copy of your submitted application has been attached to this email for your records.
       </div>
     </div>
+
+    ${options.generatedPassword ? `
+    <!-- CONDITIONAL LOGIN CREDENTIALS SECTION -->
+    <div style="background-color: #fef2f2; border: 1.5px solid #fecaca; border-radius: 6px; padding: 20px; margin-bottom: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+      <h4 style="margin: 0 0 10px 0; color: #721b28; font-size: 15px; font-weight: bold;">
+        🔐 Your Recruitment Portal Login Credentials
+      </h4>
+      <p style="margin: 0 0 14px 0; font-size: 13.5px; color: #0f172a; line-height: 1.6;">
+        An account has been created for you to track your application status. You can login using this email and the following auto-generated password:
+      </p>
+      <div style="background: #ffffff; border: 1px solid #fecaca; border-radius: 6px; padding: 12px 16px; margin-bottom: 14px;">
+        <table style="width: 100%; border-collapse: collapse; font-size: 13.5px;">
+          <tr>
+            <td style="padding: 6px 0; width: 150px; color: #64748b; font-weight: 600;">Login Email:</td>
+            <td style="padding: 6px 0; font-weight: 700; color: #0f172a;">${candidateEmail}</td>
+          </tr>
+          <tr>
+            <td style="padding: 6px 0; color: #64748b; font-weight: 600;">Auto-Generated Password:</td>
+            <td style="padding: 6px 0; font-family: 'Courier New', monospace; font-size: 16px; font-weight: 800; color: #721b28; letter-spacing: 1px;">${options.generatedPassword}</td>
+          </tr>
+        </table>
+      </div>
+      <div>
+        <a href="${options.loginUrl || 'https://intranet.dypiu.ac.in/recruitment/login'}" 
+           style="background-color: #721b28; color: #ffffff; padding: 9px 20px; text-decoration: none; border-radius: 4px; font-size: 13px; font-weight: bold; display: inline-block;">
+          Login to Track Application &rarr;
+        </a>
+      </div>
+    </div>
+    ` : ''}
 
     <!-- OFFICIAL APPLICATION FORM HEADER -->
     <div style="border-bottom: 2px solid #0f2b5c; padding-bottom: 14px; margin-bottom: 20px;">
@@ -538,7 +573,7 @@ function buildApplicationFormDossierHtml(app) {
  * Sends official application submission confirmation email.
  * Non-blocking, failure tolerant, duplicate safe.
  */
-async function sendSubmissionConfirmationEmail(applicationId) {
+async function sendSubmissionConfirmationEmail(applicationId, options = {}) {
   try {
     const app = await prisma.application.findUnique({
       where: { id: applicationId },
@@ -582,10 +617,12 @@ async function sendSubmissionConfirmationEmail(applicationId) {
     const formattedDate = formatDate(app.submittedAt || app.createdAt);
 
     // EMAIL SUBJECT
-    const subject = `Application Received – D Y Patil International University`;
+    const subject = options.isInterest
+      ? `Interest & Application Registered – D Y Patil International University`
+      : `Application Received – D Y Patil International University`;
 
     // EMAIL HTML BODY (Renders Full Application Form Dossier)
-    const htmlBody = buildApplicationFormDossierHtml(app);
+    const htmlBody = buildApplicationFormDossierHtml(app, options);
 
     // PLAIN TEXT FALLBACK
     const textBody = `D Y PATIL INTERNATIONAL UNIVERSITY
@@ -594,8 +631,20 @@ Akurdi, Pune
 Dear ${applicantName},
 
 Thank you for applying at D Y Patil International University.
-We have received your application for the post of ${postName} (Application No: ${appNumber}). Our team will review your application and reach out to you soon.
+${options.isInterest
+  ? `We have received your application for the post of ${postName} (Reference No: ${appNumber}). Currently applications for this position are closed, but we have securely recorded your details. We will reach out to you as soon as the vacancy is officially opened.`
+  : `We have received your application for the post of ${postName} (Application No: ${appNumber}). Our team will review your application and reach out to you soon.`}
+${options.generatedPassword ? `
+------------------------------------------------------------
+YOUR APPLICANT PORTAL LOGIN CREDENTIALS:
+An account has been created for you to track your application status.
+You can login using this email and the following auto-generated password:
 
+Login Email: ${recipientEmail}
+Auto-Generated Password: ${options.generatedPassword}
+Login URL: ${options.loginUrl || 'https://intranet.dypiu.ac.in/recruitment/login'}
+------------------------------------------------------------
+` : ''}
 APPLICATION DETAILS:
 Application ID: ${appNumber}
 Position Applied For: ${postName}

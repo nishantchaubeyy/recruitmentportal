@@ -624,6 +624,46 @@ async function getDepartmentPositions(req, res) {
   }
 }
 
+async function getAcademicStructure(req, res) {
+  try {
+    const schools = await prisma.school.findMany({
+      where: {
+        NOT: { name: { startsWith: '[ARCHIVED]' } }
+      },
+      include: {
+        departments: {
+          include: {
+            positions: {
+              select: { id: true, title: true, category: true }
+            }
+          },
+          orderBy: { name: 'asc' }
+        },
+        jobs: {
+          where: { status: { in: ['PUBLISHED', 'CLOSED'] } },
+          select: {
+            id: true,
+            vacancyNumber: true,
+            position: true,
+            department: true,
+            type: true,
+            status: true,
+            deadline: true,
+            numPositions: true
+          },
+          orderBy: { createdAt: 'desc' }
+        }
+      },
+      orderBy: { name: 'asc' }
+    });
+
+    return res.json({ schools });
+  } catch (error) {
+    console.error('Fetch academic structure error:', error);
+    return res.status(500).json({ error: 'Failed to retrieve academic structure.' });
+  }
+}
+
 module.exports = {
   getPublicVacancies,
   getPublicVacancyById,
@@ -637,6 +677,7 @@ module.exports = {
   deleteSchoolPoster,
   updateSchool,
   getSchoolDepartments,
-  getDepartmentPositions
+  getDepartmentPositions,
+  getAcademicStructure
 };
 

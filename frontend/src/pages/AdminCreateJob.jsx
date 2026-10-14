@@ -592,7 +592,7 @@ function AdminCreateJob() {
                           e.target.style.display = 'none';
                         }}
                       />
-                      <div style={{ fontSize: '0.78rem', color: '#047857', fontWeight: 700, marginTop: '8px' }}>
+                      <div style={{ fontSize: '0.78rem', color: '#721b28', fontWeight: 700, marginTop: '8px' }}>
                         Custom Poster Image Active
                       </div>
                     </div>

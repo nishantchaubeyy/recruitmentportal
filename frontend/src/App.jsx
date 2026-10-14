@@ -56,35 +56,6 @@ function ApplicantRoute({ children }) {
   );
 }
 
-/**
- * Route protector for the Application Form (/apply).
- * Guests are redirected to /login with a prompt message.
- */
-function ApplyRoute({ children }) {
-  const { user, loading } = useContext(AuthContext);
-  const location = useLocation();
-  if (loading) return <div className="container"><p>Verifying authentication...</p></div>;
-  if (!user) {
-    const target = location.pathname + location.search;
-    return (
-      <Navigate
-        to={`/login?redirect=${encodeURIComponent(target)}`}
-        replace
-        state={{
-          from: target,
-          message: 'Please login or register to apply for a position.'
-        }}
-      />
-    );
-  }
-  return (
-    <>
-      <Header />
-      <main style={{ minHeight: '80vh', paddingBottom: '40px' }}>{children}</main>
-      <Footer />
-    </>
-  );
-}
 
 /**
  * Route protector & layout wrapper for Admins & Committee Members.
@@ -124,10 +95,10 @@ function App() {
       <Router basename="/recruitment">
         <ScrollToTop />
         <Routes>
-          {/* Public Routes */}
+          {/* Public Routes - Direct Apply Without Login */}
           <Route path="/" element={<PublicLayout><Home /></PublicLayout>} />
-          <Route path="/apply" element={<ApplyRoute><ApplicationForm /></ApplyRoute>} />
-          <Route path="/apply/:jobId" element={<ApplyRoute><ApplicationForm /></ApplyRoute>} />
+          <Route path="/apply" element={<PublicLayout><ApplicationForm /></PublicLayout>} />
+          <Route path="/apply/:jobId" element={<PublicLayout><ApplicationForm /></PublicLayout>} />
           <Route path="/teaching" element={<PublicLayout><TeachingPositions /></PublicLayout>} />
           <Route path="/non-teaching" element={<PublicLayout><NonTeachingPositions /></PublicLayout>} />
           <Route path="/advertisments" element={<PublicLayout><Advertisments /></PublicLayout>} />
@@ -185,6 +156,7 @@ function App() {
           />
           <Route path="/applicant/applications/success" element={<PublicLayout><ApplicationSuccess /></PublicLayout>} />
           <Route path="/applicant/applications/:id/success" element={<PublicLayout><ApplicationSuccess /></PublicLayout>} />
+          <Route path="/apply/success-interest" element={<PublicLayout><ApplicationSuccess /></PublicLayout>} />
 
           {/* Admin & Committee Protected Routes (with Left Admin Sidebar Layout) */}
           <Route 

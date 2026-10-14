@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext, useRef } from 'react';
+import React, { useState, useEffect, useContext, useRef, useMemo } from 'react';
 import { useSearchParams, useParams, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { apiRequest } from '../utils/api';
@@ -220,6 +220,8 @@ function ApplicationForm() {
   const [draftAppId, setDraftAppId] = useState(searchParams.get('draftId') || null);
   const [autoSaveStatus, setAutoSaveStatus] = useState('Your application is automatically saved.');
   const [loadedVacancy, setLoadedVacancy] = useState(null);
+  const [academicStructure, setAcademicStructure] = useState(null);
+  const [structureLoading, setStructureLoading] = useState(true);
 
   // STEP 1: Post & Personal Info
   const [selectedFaculty, setSelectedFaculty] = useState(urlFaculty || 'School of Computer Science Engineering & Applications');
@@ -236,10 +238,15 @@ function ApplicationForm() {
   const [gender, setGender] = useState('Male');
   const [maritalStatus, setMaritalStatus] = useState('Married');
 
-  // STEP 2: Contact Information — pre-filled from verified account
+  // STEP 2: Contact Information
   const [email, setEmail] = useState(user?.email || '');
-  const [emailVerified] = useState(true);
-  // Mobile is pre-filled from the user profile via useEffect below
+  const [emailVerified, setEmailVerified] = useState(Boolean(user));
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpInput, setOtpInput] = useState('');
+  const [sendingOtp, setSendingOtp] = useState(false);
+  const [verifyingOtp, setVerifyingOtp] = useState(false);
+  const [otpMessage, setOtpMessage] = useState('');
+  // Mobile is pre-filled from the user profile if authenticated
 
   const [alternateEmail, setAlternateEmail] = useState('');
   const [mobile, setMobile] = useState(user?.mobile || '');
@@ -318,6 +325,117 @@ function ApplicationForm() {
     else setAge('');
   }, [dob]);
 
+  // Load dynamic university academic structure & jobs
+  useEffect(() => {
+    let mounted = true;
+    apiRequest('/public/academic-structure')
+      .then((res) => {
+        if (mounted && Array.isArray(res?.schools)) {
+          setAcademicStructure(res.schools);
+        }
+      })
+      .catch((err) => console.warn('Could not fetch academic structure:', err))
+      .finally(() => {
+        if (mounted) setStructureLoading(false);
+      });
+    return () => { mounted = false; };
+  }, []);
+
+  // Dynamic Teaching Faculties list
+  const teachingSchools = useMemo(() => {
+    if (!academicStructure) return TEACHING_SCHOOLS;
+    const list = academicStructure
+      .filter((s) => s.type === 'TEACHING')
+      .map((s) => s.name);
+    return list.length > 0 ? list : TEACHING_SCHOOLS;
+  }, [academicStructure]);
+
+  // Dynamic Non-Teaching Divisions list
+  const nonTeachingDivisions = useMemo(() => {
+    if (!academicStructure) return NON_TEACHING_DIVISIONS;
+    const list = academicStructure
+      .filter((s) => s.type === 'NON_TEACHING')
+      .map((s) => s.name);
+    return list.length > 0 ? list : NON_TEACHING_DIVISIONS;
+  }, [academicStructure]);
+
+  // Dynamic Available Posts for Selected Faculty
+  const availablePosts = useMemo(() => {
+    const cleanSel = (selectedFaculty || '').trim().toLowerCase();
+    const matchedSchool = academicStructure?.find((s) => {
+      const sName = s.name.trim().toLowerCase();
+      return sName === cleanSel || cleanSel.includes(sName) || sName.includes(cleanSel);
+    });
+
+    const postOptions = [];
+    const seen = new Set();
+
+    const addPost = (title, meta = {}) => {
+      if (!title || typeof title !== 'string') return;
+      const trimmed = title.trim();
+      const key = trimmed.toLowerCase();
+      if (!seen.has(key)) {
+        seen.add(key);
+        postOptions.push({
+          value: trimmed,
+          label: meta.hasOpenJob ? `${trimmed} (Active Opening)` : trimmed,
+          isVacancy: Boolean(meta.hasOpenJob),
+          jobId: meta.jobId || null
+        });
+      }
+    };
+
+    if (matchedSchool) {
+      // 1. Any published/active jobs in this school
+      if (Array.isArray(matchedSchool.jobs)) {
+        matchedSchool.jobs.forEach((j) => {
+          if (j.status === 'PUBLISHED') {
+            addPost(j.position, { hasOpenJob: true, jobId: j.id });
+          }
+        });
+      }
+
+      // 2. Department positions in this school
+      if (Array.isArray(matchedSchool.departments)) {
+        matchedSchool.departments.forEach((dept) => {
+          if (Array.isArray(dept.positions)) {
+            dept.positions.forEach((pos) => {
+              addPost(pos.title, { jobId: null });
+            });
+          }
+        });
+      }
+
+      // 3. Fallback standard ranks based on school category
+      if (matchedSchool.type === 'NON_TEACHING') {
+        POSTS_BY_TYPE.NON_TEACHING.forEach((p) => addPost(p));
+      } else {
+        POSTS_BY_TYPE.TEACHING.forEach((p) => addPost(p));
+      }
+    } else {
+      // Fallback when structure is loading or offline
+      const isNT = urlType === 'NON_TEACHING' || nonTeachingDivisions.some((nt) => cleanSel.includes(nt.toLowerCase()));
+      const fallbackList = isNT ? POSTS_BY_TYPE.NON_TEACHING : POSTS_BY_TYPE.TEACHING;
+      fallbackList.forEach((p) => addPost(p));
+    }
+
+    return postOptions;
+  }, [academicStructure, selectedFaculty, urlType, nonTeachingDivisions]);
+
+  const handleFacultyChange = (newFaculty) => {
+    setSelectedFaculty(newFaculty);
+    // Dynamically reset post selection when switching faculties
+    setPostAppliedFor('');
+  };
+
+  const handlePostChange = (newPost) => {
+    setPostAppliedFor(newPost);
+    const matchedOpt = availablePosts.find((p) => p.value === newPost);
+    if (matchedOpt?.jobId) {
+      setLoadedVacancy((prev) => ({ ...(prev || {}), id: matchedOpt.jobId, position: newPost }));
+    }
+  };
+
   // Load Vacancy details if jobId provided
   useEffect(() => {
     if (activeJobId) {
@@ -325,7 +443,7 @@ function ApplicationForm() {
         .then((data) => {
           if (data && !data.error) {
             setLoadedVacancy(data);
-            if (data.department) setSelectedFaculty(data.department.toUpperCase());
+            if (data.department) setSelectedFaculty(data.department);
             if (data.position) setPostAppliedFor(data.position);
           }
         })
@@ -486,6 +604,10 @@ function ApplicationForm() {
         setError('Valid Email ID is required.');
         return;
       }
+      if (!emailVerified) {
+        setError('Please verify your email address via OTP before proceeding to the next step.');
+        return;
+      }
       if (!mobile || mobile.length !== 10) {
         setError('Invalid Mobile Number: Mobile number must be exactly 10 digits.');
         return;
@@ -545,8 +667,60 @@ function ApplicationForm() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // OTP handlers removed — verification now happens at Registration.
-  // Email and mobile are pre-filled and locked from the authenticated user account.
+  // Email and OTP Verification Handlers for Guest Applicants
+  const handleEmailChange = (newVal) => {
+    setEmail(newVal);
+    if (!user) {
+      setEmailVerified(false);
+      setOtpSent(false);
+      setOtpInput('');
+      setOtpMessage('');
+    }
+  };
+
+  const handleSendOtp = async () => {
+    if (!email || !email.includes('@')) {
+      setError('Please enter a valid email address first.');
+      return;
+    }
+    setError('');
+    setSendingOtp(true);
+    setOtpMessage('');
+    try {
+      const res = await apiRequest('/auth/send-otp', {
+        method: 'POST',
+        body: JSON.stringify({ email: email.toLowerCase().trim() })
+      });
+      setOtpSent(true);
+      setOtpMessage(res.message || `Verification code sent to ${email}.`);
+    } catch (err) {
+      setError(err.message || 'Failed to send OTP. Please try again.');
+    } finally {
+      setSendingOtp(false);
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    if (!otpInput || otpInput.trim().length < 4) {
+      setError('Please enter the 6-digit OTP code received on your email.');
+      return;
+    }
+    setError('');
+    setVerifyingOtp(true);
+    try {
+      await apiRequest('/auth/verify-otp', {
+        method: 'POST',
+        body: JSON.stringify({ email: email.toLowerCase().trim(), otp: otpInput.trim() })
+      });
+      setEmailVerified(true);
+      setOtpSent(false);
+      setOtpMessage('✓ Email verified successfully!');
+    } catch (err) {
+      setError(err.message || 'Invalid OTP code. Please try again.');
+    } finally {
+      setVerifyingOtp(false);
+    }
+  };
 
   // Qualification Row Helpers
   const handleAddQualification = () => {
@@ -686,17 +860,24 @@ function ApplicationForm() {
       return;
     }
 
+    if (!emailVerified) {
+      setError('Please verify your email address via OTP before final submission.');
+      return;
+    }
+
     setSubmitting(true);
 
     try {
-      const targetJobId = activeJobId || loadedVacancy?.id || 'job-1';
+      const matchedJob = availablePosts.find((p) => p.value === postAppliedFor)?.jobId;
+      const targetJobId = activeJobId || matchedJob || loadedVacancy?.id || null;
 
       const payload = {
+        jobId: targetJobId,
         faculty: selectedFaculty,
         postAppliedFor: postAppliedFor || 'Faculty Position',
         subjectAppliedFor,
         personalInfo: { title: title !== 'Select' ? title : '', firstName, middleName, lastName, dob, age, gender, maritalStatus, email, alternateEmail },
-        contactDetails: { mobile, alternateMobile, address, city, state, country, pinCode },
+        contactDetails: { mobile, alternateMobile, address, city, state, country, pinCode, email },
         qualifications,
         phdDetails: { phdStatus, phdUniversity, phdYear, scopusCount, scopusId, conferencePaper, wosCount, wosId, net, setExam, slet, gate },
         workExperience: isFresher ? [] : experiences,
@@ -705,44 +886,57 @@ function ApplicationForm() {
           isFresher,
           records: experiences
         },
-        declaration: true
+        declaration: true,
+        emailVerified: true
       };
 
-      // Ensure draft exists
-      let appTargetId = draftAppId;
-      if (!appTargetId) {
-        const initRes = await apiRequest('/applications', {
+      let submitRes;
+      if (draftAppId && !draftAppId.startsWith('app-local-')) {
+        submitRes = await apiRequest(`/applications/${draftAppId}/submit`, {
           method: 'POST',
-          body: JSON.stringify({ jobId: targetJobId, ...payload })
+          body: JSON.stringify(payload)
         });
-        appTargetId = initRes.applicationId || initRes.id;
+      } else {
+        submitRes = await apiRequest('/applications/submit', {
+          method: 'POST',
+          body: JSON.stringify(payload)
+        });
       }
 
-      // Submit Draft -> SUBMITTED
-      const submitRes = await apiRequest(`/applications/${appTargetId}/submit`, {
-        method: 'POST',
-        body: JSON.stringify(payload)
-      });
-
       const finalAppNumber = submitRes.applicationNumber || 'DYPIU-2026-000001';
+      const returnedAppId = submitRes.applicationId || draftAppId || 'new';
+      const isInterest = Boolean(submitRes.isInterest);
 
-      navigate(`/applicant/applications/${appTargetId}/success`, {
+      navigate(`/applicant/applications/${returnedAppId}/success`, {
         state: {
           appNumber: finalAppNumber,
           position: postAppliedFor || selectedFaculty,
-          status: 'SUBMITTED'
+          status: 'SUBMITTED',
+          isNewUser: Boolean(submitRes.isNewUser),
+          isInterest
         }
       });
     } catch (err) {
       console.error('Final submission error:', err);
-      setError(err.message || 'Error submitting application. Please verify all details.');
+      // If the backend still returns a deadline-passed error (legacy), redirect gracefully
+      const msg = err.message || '';
+      if (msg.toLowerCase().includes('deadline') || msg.toLowerCase().includes('passed') || msg.toLowerCase().includes('closed')) {
+        navigate('/apply/success-interest', {
+          state: {
+            appNumber: 'INTEREST-REG',
+            position: postAppliedFor || selectedFaculty,
+            status: 'SUBMITTED',
+            isInterest: true,
+            message: 'Thank you for applying. We will reach out to you soon when the vacancies are open. We have securely registered your details in our recruitment system.'
+          }
+        });
+      } else {
+        setError(msg || 'Error submitting application. Please verify all details.');
+      }
     } finally {
       setSubmitting(false);
     }
   };
-
-  const isNonTeaching = urlType === 'NON_TEACHING' || POSTS_BY_TYPE.NON_TEACHING.includes(postAppliedFor);
-  const availablePosts = isNonTeaching ? POSTS_BY_TYPE.NON_TEACHING : POSTS_BY_TYPE.TEACHING;
 
   return (
     <div className="page-watermark-wrapper">
@@ -890,21 +1084,39 @@ function ApplicationForm() {
             <div className="app-form-grid-2col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
               <div className="form-group">
                 <label style={{ fontWeight: 700, fontSize: '0.85rem' }}>Selected Faculty / Department</label>
-                <select value={selectedFaculty} onChange={(e) => setSelectedFaculty(e.target.value)}>
-                  {FACULTIES_LIST.map((f) => (
-                    <option key={f} value={f}>{f}</option>
-                  ))}
+                <select value={selectedFaculty} onChange={(e) => handleFacultyChange(e.target.value)}>
+                  <optgroup label="Academic Schools & Faculties (Teaching)">
+                    {teachingSchools.map((f) => (
+                      <option key={f} value={f}>{f}</option>
+                    ))}
+                  </optgroup>
+                  <optgroup label="Administrative & Operations Divisions (Non-Teaching)">
+                    {nonTeachingDivisions.map((f) => (
+                      <option key={f} value={f}>{f}</option>
+                    ))}
+                  </optgroup>
                 </select>
               </div>
 
               <div className="form-group">
-                <label style={{ fontWeight: 700, fontSize: '0.85rem' }}>Post Applied For <span className="required">*</span></label>
-                <select value={postAppliedFor} onChange={(e) => setPostAppliedFor(e.target.value)} required>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <label style={{ fontWeight: 700, fontSize: '0.85rem', margin: 0 }}>
+                    Post Applied For <span className="required">*</span>
+                  </label>
+                  {availablePosts.some((p) => p.isVacancy) && (
+                    <span style={{ fontSize: '0.72rem', color: '#721b28', fontWeight: 700 }}>
+                      ⚡ Active Vacancies Available
+                    </span>
+                  )}
+                </div>
+                <select value={postAppliedFor} onChange={(e) => handlePostChange(e.target.value)} required>
                   <option value="">-- Select Post --</option>
                   {availablePosts.map((p) => (
-                    <option key={p} value={p}>{p}</option>
+                    <option key={p.value} value={p.value}>
+                      {p.label}
+                    </option>
                   ))}
-                  {postAppliedFor && !availablePosts.includes(postAppliedFor) && (
+                  {postAppliedFor && !availablePosts.some((p) => p.value === postAppliedFor) && (
                     <option value={postAppliedFor}>{postAppliedFor}</option>
                   )}
                 </select>
@@ -1001,10 +1213,11 @@ function ApplicationForm() {
               STEP 2 — Contact Information
             </h3>
 
-            {/* Pre-filled contact note */}
-            <div style={{ padding: '10px 14px', background: '#f0fdf4', border: '1px solid #86efac', borderRadius: '6px', marginBottom: '16px', fontSize: '0.82rem', color: '#166534', fontWeight: 600 }}>
-              ✓ Contact details are pre-filled from your verified account and cannot be changed here.
-            </div>
+            {user && (
+              <div style={{ padding: '10px 14px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '6px', marginBottom: '16px', fontSize: '0.82rem', color: '#721b28', fontWeight: 600 }}>
+                ✓ Logged in as <strong>{user.name || user.email}</strong>. Contact details are pre-filled.
+              </div>
+            )}
 
             <div className="app-form-grid-2col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
               <div className="form-group">
@@ -1012,14 +1225,82 @@ function ApplicationForm() {
                   <label style={{ fontWeight: 700, fontSize: '0.85rem', margin: 0 }}>
                     Email Address <span className="required">*</span>
                   </label>
-                  <span style={{ fontSize: '0.78rem', color: '#16a34a', fontWeight: 700 }}>✓ Verified</span>
+                  {emailVerified ? (
+                    <span style={{ fontSize: '0.78rem', color: '#721b28', fontWeight: 700 }}>
+                      ✓ Verified {!user && (
+                        <button
+                          type="button"
+                          onClick={() => { setEmailVerified(false); setOtpSent(false); setOtpInput(''); setOtpMessage(''); }}
+                          style={{ background: 'none', border: 'none', color: '#721b28', textDecoration: 'underline', cursor: 'pointer', marginLeft: '6px', fontSize: '0.75rem' }}
+                        >
+                          (Change)
+                        </button>
+                      )}
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleSendOtp}
+                      disabled={sendingOtp || !email}
+                      style={{
+                        background: '#721b28', color: '#d9a43c', border: 'none', borderRadius: '4px',
+                        padding: '3px 12px', fontSize: '0.75rem', fontWeight: 700,
+                        cursor: sendingOtp || !email ? 'not-allowed' : 'pointer',
+                        opacity: sendingOtp || !email ? 0.6 : 1
+                      }}
+                    >
+                      {sendingOtp ? 'Sending OTP…' : otpSent ? 'Resend OTP' : 'Send OTP'}
+                    </button>
+                  )}
                 </div>
                 <input
                   type="email"
                   value={email}
-                  readOnly
-                  style={{ backgroundColor: '#f0fdf4', borderColor: '#86efac', cursor: 'not-allowed', color: '#374151' }}
+                  onChange={(e) => handleEmailChange(e.target.value)}
+                  readOnly={Boolean(user) || emailVerified}
+                  placeholder="e.g. candidate@example.com"
+                  required
+                  style={{
+                    backgroundColor: emailVerified ? '#fef2f2' : '#ffffff',
+                    borderColor: emailVerified ? '#721b28' : undefined,
+                    cursor: (Boolean(user) || emailVerified) ? 'default' : 'text'
+                  }}
                 />
+                {otpMessage && (
+                  <p style={{ margin: '5px 0 0 0', fontSize: '0.8rem', color: emailVerified ? '#721b28' : '#0f172a', fontWeight: 600 }}>
+                    {otpMessage}
+                  </p>
+                )}
+                {otpSent && !emailVerified && (
+                  <div style={{ marginTop: '10px', padding: '12px', background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '6px' }}>
+                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
+                      Enter 6-Digit Email Verification Code:
+                    </label>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <input
+                        type="text"
+                        maxLength={6}
+                        placeholder="e.g. 123456"
+                        value={otpInput}
+                        onChange={(e) => setOtpInput(e.target.value.replace(/\D/g, ''))}
+                        style={{ width: '130px', letterSpacing: '3px', textAlign: 'center', fontWeight: 'bold', fontSize: '0.95rem', padding: '6px 10px', border: '1px solid #cbd5e1', borderRadius: '4px' }}
+                      />
+                      <button
+                        type="button"
+                        onClick={handleVerifyOtp}
+                        disabled={verifyingOtp || otpInput.length < 4}
+                        style={{
+                          backgroundColor: '#721b28', color: '#fff', border: 'none', borderRadius: '4px',
+                          padding: '6px 14px', fontSize: '0.82rem', fontWeight: 700,
+                          cursor: verifyingOtp || otpInput.length < 4 ? 'not-allowed' : 'pointer',
+                          opacity: verifyingOtp || otpInput.length < 4 ? 0.6 : 1
+                        }}
+                      >
+                        {verifyingOtp ? 'Verifying…' : 'Confirm OTP'}
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="form-group">
@@ -1033,14 +1314,26 @@ function ApplicationForm() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
                   <label style={{ fontWeight: 700, fontSize: '0.85rem', margin: 0 }}>
                     Mobile Number <span className="required">*</span>
+                    {mobile && mobile.length !== 10 && (
+                      <span style={{ color: '#ef4444', fontSize: '0.78rem', marginLeft: '8px', fontWeight: 600 }}>
+                        (Must be 10 digits)
+                      </span>
+                    )}
                   </label>
-                  <span style={{ fontSize: '0.78rem', color: '#16a34a', fontWeight: 700 }}>✓ Pre-filled</span>
+                  {user && user.mobile && <span style={{ fontSize: '0.78rem', color: '#721b28', fontWeight: 700 }}>✓ Pre-filled</span>}
                 </div>
                 <input
                   type="tel"
                   value={mobile}
-                  readOnly
-                  style={{ backgroundColor: '#f0fdf4', borderColor: '#86efac', cursor: 'not-allowed', color: '#374151' }}
+                  maxLength={10}
+                  onChange={(e) => setMobile(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                  readOnly={Boolean(user && user.mobile)}
+                  placeholder="10-digit mobile number"
+                  required
+                  style={{
+                    backgroundColor: user && user.mobile ? '#fef2f2' : '#ffffff',
+                    cursor: user && user.mobile ? 'not-allowed' : 'text'
+                  }}
                 />
               </div>
 
@@ -1208,9 +1501,9 @@ function ApplicationForm() {
                   style={{
                     flex: 1,
                     height: '42px',
-                    backgroundColor: isFresher ? '#006652' : '#ffffff',
+                    backgroundColor: isFresher ? '#721b28' : '#ffffff',
                     color: isFresher ? '#ffffff' : '#334155',
-                    border: isFresher ? '1.5px solid #006652' : '1px solid #cbd5e1',
+                    border: isFresher ? '1.5px solid #721b28' : '1px solid #cbd5e1',
                     borderRadius: '6px',
                     fontWeight: 700,
                     fontSize: '0.88rem',
@@ -1228,9 +1521,9 @@ function ApplicationForm() {
                   style={{
                     flex: 1,
                     height: '42px',
-                    backgroundColor: !isFresher ? '#006652' : '#ffffff',
+                    backgroundColor: !isFresher ? '#721b28' : '#ffffff',
                     color: !isFresher ? '#ffffff' : '#334155',
-                    border: !isFresher ? '1.5px solid #006652' : '1px solid #cbd5e1',
+                    border: !isFresher ? '1.5px solid #721b28' : '1px solid #cbd5e1',
                     borderRadius: '6px',
                     fontWeight: 700,
                     fontSize: '0.88rem',
@@ -1304,7 +1597,7 @@ function ApplicationForm() {
                 ))}
 
                 <div style={{ display: 'flex', gap: '10px' }}>
-                  <button type="button" onClick={handleAddExperience} style={{ backgroundColor: '#ffffff', border: '1.5px solid #006652', color: '#006652', padding: '8px 16px', borderRadius: '6px', fontWeight: 700, cursor: 'pointer', fontSize: '0.85rem' }}>
+                  <button type="button" onClick={handleAddExperience} style={{ backgroundColor: '#ffffff', border: '1.5px solid #721b28', color: '#721b28', padding: '8px 16px', borderRadius: '6px', fontWeight: 700, cursor: 'pointer', fontSize: '0.85rem' }}>
                     + Add Experience Row
                   </button>
                   {experiences.length > 1 && (
@@ -1411,7 +1704,7 @@ function ApplicationForm() {
 
             {uploadedDocsList.length > 0 && (
               <div style={{ marginTop: '20px', paddingTop: '14px', borderTop: '1px solid #e2e8f0' }}>
-                <h4 style={{ margin: '0 0 10px 0', fontSize: '0.9rem', color: '#166534', fontWeight: 800 }}>✓ Uploaded Documents Saved in Dossier:</h4>
+                <h4 style={{ margin: '0 0 10px 0', fontSize: '0.9rem', color: '#721b28', fontWeight: 800 }}>✓ Uploaded Documents Saved in Dossier:</h4>
                 <ul style={{ paddingLeft: '20px', margin: 0, fontSize: '0.85rem', color: '#334155' }}>
                   {uploadedDocsList.map((d) => (
                     <li key={d.id || d.originalName}>
@@ -1433,7 +1726,7 @@ function ApplicationForm() {
 
             {/* READ-ONLY SUMMARY BOX */}
             <div style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '20px', marginBottom: '24px' }}>
-              <h4 style={{ margin: '0 0 12px 0', color: '#0f766e', fontSize: '0.96rem', fontWeight: 800 }}>Summary of Application Details:</h4>
+              <h4 style={{ margin: '0 0 12px 0', color: '#721b28', fontSize: '0.96rem', fontWeight: 800 }}>Summary of Application Details:</h4>
               
               <div className="app-form-grid-2col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', fontSize: '0.86rem', color: '#334155' }}>
                 <div><strong>Candidate Name:</strong> {title} {firstName} {middleName} {lastName}</div>
@@ -1463,7 +1756,7 @@ function ApplicationForm() {
             {/* CAPTCHA */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px', flexWrap: 'wrap' }}>
               <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#0f172a' }}>
-                Security Check: What is <span style={{ color: '#0f766e' }}>{captchaNum1} + {captchaNum2}</span>?
+                Security Check: What is <span style={{ color: '#721b28' }}>{captchaNum1} + {captchaNum2}</span>?
               </span>
               <input
                 type="text"

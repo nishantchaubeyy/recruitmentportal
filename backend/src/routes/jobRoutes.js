@@ -13,6 +13,7 @@ router.get('/public/vacancies/:id', jobController.getPublicVacancyById);
 router.get('/public/schools', jobController.getSchools);
 router.get('/public/schools/:id/departments', jobController.getSchoolDepartments);
 router.get('/public/departments/:id/positions', jobController.getDepartmentPositions);
+router.get('/public/academic-structure', jobController.getAcademicStructure);
 
 // ==========================================
 // ADMIN VACANCY & STRUCTURE MANAGEMENT ENDPOINTS

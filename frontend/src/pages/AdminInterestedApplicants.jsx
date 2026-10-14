@@ -54,7 +54,7 @@ function AdminInterestedApplicants() {
     <div style={{ padding: '24px 30px' }}>
       {/* Action Notification Banner */}
       {notificationMsg && (
-        <div style={{ backgroundColor: '#ecfdf5', color: '#047857', border: '1px solid #a7f3d0', padding: '14px 18px', borderRadius: '10px', marginBottom: '20px', fontWeight: 600 }}>
+        <div style={{ backgroundColor: '#fef2f2', color: '#721b28', border: '1px solid #fecaca', padding: '14px 18px', borderRadius: '10px', marginBottom: '20px', fontWeight: 600 }}>
           ✓ {notificationMsg}
         </div>
       )}
@@ -217,7 +217,7 @@ function AdminInterestedApplicants() {
                   </td>
                   <td style={tdStyle}>
                     {item.status === 'NOTIFIED' ? (
-                      <span style={{ backgroundColor: '#dcfce7', color: '#15803d', padding: '4px 10px', borderRadius: '12px', fontSize: '0.78rem', fontWeight: 800 }}>
+                      <span style={{ backgroundColor: '#fef2f2', color: '#721b28', border: '1px solid #fecaca', padding: '4px 10px', borderRadius: '12px', fontSize: '0.78rem', fontWeight: 800 }}>
                         ✓ Notified ({item.notifiedAt ? new Date(item.notifiedAt).toLocaleDateString() : 'Yes'})
                       </span>
                     ) : (

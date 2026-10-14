@@ -105,7 +105,7 @@ function AdminJobs() {
       </div>
 
       {actionBanner && (
-        <div style={{ backgroundColor: '#ecfdf5', color: '#047857', border: '1px solid #a7f3d0', padding: '12px 16px', borderRadius: '8px', marginBottom: '20px', fontSize: '0.9rem', fontWeight: 600 }}>
+        <div style={{ backgroundColor: '#fef2f2', color: '#721b28', border: '1px solid #fecaca', padding: '12px 16px', borderRadius: '8px', marginBottom: '20px', fontSize: '0.9rem', fontWeight: 600 }}>
           ✓ {actionBanner}
         </div>
       )}
@@ -289,7 +289,7 @@ function StatusBadge({ status, isOpen }) {
   let style = { padding: '4px 10px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 800 };
   if (status === 'PUBLISHED') {
     if (isOpen) {
-      return <span style={{ ...style, backgroundColor: '#dcfce7', color: '#15803d' }}>PUBLISHED (OPEN)</span>;
+      return <span style={{ ...style, backgroundColor: '#fef2f2', color: '#721b28', border: '1px solid #fecaca' }}>PUBLISHED (OPEN)</span>;
     }
     return <span style={{ ...style, backgroundColor: '#fee2e2', color: '#991b1b' }}>PUBLISHED (EXPIRED)</span>;
   }

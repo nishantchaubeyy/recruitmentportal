@@ -195,7 +195,7 @@ function AdminSchools() {
       </div>
 
       {successBanner && (
-        <div style={{ backgroundColor: '#ecfdf5', color: '#047857', border: '1px solid #a7f3d0', padding: '12px 16px', borderRadius: '8px', marginBottom: '20px', fontSize: '0.9rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div style={{ backgroundColor: '#fef2f2', color: '#721b28', border: '1px solid #fecaca', padding: '12px 16px', borderRadius: '8px', marginBottom: '20px', fontSize: '0.9rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
           <span>✓</span>
           <span>{successBanner}</span>
         </div>
@@ -328,8 +328,8 @@ function AdminSchools() {
                       {/* Current Display Mode */}
                       <td style={{ padding: '16px 16px' }}>
                         {hasPoster ? (
-                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', backgroundColor: '#ecfdf5', color: '#047857', border: '1px solid #a7f3d0', padding: '4px 10px', borderRadius: '6px', fontSize: '0.78rem', fontWeight: 700 }}>
-                            <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#10b981' }}></span>
+                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', backgroundColor: '#fef2f2', color: '#721b28', border: '1px solid #fecaca', padding: '4px 10px', borderRadius: '6px', fontSize: '0.78rem', fontWeight: 700 }}>
+                            <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#721b28' }}></span>
                             Poster Mode (Active)
                           </div>
                         ) : (
@@ -498,11 +498,11 @@ function AdminSchools() {
               <div
                 onClick={() => fileInputRef.current?.click()}
                 style={{
-                  border: '2px dashed #0d9488',
+                  border: '2px dashed #721b28',
                   borderRadius: '10px',
                   padding: '24px 16px',
                   textAlign: 'center',
-                  backgroundColor: previewUrl ? '#f0fdf4' : '#fafafa',
+                  backgroundColor: previewUrl ? '#fef2f2' : '#fafafa',
                   cursor: 'pointer',
                   transition: 'all 0.15s ease',
                   marginBottom: '16px'

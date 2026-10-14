@@ -88,7 +88,7 @@ function AdminUsers() {
       )}
 
       {success && (
-        <div style={{ padding: '12px 16px', backgroundColor: '#f0fdf4', border: '1px solid #86efac', color: '#166534', borderRadius: '8px', marginBottom: '20px' }}>
+        <div style={{ padding: '12px 16px', backgroundColor: '#fef2f2', border: '1px solid #fecaca', color: '#721b28', borderRadius: '8px', marginBottom: '20px' }}>
           {success}
         </div>
       )}
@@ -234,8 +234,8 @@ function AdminUsers() {
                       padding: '3px 8px', 
                       borderRadius: '4px',
                       fontWeight: 700,
-                      backgroundColor: u.status === 'ACTIVE' ? '#f0fdf4' : '#fee2e2',
-                      color: u.status === 'ACTIVE' ? '#15803d' : '#991b1b'
+                      backgroundColor: u.status === 'ACTIVE' ? '#fef2f2' : '#fee2e2',
+                      color: u.status === 'ACTIVE' ? '#721b28' : '#991b1b'
                     }}>
                       {u.status || 'ACTIVE'}
                     </span>

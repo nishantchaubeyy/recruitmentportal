@@ -912,7 +912,7 @@ function Home() {
                   <div className="job-info-left">
                     <h3 className="job-title-elongated">{jobTitle}</h3>
                     <div className="job-meta-line">
-                      <span>{jobDept}</span> &bull; <span>{locationText}</span> &bull; <span>{job.experience || 'Prior experience preferred'}</span> &bull; <strong style={{ color: '#16a34a' }}>{openingsCount} {openingsCount === 1 ? 'Opening' : 'Openings'}</strong>
+                      <span>{jobDept}</span> &bull; <span>{locationText}</span> &bull; <span>{job.experience || 'Prior experience preferred'}</span> &bull; <strong style={{ color: '#721b28' }}>{openingsCount} {openingsCount === 1 ? 'Opening' : 'Openings'}</strong>
                     </div>
                     <div className="job-tags-row">
                       <span className="job-tag-pill type-pill">{jobType}</span>

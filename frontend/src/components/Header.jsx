@@ -53,13 +53,30 @@ function Header() {
           >
             Advertisements
           </Link>
-          {user && (
+          {!user ? (
             <button 
-              onClick={() => { setMobileMenuOpen(false); handleLogout(); }}
-              className="nav-logout-btn"
+              type="button"
+              className={`nav-login-btn ${location.pathname === '/login' ? 'active' : ''}`}
+              onClick={() => { setMobileMenuOpen(false); navigate('/login'); }}
             >
-              Logout ({user.name})
+              Login
             </button>
+          ) : (
+            <>
+              <Link
+                to={user.role === 'APPLICANT' ? '/applicant/dashboard' : '/admin/dashboard'}
+                className={location.pathname.includes('/dashboard') ? 'active' : ''}
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Dashboard
+              </Link>
+              <button 
+                onClick={() => { setMobileMenuOpen(false); handleLogout(); }}
+                className="nav-logout-btn"
+              >
+                Logout ({user.name || 'User'})
+              </button>
+            </>
           )}
         </nav>
       </div>

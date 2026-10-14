@@ -257,38 +257,32 @@ function JobDetails() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
             <div>
               <div style={{ fontWeight: 800, color: '#B45309', fontSize: '1rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                {isClosed ? 'Applications Closed' : 'Ready to Submit Application?'}
+                {isClosed ? 'Register Your Interest' : 'Ready to Submit Application?'}
               </div>
               <div style={{ fontSize: '0.84rem', color: '#475569', marginTop: '3px' }}>
-                {isClosed 
-                  ? 'The application deadline for this opening has passed.' 
+                {isClosed
+                  ? 'Deadline has passed — but you can still submit your details. We will notify you when a new vacancy opens.'
                   : `Submission deadline: ${new Date(job.deadline).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}`}
               </div>
             </div>
 
             <div>
-              {isClosed ? (
-                <span style={{ color: '#b91c1c', fontWeight: 700, fontSize: '0.9rem', backgroundColor: '#fef2f2', padding: '8px 16px', borderRadius: '4px', border: '1px solid #fecaca' }}>
-                  Application Closed
-                </span>
-              ) : (
-                <button
-                  onClick={() => navigate(`/apply?jobId=${job.id}`)}
-                  style={{
-                    backgroundColor: '#8B1235',
-                    color: '#FCD34D',
-                    border: 'none',
-                    padding: '12px 28px',
-                    borderRadius: '4px',
-                    fontWeight: 800,
-                    fontSize: '0.9rem',
-                    cursor: 'pointer',
-                    letterSpacing: '0.4px'
-                  }}
-                >
-                  Proceed to Application Form &rarr;
-                </button>
-              )}
+              <button
+                onClick={() => navigate(`/apply?jobId=${job.id}`)}
+                style={{
+                  backgroundColor: isClosed ? '#334155' : '#8B1235',
+                  color: '#FCD34D',
+                  border: 'none',
+                  padding: '12px 28px',
+                  borderRadius: '4px',
+                  fontWeight: 800,
+                  fontSize: '0.9rem',
+                  cursor: 'pointer',
+                  letterSpacing: '0.4px'
+                }}
+              >
+                {isClosed ? 'Register Interest →' : 'Proceed to Application Form →'}
+              </button>
             </div>
           </div>
         </section>

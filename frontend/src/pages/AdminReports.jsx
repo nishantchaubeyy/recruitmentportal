@@ -108,7 +108,7 @@ function AdminReports() {
                 </td>
                 <td>{new Date(job.postedDate).toLocaleDateString('en-IN')}</td>
                 <td><strong>{job.totalApplications}</strong></td>
-                <td style={{ color: '#166534', fontWeight: 600 }}>{job.shortlisted}</td>
+                <td style={{ color: '#721b28', fontWeight: 600 }}>{job.shortlisted}</td>
                 <td style={{ color: '#991b1b', fontWeight: 600 }}>{job.rejected}</td>
                 <td style={{ color: '#b45309', fontWeight: 600 }}>{job.underReview}</td>
               </tr>

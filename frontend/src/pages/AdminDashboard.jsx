@@ -77,7 +77,7 @@ function AdminDashboard() {
     switch (status) {
       case 'Selected':
       case 'Shortlisted':
-        return { bg: '#DCFCE7', text: '#166534', border: '#BBF7D0' };
+        return { bg: '#FEF2F2', text: '#721B28', border: '#FECACA' };
       case 'Interview Scheduled':
       case 'Interview':
         return { bg: '#E0E7FF', text: '#3730A3', border: '#C7D2FE' };
@@ -137,8 +137,8 @@ function AdminDashboard() {
               </div>
               <div style={metricValueStyle}>{metrics.totalJobs}</div>
               <div style={metricContextStyle}>
-                <IconTrendingUp size={13} color="#16A34A" />
-                <span style={{ color: '#16A34A', fontWeight: 700 }}>Active</span> across all departments
+                <IconTrendingUp size={13} color="#721B28" />
+                <span style={{ color: '#721B28', fontWeight: 700 }}>Active</span> across all departments
               </div>
             </div>
 
@@ -221,9 +221,9 @@ function AdminDashboard() {
             <div style={{ height: '10px', width: '100%', backgroundColor: '#F1F5F9', borderRadius: '6px', overflow: 'hidden', display: 'flex', marginBottom: '20px' }}>
               <div style={{ width: `${(metrics.submitted / totalAppsSafe) * 100}%`, backgroundColor: '#3B82F6' }} title="Submitted" />
               <div style={{ width: `${(metrics.underReview / totalAppsSafe) * 100}%`, backgroundColor: '#F59E0B' }} title="Under Review" />
-              <div style={{ width: `${(metrics.shortlisted / totalAppsSafe) * 100}%`, backgroundColor: '#10B981' }} title="Shortlisted" />
+              <div style={{ width: `${(metrics.shortlisted / totalAppsSafe) * 100}%`, backgroundColor: '#721B28' }} title="Shortlisted" />
               <div style={{ width: `${(metrics.interview / totalAppsSafe) * 100}%`, backgroundColor: '#6366F1' }} title="Interview" />
-              <div style={{ width: `${(metrics.selected / totalAppsSafe) * 100}%`, backgroundColor: '#059669' }} title="Selected" />
+              <div style={{ width: `${(metrics.selected / totalAppsSafe) * 100}%`, backgroundColor: '#D97706' }} title="Selected" />
               <div style={{ width: `${(metrics.rejected / totalAppsSafe) * 100}%`, backgroundColor: '#EF4444' }} title="Rejected" />
             </div>
 
@@ -253,7 +253,7 @@ function AdminDashboard() {
                 title="Click to view all Shortlisted applications"
               >
                 <span style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: 700 }}>Shortlisted</span>
-                <span style={{ fontSize: '1.2rem', fontWeight: 800, color: '#059669' }}>{metrics.shortlisted}</span>
+                <span style={{ fontSize: '1.2rem', fontWeight: 800, color: '#721B28' }}>{metrics.shortlisted}</span>
               </div>
 
               <div 
@@ -271,7 +271,7 @@ function AdminDashboard() {
                 title="Click to view all Selected applications"
               >
                 <span style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: 700 }}>Selected</span>
-                <span style={{ fontSize: '1.2rem', fontWeight: 800, color: '#047857' }}>{metrics.selected}</span>
+                <span style={{ fontSize: '1.2rem', fontWeight: 800, color: '#D97706' }}>{metrics.selected}</span>
               </div>
 
               <div 
@@ -387,10 +387,10 @@ function AdminDashboard() {
                   <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', fontWeight: 600, marginBottom: '6px' }}>
                       <span style={{ color: '#475569' }}>Shortlisted</span>
-                      <span style={{ fontWeight: 700, color: '#059669' }}>{metrics.shortlisted}</span>
+                      <span style={{ fontWeight: 700, color: '#721B28' }}>{metrics.shortlisted}</span>
                     </div>
                     <div style={{ height: '6px', backgroundColor: '#F1F5F9', borderRadius: '3px', overflow: 'hidden' }}>
-                      <div style={{ width: `${Math.min(100, (metrics.shortlisted / totalAppsSafe) * 100)}%`, height: '100%', backgroundColor: '#10B981' }} />
+                      <div style={{ width: `${Math.min(100, (metrics.shortlisted / totalAppsSafe) * 100)}%`, height: '100%', backgroundColor: '#721B28' }} />
                     </div>
                   </div>
 
@@ -407,10 +407,10 @@ function AdminDashboard() {
                   <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', fontWeight: 600, marginBottom: '6px' }}>
                       <span style={{ color: '#475569' }}>Selected Candidates</span>
-                      <span style={{ fontWeight: 700, color: '#047857' }}>{metrics.selected}</span>
+                      <span style={{ fontWeight: 700, color: '#D97706' }}>{metrics.selected}</span>
                     </div>
                     <div style={{ height: '6px', backgroundColor: '#F1F5F9', borderRadius: '3px', overflow: 'hidden' }}>
-                      <div style={{ width: `${Math.min(100, (metrics.selected / totalAppsSafe) * 100)}%`, height: '100%', backgroundColor: '#059669' }} />
+                      <div style={{ width: `${Math.min(100, (metrics.selected / totalAppsSafe) * 100)}%`, height: '100%', backgroundColor: '#D97706' }} />
                     </div>
                   </div>
                 </div>
@@ -418,7 +418,7 @@ function AdminDashboard() {
 
               {/* Sub-Footer Metrics note */}
               <div style={{ marginTop: '24px', paddingTop: '14px', borderTop: '1px solid #F1F5F9', fontSize: '0.78rem', color: '#64748B', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#10B981' }} />
+                <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#721B28' }} />
                 <span>Live dynamic pipeline analytics.</span>
               </div>
             </div>

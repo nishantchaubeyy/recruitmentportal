@@ -83,7 +83,7 @@ function CommitteeDashboard() {
       )}
 
       {success && (
-        <div style={{ padding: '12px 16px', backgroundColor: '#f0fdf4', border: '1px solid #86efac', color: '#166534', borderRadius: '8px', marginBottom: '20px' }}>
+        <div style={{ padding: '12px 16px', backgroundColor: '#fef2f2', border: '1px solid #fecaca', color: '#721b28', borderRadius: '8px', marginBottom: '20px' }}>
           {success}
         </div>
       )}

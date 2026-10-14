@@ -119,7 +119,7 @@ function AdminInterviews() {
       )}
 
       {success && (
-        <div style={{ padding: '12px 16px', backgroundColor: '#f0fdf4', border: '1px solid #86efac', color: '#166534', borderRadius: '8px', marginBottom: '20px' }}>
+        <div style={{ padding: '12px 16px', backgroundColor: '#fef2f2', border: '1px solid #fecaca', color: '#721b28', borderRadius: '8px', marginBottom: '20px' }}>
           {success}
         </div>
       )}
@@ -314,8 +314,8 @@ function AdminInterviews() {
                       padding: '3px 8px', 
                       borderRadius: '4px',
                       fontWeight: 700,
-                      backgroundColor: inv.mode === 'ONLINE' ? '#e0f2fe' : '#f0fdf4',
-                      color: inv.mode === 'ONLINE' ? '#0369a1' : '#15803d'
+                      backgroundColor: inv.mode === 'ONLINE' ? '#e0f2fe' : '#fef2f2',
+                      color: inv.mode === 'ONLINE' ? '#0369a1' : '#721b28'
                     }}>
                       {inv.mode}
                     </span>

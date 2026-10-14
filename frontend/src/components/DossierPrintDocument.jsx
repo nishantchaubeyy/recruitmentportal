@@ -302,7 +302,7 @@ function DossierPrintDocument({ app }) {
                     {doc.documentType === 'resume' ? 'CV / Resume' : doc.documentType}:
                   </span>{' '}
                   <span style={{ color: '#334155' }}>{doc.originalName || 'Document.pdf'}</span>{' '}
-                  <span style={{ fontSize: '8pt', color: '#166534', fontWeight: 600 }}>(Attached & Verified)</span>
+                  <span style={{ fontSize: '8pt', color: '#721b28', fontWeight: 600 }}>(Attached & Verified)</span>
                 </div>
               ))}
             </div>

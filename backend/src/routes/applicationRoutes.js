@@ -4,8 +4,8 @@ const applicationController = require('../controllers/applicationController');
 const { authenticate, optionalAuthenticate, requireAdmin, requireApplicant } = require('../middleware/authMiddleware');
 const upload = require('../middleware/uploadMiddleware');
 
-// Application Creation (requires login) & Applicant List
-router.post('/', authenticate, applicationController.createApplicationDraft);
+// Application Creation (supports authenticated applicants or guest draft creation) & Applicant List
+router.post('/', optionalAuthenticate, applicationController.createApplicationDraft);
 router.get('/my', authenticate, requireApplicant, applicationController.getMyApplications);
 
 // Screening / listing list (applicant sees own, staff see all)
@@ -16,6 +16,7 @@ router.get('/:id', optionalAuthenticate, applicationController.getApplicationByI
 router.put('/:id', optionalAuthenticate, applicationController.updateApplicationDraft);
 
 // Workflow Actions: Submit & Withdraw
+router.post('/submit', optionalAuthenticate, applicationController.submitApplication);
 router.post('/:id/submit', optionalAuthenticate, applicationController.submitApplication);
 router.post('/:id/withdraw', authenticate, requireApplicant, applicationController.withdrawApplication);
 

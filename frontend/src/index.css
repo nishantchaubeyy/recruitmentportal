@@ -15,9 +15,9 @@
   --dypiu-teal-dark: #0e7490;
   --dypiu-teal-light: #ecfeff;
   
-  --dypiu-green: #16a34a;        /* Success / Active Green */
-  --dypiu-green-dark: #15803d;
-  --dypiu-green-light: #f0fdf4;
+  --dypiu-green: #721b28;        /* Brand Red */
+  --dypiu-green-dark: #8B1235;
+  --dypiu-green-light: #fef2f2;
   
   --dypiu-orange: #ea580c;       /* Attention / Deadline Orange */
   --dypiu-orange-dark: #c2410c;
@@ -250,6 +250,52 @@ body {
   transition: color .25s;
 }
 .site-header nav a:hover { color: #d9a43c; }
+
+/* From Uiverse.io by WhiteNervosa - Login button on navbar */
+.site-header .nav-login-btn {
+  font-size: 18px;
+  color: #e1e1e1;
+  font-family: inherit;
+  font-weight: 800;
+  cursor: pointer;
+  position: relative;
+  border: none;
+  background: none;
+  text-transform: uppercase;
+  transition-timing-function: cubic-bezier(0.25, 0.8, 0.25, 1);
+  transition-duration: 400ms;
+  transition-property: color;
+  padding: 4px 0;
+  margin: 0;
+  line-height: inherit;
+  display: inline-flex;
+  align-items: center;
+}
+
+.site-header .nav-login-btn:focus,
+.site-header .nav-login-btn:hover {
+  color: #fff;
+}
+
+.site-header .nav-login-btn:focus:after,
+.site-header .nav-login-btn:hover:after {
+  width: 100%;
+  left: 0%;
+}
+
+.site-header .nav-login-btn:after {
+  content: "";
+  pointer-events: none;
+  bottom: -2px;
+  left: 50%;
+  position: absolute;
+  width: 0%;
+  height: 2px;
+  background-color: #fff;
+  transition-timing-function: cubic-bezier(0.25, 0.8, 0.25, 1);
+  transition-duration: 400ms;
+  transition-property: width, left;
+}
 
 /* Logout button */
 .site-header .nav-logout-btn {
@@ -1023,7 +1069,7 @@ body {
 .type-badge-non-teaching {
   background: var(--dypiu-green-light);
   color: var(--dypiu-green-dark);
-  border: 1px solid rgba(22, 163, 74, 0.2);
+  border: 1px solid rgba(114, 27, 40, 0.2);
 }
 
 .job-card-title {
@@ -1124,7 +1170,7 @@ body {
 .status-shortlisted {
   background: var(--dypiu-green-light);
   color: var(--dypiu-green);
-  border: 1px solid rgba(22, 163, 74, 0.25);
+  border: 1px solid rgba(114, 27, 40, 0.25);
 }
 
 .status-interview {
@@ -1136,7 +1182,7 @@ body {
 .status-selected {
   background: var(--dypiu-green-light);
   color: var(--dypiu-green-dark);
-  border: 1px solid rgba(21, 128, 61, 0.3);
+  border: 1px solid rgba(114, 27, 40, 0.3);
 }
 
 .status-waitlisted {
@@ -1970,7 +2016,7 @@ footer.footer-dypiu {
 
 .kpi-card.kpi-blue::before { background: #0f2b5c; }
 .kpi-card.kpi-teal::before { background: #0891b2; }
-.kpi-card.kpi-green::before { background: #16a34a; }
+.kpi-card.kpi-green::before { background: #721b28; }
 .kpi-card.kpi-orange::before { background: #ea580c; }
 
 .kpi-card-header {
@@ -2195,8 +2241,8 @@ footer.footer-dypiu {
 }
 
 .badge-outline-teal {
-  color: #0f766e;
-  border: 1.5px solid #0f766e;
+  color: #721b28;
+  border: 1.5px solid #721b28;
 }
 
 .badge-outline-orange {

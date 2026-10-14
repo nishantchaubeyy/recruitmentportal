@@ -1,3 +1,5 @@
+const crypto = require('crypto');
+const bcrypt = require('bcryptjs');
 const prisma = require('../services/prisma');
 const storageService = require('../services/storageService');
 const { notifyStatusChange } = require('../services/notificationService');
@@ -68,19 +70,36 @@ async function generateApplicationNumber() {
 }
 
 /**
+ * Generates an 8-10 character secure, user-friendly auto-generated password.
+ */
+function generateSecurePassword(length = 10) {
+  const upper = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+  const lower = 'abcdefghijkmnpqrstuvwxyz';
+  const digits = '23456789';
+  const special = '!@#$%&*';
+  const all = upper + lower + digits + special;
+
+  let pass = '';
+  pass += upper[crypto.randomInt(0, upper.length)];
+  pass += lower[crypto.randomInt(0, lower.length)];
+  pass += digits[crypto.randomInt(0, digits.length)];
+  pass += special[crypto.randomInt(0, special.length)];
+
+  for (let i = pass.length; i < length; i++) {
+    pass += all[crypto.randomInt(0, all.length)];
+  }
+
+  return pass.split('').sort(() => 0.5 - Math.random()).join('');
+}
+
+/**
  * Initialize a new draft application for a job opening.
  * Allows authenticated applicants or direct guest applicants filling the form.
  */
 async function createApplicationDraft(req, res) {
   try {
-    const { jobId } = req.body;
-    const applicantId = req.user?.applicantId;
-
-    // Authentication required — the /apply route is protected on the frontend.
-    // Reject unauthenticated requests so no dummy accounts are ever created.
-    if (!applicantId) {
-      return res.status(401).json({ error: 'Authentication required. Please login to start an application.' });
-    }
+    const { jobId, email } = req.body;
+    let applicantId = req.user?.applicantId;
 
     let job = null;
     if (jobId) {
@@ -94,6 +113,28 @@ async function createApplicationDraft(req, res) {
 
     if (!job) {
       return res.status(404).json({ error: 'No active job position available for application.' });
+    }
+
+    // If candidate is a guest without an existing user/applicant profile:
+    if (!applicantId && email && email.includes('@')) {
+      const cleanEmail = email.toLowerCase().trim();
+      const existingUser = await prisma.user.findUnique({
+        where: { email: cleanEmail },
+        include: { applicant: true }
+      });
+      if (existingUser?.applicant) {
+        applicantId = existingUser.applicant.id;
+      }
+    }
+
+    // If still no applicantId, allow initializing client-side draft session
+    if (!applicantId) {
+      const tempDraftId = `draft-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+      return res.status(200).json({
+        message: 'Guest application session initialized.',
+        applicationId: tempDraftId,
+        isGuest: true
+      });
     }
 
     // Reuse an existing draft for the same (applicant, job) instead of creating duplicates.
@@ -188,156 +229,235 @@ async function updateApplicationDraft(req, res) {
 }
 
 /**
- * Submit Application with deadline, ownership and field validations.
+ * Submit Application with guest account auto-creation, password generation, and email dispatch.
  */
 async function submitApplication(req, res) {
   const { id } = req.params;
   const payload = req.body || {};
-  const applicantId = req.user?.applicantId;
+  let applicantId = req.user?.applicantId;
 
   try {
-    const application = await prisma.application.findUnique({
-      where: { id },
-      include: { job: true }
-    });
+    // 1. Extract and sanitize candidate details
+    const personal = typeof payload.personalInfo === 'object' ? payload.personalInfo : JSON.parse(payload.personalInfo || '{}');
+    const contact = typeof payload.contactDetails === 'object' ? payload.contactDetails : JSON.parse(payload.contactDetails || '{}');
 
-    if (!application) {
-      return res.status(404).json({ error: 'Application not found.' });
+    const candidateEmail = (contact?.email || personal?.email || payload.email || req.user?.email || '').toLowerCase().trim();
+    const candidateName = (
+      contact?.name ||
+      personal?.fullName ||
+      `${personal?.firstName || ''} ${personal?.lastName || ''}`.trim() ||
+      req.user?.name ||
+      'Applicant'
+    );
+    const candidateMobile = (contact?.mobile || personal?.mobile || payload.mobile || '0000000000').toString().trim();
+
+    if (!candidateEmail || !candidateEmail.includes('@')) {
+      return res.status(400).json({ error: 'Valid candidate email address is required.' });
     }
 
-    // Ownership: applicants may only submit their own application or guest draft, or claim their unsubmitted draft.
-    let isOwner = !applicantId || !application.applicantId || application.applicantId === applicantId || isAdminRole(req.user?.role);
-    if (!isOwner && application.status === APPLICATION_STATUS.DRAFT) {
-      isOwner = true;
-      if (applicantId) {
-        await prisma.application.update({
-          where: { id },
-          data: { applicantId }
-        }).catch(() => {});
-      }
-    }
-    if (!isOwner) {
-      return res.status(403).json({ error: 'Access denied.' });
-    }
-
-    // Block re-submission.
-    if (application.status !== APPLICATION_STATUS.DRAFT) {
-      return res.status(400).json({ error: 'This application has already been submitted.' });
-    }
-
-    // Vacancy must still be open.
-    const job = application.job;
-    const now = new Date();
-    if (!job || job.status !== 'PUBLISHED') {
-      return res.status(400).json({ error: 'This vacancy is no longer open for applications.' });
-    }
-    if (job.deadline && new Date(job.deadline) < now) {
-      return res.status(400).json({ error: 'The application deadline for this vacancy has passed.' });
-    }
-
-    // Merge any final edits sent with the submit call.
-    const sectionData = buildSectionData(payload);
-
-    // Declaration must be accepted.
-    const declarationAccepted =
-      payload.declaration !== undefined ? Boolean(payload.declaration) : application.declaration;
+    // 2. Declaration check
+    const declarationAccepted = payload.declaration !== undefined ? Boolean(payload.declaration) : true;
     if (!declarationAccepted) {
       return res.status(400).json({ error: 'You must accept the declaration before submitting.' });
     }
 
-    const finalAppNumber = await generateApplicationNumber();
+    // 3. User Lookup or Auto-creation (Guest-Apply-First Model)
+    let isNewUser = false;
+    let plainTextPassword = null;
 
-    const submittedApp = await prisma.$transaction(async (tx) => {
-      const app = await tx.application.update({
-        where: { id },
+    let targetUser = await prisma.user.findUnique({
+      where: { email: candidateEmail },
+      include: { applicant: true }
+    });
+
+    if (!targetUser) {
+      // User DOES NOT exist -> Generate random 8-10 character secure password
+      plainTextPassword = generateSecurePassword(10);
+      const hashedPassword = await bcrypt.hash(plainTextPassword, 10);
+
+      targetUser = await prisma.user.create({
         data: {
-          ...sectionData,
-          declaration: declarationAccepted,
-          applicationNumber: finalAppNumber,
-          status: APPLICATION_STATUS.SUBMITTED,
-          submittedAt: now
-        }
-      });
-
-      await tx.applicationStatusHistory.create({
-        data: {
-          applicationId: id,
-          previousStatus: APPLICATION_STATUS.DRAFT,
-          newStatus: APPLICATION_STATUS.SUBMITTED,
-          changedByUserId: req.user?.id || null,
-          comment: 'Application submitted by candidate.'
-        }
-      });
-
-      // Synchronize candidate email/name to Applicant account if needed
-      if (app.applicantId && payload) {
-        try {
-          const p = typeof payload.personalInfo === 'object' ? payload.personalInfo : JSON.parse(payload.personalInfo || '{}');
-          const c = typeof payload.contactDetails === 'object' ? payload.contactDetails : JSON.parse(payload.contactDetails || '{}');
-          const candidateEmail = (c?.email || p?.email || '').toLowerCase().trim();
-          const candidateName = `${p?.firstName || ''} ${p?.lastName || ''}`.trim() || c?.name;
-          const candidateMobile = c?.mobile;
-
-          if (candidateEmail && candidateEmail.includes('@')) {
-            const existingUser = await tx.user.findUnique({ where: { email: candidateEmail }, include: { applicant: true } });
-            if (existingUser && existingUser.applicant) {
-              await tx.application.update({
-                where: { id },
-                data: { applicantId: existingUser.applicant.id }
-              });
-            } else if (!existingUser) {
-              const applicantRecord = await tx.applicant.findUnique({ where: { id: app.applicantId } });
-              if (applicantRecord && applicantRecord.userId) {
-                await tx.user.update({
-                  where: { id: applicantRecord.userId },
-                  data: { email: candidateEmail }
-                });
-                if (candidateName || candidateMobile) {
-                  await tx.applicant.update({
-                    where: { id: app.applicantId },
-                    data: {
-                      name: candidateName || undefined,
-                      mobile: candidateMobile || undefined
-                    }
-                  });
-                }
-              }
+          email: candidateEmail,
+          password: hashedPassword,
+          role: 'APPLICANT',
+          status: 'ACTIVE',
+          applicant: {
+            create: {
+              name: candidateName,
+              mobile: candidateMobile
             }
           }
-        } catch (syncErr) {
-          console.warn('[Submit] Candidate profile sync warning:', syncErr.message);
+        },
+        include: { applicant: true }
+      });
+
+      applicantId = targetUser.applicant.id;
+      isNewUser = true;
+      console.log(`[Submit] Auto-created new applicant user account for ${candidateEmail}`);
+    } else {
+      // User DOES exist -> Link application to their existing userId/applicantId without altering password
+      if (!targetUser.applicant) {
+        const newApplicant = await prisma.applicant.create({
+          data: {
+            userId: targetUser.id,
+            name: candidateName,
+            mobile: candidateMobile
+          }
+        });
+        applicantId = newApplicant.id;
+      } else {
+        applicantId = targetUser.applicant.id;
+        // Keep name and mobile current if updated in form
+        if (candidateName && candidateName !== 'Applicant') {
+          await prisma.applicant.update({
+            where: { id: applicantId },
+            data: {
+              name: candidateName,
+              mobile: candidateMobile || targetUser.applicant.mobile
+            }
+          }).catch(() => {});
         }
       }
+      isNewUser = false;
+    }
 
-      return app;
-    });
+    // 4. Resolve Job Opening & Application Record
+    let existingApplication = null;
+    if (id && id !== 'submit' && id !== 'new') {
+      existingApplication = await prisma.application.findUnique({
+        where: { id },
+        include: { job: true }
+      });
+    }
+
+    let job = existingApplication?.job;
+    if (!job) {
+      const targetJobId = payload.jobId;
+      if (targetJobId) {
+        job = await prisma.job.findFirst({
+          where: { OR: [{ id: targetJobId }, { vacancyNumber: targetJobId }] }
+        });
+      }
+      if (!job) {
+        job = await prisma.job.findFirst({ where: { status: 'PUBLISHED' } }) || await prisma.job.findFirst();
+      }
+    }
+
+    if (!job) {
+      return res.status(404).json({ error: 'No active job position found for this application.' });
+    }
+
+    // Determine if vacancy is currently open or interest-only
+    const now = new Date();
+    const isClosedVacancy = (job.deadline && new Date(job.deadline) < now) || (job.status && job.status !== 'PUBLISHED');
+    // isInterest = true means vacancy is closed/deadline passed → save details but mark as interest registration
+
+    const finalAppNumber = await generateApplicationNumber();
+    const sectionData = buildSectionData(payload);
+    const appStatus = APPLICATION_STATUS.SUBMITTED;
+    const statusComment = isClosedVacancy
+      ? 'Interest registered by candidate for closed/deadline-passed vacancy.'
+      : 'Application submitted by candidate.';
+
+    let submittedApp;
+
+    if (existingApplication) {
+      if (existingApplication.status !== APPLICATION_STATUS.DRAFT) {
+        return res.status(400).json({ error: 'This application has already been submitted.' });
+      }
+
+      submittedApp = await prisma.$transaction(async (tx) => {
+        const app = await tx.application.update({
+          where: { id: existingApplication.id },
+          data: {
+            applicantId,
+            ...sectionData,
+            declaration: true,
+            applicationNumber: finalAppNumber,
+            status: appStatus,
+            submittedAt: now
+          }
+        });
+
+        await tx.applicationStatusHistory.create({
+          data: {
+            applicationId: app.id,
+            previousStatus: APPLICATION_STATUS.DRAFT,
+            newStatus: appStatus,
+            changedByUserId: targetUser.id,
+            comment: statusComment
+          }
+        });
+
+        return app;
+      });
+    } else {
+      submittedApp = await prisma.$transaction(async (tx) => {
+        const app = await tx.application.create({
+          data: {
+            applicationNumber: finalAppNumber,
+            applicantId,
+            jobId: job.id,
+            schoolId: job.schoolId || null,
+            departmentId: job.departmentId || null,
+            status: appStatus,
+            submittedAt: now,
+            declaration: true,
+            ...sectionData
+          }
+        });
+
+        await tx.applicationStatusHistory.create({
+          data: {
+            applicationId: app.id,
+            previousStatus: APPLICATION_STATUS.DRAFT,
+            newStatus: appStatus,
+            changedByUserId: targetUser.id,
+            comment: statusComment
+          }
+        });
+
+        return app;
+      });
+    }
 
     await logAuditAction({
       action: 'APPLICATION_SUBMITTED',
-      userId: req.user?.id,
+      userId: targetUser.id,
       targetType: 'Application',
-      targetId: id,
-      details: { applicationNumber: finalAppNumber, jobId: application.jobId },
+      targetId: submittedApp.id,
+      details: { applicationNumber: finalAppNumber, jobId: job.id, isNewUser, isInterest: isClosedVacancy },
       req
     });
 
-    console.log('Application saved successfully.');
+    console.log(`[Submit] Application ${finalAppNumber} successfully submitted for ${candidateEmail}${isClosedVacancy ? ' (interest registration — vacancy closed)' : ''}`);
 
-    // Asynchronously send confirmation email without blocking API response or failing application
-    sendSubmissionConfirmationEmail(submittedApp.id).catch(err => {
-      console.error('Confirmation email failed.', err.message);
+    // Asynchronously send confirmation email with credentials if newly generated
+    const loginUrl = process.env.LOGIN_URL || 'https://intranet.dypiu.ac.in/recruitment/login';
+
+    sendSubmissionConfirmationEmail(submittedApp.id, {
+      isNewUser,
+      generatedPassword: isNewUser ? plainTextPassword : null,
+      loginUrl,
+      isInterest: isClosedVacancy
+    }).catch(err => {
+      console.error('[Submit] Confirmation email failed:', err.message);
     });
 
-    return res.json({
-      message: 'Application submitted successfully.',
+    return res.status(200).json({
+      message: isClosedVacancy
+        ? 'Details registered. We will notify you when the vacancy opens.'
+        : 'Application submitted successfully.',
       applicationNumber: finalAppNumber,
-      status: APPLICATION_STATUS.SUBMITTED,
+      applicationId: submittedApp.id,
+      status: appStatus,
       submittedAt: now,
-      application: submittedApp
+      isNewUser,
+      isInterest: isClosedVacancy
     });
   } catch (error) {
     console.error('Submit application error:', error);
-    return res.status(500).json({ error: 'Failed to submit application.' });
+    return res.status(500).json({ error: error.message || 'Failed to submit application.' });
   }
 }
 

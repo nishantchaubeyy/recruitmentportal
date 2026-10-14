@@ -126,7 +126,7 @@ export function statusBadgeStyle(status) {
     case 'Selected':
     case APPLICATION_STATUS.SHORTLISTED:
     case 'Shortlisted':
-      return { bg: '#DCFCE7', text: '#166534', border: '#BBF7D0' };
+      return { bg: '#FEF2F2', text: '#721B28', border: '#FECACA' };
     case APPLICATION_STATUS.INTERVIEW_SCHEDULED:
     case 'Interview Scheduled':
       return { bg: '#E0E7FF', text: '#3730A3', border: '#C7D2FE' };

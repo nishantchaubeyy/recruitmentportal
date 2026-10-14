@@ -157,7 +157,7 @@ function Register() {
                 Email Address <span className="required">*</span>
               </label>
               {emailVerified ? (
-                <span style={{ fontSize: '0.78rem', color: '#16a34a', fontWeight: 700 }}>✓ Verified</span>
+                <span style={{ fontSize: '0.78rem', color: '#721b28', fontWeight: 700 }}>✓ Verified</span>
               ) : (
                 <button
                   type="button"
@@ -177,10 +177,10 @@ function Register() {
             <input
               type="email" id="email" value={formData.email} onChange={handleChange}
               placeholder="e.g. rahul@example.com" required readOnly={emailVerified}
-              style={{ backgroundColor: emailVerified ? '#f0fdf4' : undefined, borderColor: emailVerified ? '#16a34a' : undefined }}
+              style={{ backgroundColor: emailVerified ? '#fef2f2' : undefined, borderColor: emailVerified ? '#721b28' : undefined }}
             />
             {otpMessage && (
-              <p style={{ margin: '5px 0 0 0', fontSize: '0.8rem', color: emailVerified ? '#16a34a' : '#0f2b5c', fontWeight: 600 }}>
+              <p style={{ margin: '5px 0 0 0', fontSize: '0.8rem', color: emailVerified ? '#721b28' : '#0f2b5c', fontWeight: 600 }}>
                 {otpMessage}
               </p>
             )}
@@ -199,7 +199,7 @@ function Register() {
                     type="button" onClick={handleVerifyOtp}
                     disabled={verifyingOtp || otpInput.length < 4}
                     style={{
-                      backgroundColor: '#16a34a', color: '#fff', border: 'none', borderRadius: '4px',
+                      backgroundColor: '#721b28', color: '#fff', border: 'none', borderRadius: '4px',
                       padding: '6px 14px', fontSize: '0.82rem', fontWeight: 700,
                       cursor: verifyingOtp || otpInput.length < 4 ? 'not-allowed' : 'pointer',
                       opacity: verifyingOtp || otpInput.length < 4 ? 0.6 : 1

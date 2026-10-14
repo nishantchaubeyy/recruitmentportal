@@ -461,9 +461,20 @@ async function mockUpdateDraft(id, body) {
 
 async function mockSubmitApplication(id, body = {}) {
   await delay();
-  const idx = applications.findIndex((a) => a.id === id);
-  if (idx === -1) throw new Error('Application not found.');
-  if (applications[idx].status !== 'DRAFT') throw new Error('This application has already been submitted.');
+  let idx = applications.findIndex((a) => a.id === id);
+  if (idx === -1) {
+    const newApp = {
+      id: id && id !== 'submit' && id !== 'new' ? id : 'app-' + Date.now(),
+      applicationNumber: 'DRAFT-' + Date.now(),
+      status: 'DRAFT',
+      jobId: body.jobId || 'job-1',
+      job: jobs.find((j) => j.id === body.jobId) || jobs[0],
+      documents: [],
+      createdAt: new Date().toISOString()
+    };
+    applications.unshift(newApp);
+    idx = 0;
+  }
 
   if (body.personalInfo) applications[idx].personalInfo = body.personalInfo;
   if (body.contactDetails) applications[idx].contactDetails = body.contactDetails;
@@ -830,6 +841,16 @@ export async function mockApiRequest(endpoint, options = {}) {
   if ((path === '/public/schools' || path === '/admin/schools') && method === 'GET') {
     return mockGetSchools(params);
   }
+  if (path === '/public/academic-structure' && method === 'GET') {
+    const schoolsList = await mockGetSchools(params);
+    return {
+      schools: schoolsList.map(s => ({
+        ...s,
+        departments: (DEPARTMENTS[s.id] || []).map(d => ({ ...d, positions: POSITIONS[d.id] || [] })),
+        jobs: jobs.filter(j => j.schoolId === s.id || j.department === s.name)
+      }))
+    };
+  }
   if (parts[0] === 'admin' && parts[1] === 'schools' && parts.length === 3 && method === 'PUT') {
     return mockUpdateSchool(parts[2], body);
   }
@@ -869,6 +890,7 @@ export async function mockApiRequest(endpoint, options = {}) {
   if (path === '/applications/my' && method === 'GET') return mockGetMyApplications();
   if (parts[0] === 'applications' && parts.length === 2 && method === 'GET') return mockGetApplicationById(parts[1]);
   if (parts[0] === 'applications' && parts.length === 2 && method === 'PUT') return mockUpdateDraft(parts[1], body);
+  if (path === '/applications/submit' && method === 'POST') return mockSubmitApplication('new', body);
   if (parts[0] === 'applications' && parts[2] === 'submit' && method === 'POST') return mockSubmitApplication(parts[1], body);
   if (parts[0] === 'applications' && (parts[2] === 'documents' || parts[2] === 'upload') && method === 'POST') return mockUploadDocument(parts[1], options.body);
   if (parts[0] === 'applications' && parts[2] === 'status' && method === 'PATCH') return mockUpdateStatus(parts[1], body);

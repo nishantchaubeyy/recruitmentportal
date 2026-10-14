@@ -88,7 +88,7 @@ function InterestModal({ isOpen, onClose, defaultCategory = 'TEACHING', defaultS
         </p>
 
         {successMsg && (
-          <div style={{ backgroundColor: '#ecfdf5', color: '#047857', padding: '12px 16px', borderRadius: '8px', marginBottom: '16px', fontSize: '0.9rem', fontWeight: 600 }}>
+          <div style={{ backgroundColor: '#fef2f2', color: '#721b28', border: '1px solid #fecaca', padding: '12px 16px', borderRadius: '8px', marginBottom: '16px', fontSize: '0.9rem', fontWeight: 600 }}>
             ✓ {successMsg}
           </div>
         )}
