@@ -20,6 +20,7 @@ import ApplicantDashboard from './pages/ApplicantDashboard';
 import ApplicationForm from './pages/ApplicationForm';
 import ApplicantApplicationDetails from './pages/ApplicantApplicationDetails';
 import ApplicationSuccess from './pages/ApplicationSuccess';
+import ApplicantDocuments from './pages/ApplicantDocuments';
 
 // Admin & Committee Pages
 import AdminLogin from './pages/AdminLogin';
@@ -30,6 +31,7 @@ import AdminJobDetails from './pages/AdminJobDetails';
 import AdminApplications from './pages/AdminApplications';
 import AdminReviewApplication from './pages/AdminReviewApplication';
 import AdminInterviews from './pages/AdminInterviews';
+import AdminDocumentVerification from './pages/AdminDocumentVerification';
 import AdminUsers from './pages/AdminUsers';
 import AdminAuditLogs from './pages/AdminAuditLogs';
 import AdminReports from './pages/AdminReports';
@@ -131,6 +133,22 @@ function App() {
             } 
           />
           <Route 
+            path="/applicant/documents" 
+            element={
+              <ApplicantRoute>
+                <ApplicantDocuments />
+              </ApplicantRoute>
+            } 
+          />
+          <Route 
+            path="/my-documents" 
+            element={
+              <ApplicantRoute>
+                <ApplicantDocuments />
+              </ApplicantRoute>
+            } 
+          />
+          <Route 
             path="/applicant/apply/:jobId" 
             element={
               <PublicLayout>
@@ -228,6 +246,14 @@ function App() {
             element={
               <AdminRoute>
                 <AdminReviewApplication />
+              </AdminRoute>
+            } 
+          />
+          <Route 
+            path="/admin/documents" 
+            element={
+              <AdminRoute>
+                <AdminDocumentVerification />
               </AdminRoute>
             } 
           />

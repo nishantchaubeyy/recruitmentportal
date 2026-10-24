@@ -9,7 +9,8 @@ import {
   IconUserCheck,
   IconBarChart,
   IconUsers,
-  IconLogOut
+  IconLogOut,
+  IconFolder
 } from './icons/AdminIcons';
 
 function AdminSidebar() {
@@ -35,7 +36,8 @@ function AdminSidebar() {
     { label: 'Vacancies', path: '/admin/jobs', icon: IconBriefcase },
     { label: 'Faculty Posters', path: '/admin/schools', icon: IconFileText },
     { label: 'Applications', path: '/admin/applications', icon: IconFileText },
-    { label: 'Interviews', path: '/admin/interviews', icon: IconCalendar },
+    { label: 'Document Verification', path: '/admin/documents', icon: IconFolder },
+    { label: 'Interviews (Zoom)', path: '/admin/interviews', icon: IconCalendar },
     { label: 'Interested Applicants', path: '/admin/vacancy-interests', icon: IconUserCheck },
     { label: 'Reports', path: '/admin/reports', icon: IconBarChart },
     ...(isSuperAdminOrHRAdmin ? [{ label: 'User Management', path: '/admin/users', icon: IconUsers }] : [])

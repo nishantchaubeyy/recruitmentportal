@@ -23,6 +23,8 @@ model User {
   interviewPanels   InterviewPanel[]
   evaluations       Evaluation[]
   vacanciesCreated  Job[]            @relation("CreatedVacancies")
+  docRequestsCreated DocumentRequest[] @relation("DocumentRequestsRequestedBy")
+  docsVerified       CandidateDocument[] @relation("CandidateDocsVerifiedBy")
 
   @@index([email])
   @@index([role])
@@ -37,8 +39,11 @@ model Applicant {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  applications Application[]
-  interviews   Interview[]
+  applications        Application[]
+  interviews          Interview[]
+  interviewCandidates InterviewCandidate[]
+  documentRequests    DocumentRequest[]
+  candidateDocuments  CandidateDocument[]
 }
 
 model Admin {
@@ -208,6 +213,8 @@ model Application {
   documents         ApplicationDocument[]
   statusHistory     ApplicationStatusHistory[]
   interviews        Interview[]
+  interviewCandidates InterviewCandidate[]
+  documentRequests  DocumentRequest[]
 
   @@index([applicationNumber])
   @@index([applicantId])
@@ -257,25 +264,39 @@ model Notification {
 }
 
 model Interview {
-  id            String        @id @default(uuid())
-  applicationId String
-  application   Application   @relation(fields: [applicationId], references: [id], onDelete: Cascade)
-  jobId         String
-  job           Job           @relation(fields: [jobId], references: [id], onDelete: Cascade)
-  candidateId   String
-  candidate     Applicant     @relation(fields: [candidateId], references: [id], onDelete: Cascade)
-  date          DateTime
-  time          String
-  mode          String        @default("IN_PERSON")
-  venue         String?
-  meetingLink   String?
-  round         String        @default("Round 1")
-  status        String        @default("SCHEDULED")
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  id                 String              @id @default(uuid())
+  title              String?
+  applicationId      String?
+  application        Application?        @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  jobId              String
+  job                Job                 @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  candidateId        String?
+  candidate          Applicant?          @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  date               DateTime
+  time               String
+  startTime          String?
+  endTime            String?
+  mode               String              @default("ZOOM")
+  venue              String?
+  meetingLink        String?
+  zoomLink           String?
+  zoomMeetingId      String?
+  zoomPassword       String?
+  interviewerName    String?
+  interviewType      String?             @default("Technical")
+  notes              String?
+  round              String              @default("Round 1")
+  status             String              @default("SCHEDULED") // SCHEDULED, COMPLETED, CANCELLED, RESCHEDULED
+  cancellationReason String?
+  emailSent          Boolean             @default(false)
+  emailSentAt        DateTime?
+  emailStatus        String              @default("PENDING") // PENDING, SENT, FAILED
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
 
-  panelMembers  InterviewPanel[]
-  evaluations   Evaluation[]
+  panelMembers       InterviewPanel[]
+  evaluations        Evaluation[]
+  candidates         InterviewCandidate[]
 
   @@index([applicationId])
   @@index([candidateId])
@@ -333,3 +354,91 @@ model AuditLog {
   @@index([entity])
   @@index([createdAt])
 }
+
+model InterviewCandidate {
+  id               String       @id @default(uuid())
+  interviewId      String
+  interview        Interview    @relation(fields: [interviewId], references: [id], onDelete: Cascade)
+  candidateId      String
+  candidate        Applicant    @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  applicationId    String?
+  application      Application? @relation(fields: [applicationId], references: [id], onDelete: SetNull)
+  emailSent        Boolean      @default(false)
+  emailSentAt      DateTime?
+  emailStatus      String       @default("PENDING") // PENDING, SENT, FAILED
+  attendanceStatus String       @default("PENDING") // PENDING, ATTENDED, ABSENT
+  feedback         String?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  @@unique([interviewId, candidateId])
+  @@index([interviewId])
+  @@index([candidateId])
+  @@index([applicationId])
+}
+
+model DocumentRequest {
+  id            String                @id @default(uuid())
+  candidateId   String
+  candidate     Applicant             @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  applicationId String?
+  application   Application?          @relation(fields: [applicationId], references: [id], onDelete: SetNull)
+  requestedById String?
+  requestedBy   User?                 @relation("DocumentRequestsRequestedBy", fields: [requestedById], references: [id], onDelete: SetNull)
+  deadline      DateTime
+  priority      String                @default("NORMAL") // NORMAL, URGENT
+  message       String?
+  status        String                @default("PENDING") // PENDING, PARTIALLY_UPLOADED, SUBMITTED, VERIFIED, REJECTED
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+
+  items         DocumentRequestItem[]
+
+  @@index([candidateId])
+  @@index([applicationId])
+  @@index([status])
+  @@index([deadline])
+}
+
+model DocumentRequestItem {
+  id                String              @id @default(uuid())
+  documentRequestId String
+  documentRequest   DocumentRequest     @relation(fields: [documentRequestId], references: [id], onDelete: Cascade)
+  documentName      String
+  documentType      String              @default("CUSTOM")
+  isMandatory       Boolean             @default(true)
+  status            String              @default("PENDING") // PENDING, UPLOADED, UNDER_REVIEW, VERIFIED, REJECTED
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+
+  documents         CandidateDocument[]
+
+  @@index([documentRequestId])
+  @@index([status])
+}
+
+model CandidateDocument {
+  id                    String              @id @default(uuid())
+  documentRequestItemId String
+  documentRequestItem   DocumentRequestItem @relation(fields: [documentRequestItemId], references: [id], onDelete: Cascade)
+  candidateId           String
+  candidate             Applicant           @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  filePath              String
+  fileName              String
+  fileType              String
+  fileSize              Int
+  uploadDate            DateTime            @default(now())
+  verificationStatus    String              @default("UNDER_REVIEW") // UNDER_REVIEW, VERIFIED, REJECTED
+  verifiedById          String?
+  verifiedBy            User?               @relation("CandidateDocsVerifiedBy", fields: [verifiedById], references: [id], onDelete: SetNull)
+  verifiedAt            DateTime?
+  rejectionReason       String?
+  version               Int                 @default(1)
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+
+  @@index([documentRequestItemId])
+  @@index([candidateId])
+  @@index([verificationStatus])
+}
+

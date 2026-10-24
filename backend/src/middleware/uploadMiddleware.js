@@ -40,6 +40,26 @@ const imageUpload = multer({
   }
 });
 
+// File filter to restrict uploads to PDF, JPG, JPEG, and PNG (for candidate verification documents)
+const docFileFilter = (req, file, cb) => {
+  const allowed = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
+  if (allowed.includes(file.mimetype?.toLowerCase() || '')) {
+    cb(null, true);
+  } else {
+    cb(new Error('Only PDF, JPG, JPEG, and PNG files are accepted (max 5MB).'), false);
+  }
+};
+
+// Multer upload for candidate verification documents (Max 5MB)
+const documentUpload = multer({
+  storage: storage,
+  fileFilter: docFileFilter,
+  limits: {
+    fileSize: 5 * 1024 * 1024 // 5 MB
+  }
+});
+
 module.exports = upload;
 module.exports.upload = upload;
 module.exports.imageUpload = imageUpload;
+module.exports.documentUpload = documentUpload;

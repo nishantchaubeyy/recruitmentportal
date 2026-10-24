@@ -89,6 +89,7 @@ app.get('/api/health', (req, res) => {
 });
 
 const vacancyInterestRoutes = require('./routes/vacancyInterestRoutes');
+const documentRoutes = require('./routes/documentRoutes');
 
 // API Routes Mounting
 app.use('/api/auth', authRoutes);
@@ -96,6 +97,7 @@ app.use('/api/applications', applicationRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/interviews', interviewRoutes);
+app.use('/api/documents', documentRoutes);
 app.use('/api/committee', committeeRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api', vacancyInterestRoutes);
@@ -110,10 +112,11 @@ app.use((err, req, res, next) => {
   if (
     err.message === 'Only PDF files are accepted.' ||
     err.message === 'Only JPEG, JPG, PNG, and WebP image files are accepted.' ||
+    err.message?.includes('Only PDF, JPG, JPEG, and PNG files are accepted') ||
     err.code === 'LIMIT_FILE_SIZE'
   ) {
     const message = err.code === 'LIMIT_FILE_SIZE'
-      ? 'File size exceeds the allowed limit.'
+      ? 'File size exceeds the allowed limit (max 5MB).'
       : err.message;
     return res.status(400).json({ error: message });
   }

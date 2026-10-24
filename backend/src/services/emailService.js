@@ -772,9 +772,420 @@ async function sendOTPEmail({ to, otpCode }) {
   });
 }
 
+/**
+ * FEATURE 1: Send Zoom Interview Scheduled / Rescheduled Email.
+ */
+async function sendInterviewScheduledEmail({
+  to,
+  candidateName,
+  jobTitle,
+  interviewTitle,
+  interviewDate,
+  startTime,
+  endTime,
+  zoomLink,
+  zoomMeetingId,
+  zoomPassword,
+  interviewerName,
+  interviewType,
+  notes,
+  isRescheduled = false
+}) {
+  const formattedDate = new Date(interviewDate).toLocaleDateString('en-IN', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric'
+  });
+
+  const subject = `Interview ${isRescheduled ? 'Rescheduled' : 'Scheduled'} - D Y Patil International University | ${jobTitle || 'Faculty Position'}`;
+  const timeDisplay = startTime && endTime ? `${startTime} to ${endTime} (IST)` : (startTime || 'As communicated');
+
+  const html = `
+    <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 650px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; background-color: #ffffff; box-shadow: 0 4px 15px rgba(0,0,0,0.06);">
+      <!-- Header -->
+      <div style="background: linear-gradient(135deg, #721b28 0%, #4a1019 100%); padding: 26px 30px; color: #ffffff; border-bottom: 3px solid #D4AF37;">
+        <table width="100%" cellpadding="0" cellspacing="0" border="0">
+          <tr>
+            <td>
+              <h1 style="margin: 0; font-size: 20px; font-weight: 800; letter-spacing: -0.3px; font-family: Georgia, serif;">D Y PATIL INTERNATIONAL UNIVERSITY</h1>
+              <p style="margin: 4px 0 0 0; font-size: 13px; color: #FCD34D; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Akurdi, Pune · Recruitment Cell</p>
+            </td>
+          </tr>
+        </table>
+      </div>
+
+      <!-- Main Body -->
+      <div style="padding: 30px; color: #1e293b; line-height: 1.65; font-size: 15px;">
+        <p style="margin-top: 0;">Dear <strong>${candidateName || 'Candidate'}</strong>,</p>
+
+        <p style="color: #334155;">
+          ${isRescheduled 
+            ? `Please note that your scheduled interview for the position of <strong>${jobTitle || 'Applied Role'}</strong> has been <strong>rescheduled</strong> with updated details below.`
+            : `Congratulations! We are pleased to inform you that you have been shortlisted for an interview for the position of <strong>${jobTitle || 'Applied Role'}</strong> at D Y Patil International University, Pune.`}
+        </p>
+
+        <!-- Meeting Card -->
+        <div style="background: #fdfaf7; border: 1.5px solid #fed7aa; border-radius: 10px; padding: 20px; margin: 24px 0;">
+          <div style="font-size: 12px; font-weight: 800; color: #9a3412; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 12px;">
+            ${interviewTitle || 'Zoom Interview Session Details'}
+          </div>
+
+          <table width="100%" cellpadding="8" cellspacing="0" style="border-collapse: collapse; font-size: 14px;">
+            <tr style="border-bottom: 1px solid #fee2e2;">
+              <td style="color: #64748b; font-weight: 600; width: 35%;">Interview Date:</td>
+              <td style="color: #0f172a; font-weight: 700;">${formattedDate}</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #fee2e2;">
+              <td style="color: #64748b; font-weight: 600;">Time:</td>
+              <td style="color: #721b28; font-weight: 800;">${timeDisplay}</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #fee2e2;">
+              <td style="color: #64748b; font-weight: 600;">Platform:</td>
+              <td style="color: #0f172a; font-weight: 700;">
+                <span style="background-color: #e0f2fe; color: #0369a1; padding: 3px 8px; border-radius: 4px; font-size: 12px; font-weight: 800;">ZOOM VIDEO CONFERENCE</span>
+              </td>
+            </tr>
+            <tr style="border-bottom: 1px solid #fee2e2;">
+              <td style="color: #64748b; font-weight: 600;">Interview Round:</td>
+              <td style="color: #0f172a; font-weight: 600;">${interviewType || 'Technical & HR Assessment'}</td>
+            </tr>
+            ${interviewerName ? `
+            <tr style="border-bottom: 1px solid #fee2e2;">
+              <td style="color: #64748b; font-weight: 600;">Interviewer / Panel:</td>
+              <td style="color: #0f172a; font-weight: 600;">${interviewerName}</td>
+            </tr>` : ''}
+            ${zoomMeetingId ? `
+            <tr style="border-bottom: 1px solid #fee2e2;">
+              <td style="color: #64748b; font-weight: 600;">Zoom Meeting ID:</td>
+              <td style="color: #0f172a; font-family: monospace; font-size: 15px; font-weight: 700;">${zoomMeetingId}</td>
+            </tr>` : ''}
+            ${zoomPassword ? `
+            <tr style="border-bottom: 1px solid #fee2e2;">
+              <td style="color: #64748b; font-weight: 600;">Zoom Passcode:</td>
+              <td style="color: #0f172a; font-family: monospace; font-size: 15px; font-weight: 700;">${zoomPassword}</td>
+            </tr>` : ''}
+          </table>
+
+          <!-- Clickable Zoom Button -->
+          ${zoomLink ? `
+          <div style="text-align: center; margin-top: 22px;">
+            <a href="${zoomLink}" target="_blank" style="display: inline-block; background-color: #2D8CFF; color: #ffffff; text-decoration: none; padding: 13px 28px; border-radius: 8px; font-weight: 800; font-size: 15px; box-shadow: 0 4px 12px rgba(45, 140, 255, 0.35);">
+              🎥 Click to Join Zoom Meeting
+            </a>
+            <div style="font-size: 12px; color: #64748b; margin-top: 8px; word-break: break-all;">
+              Direct URL: <a href="${zoomLink}" style="color: #2D8CFF;">${zoomLink}</a>
+            </div>
+          </div>` : ''}
+        </div>
+
+        ${notes ? `
+        <div style="background-color: #f1f5f9; border-left: 4px solid #721b28; padding: 14px 18px; margin: 20px 0; border-radius: 4px;">
+          <strong style="color: #0f172a; font-size: 13px; text-transform: uppercase;">Instructions from Interview Panel:</strong>
+          <p style="margin: 6px 0 0 0; color: #334155; font-size: 14px;">${notes}</p>
+        </div>` : ''}
+
+        <!-- General Candidate Guidelines -->
+        <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin: 20px 0; font-size: 13.5px; color: #475569;">
+          <strong style="color: #0f172a;">Important Guidelines:</strong>
+          <ul style="margin: 8px 0 0 0; padding-left: 20px; line-height: 1.6;">
+            <li>Please join the meeting <strong>5 minutes before</strong> the scheduled start time.</li>
+            <li>Ensure a stable internet connection, functioning webcam, and microphone.</li>
+            <li>Keep digital/original copies of your certificates, publications, and portfolio ready for presentation if requested.</li>
+            <li>You can also view this interview and live countdown in your <strong>Candidate Portal Dashboard</strong> under "My Interviews".</li>
+          </ul>
+        </div>
+
+        <p style="margin-top: 24px; color: #64748b; font-size: 13.5px;">
+          If you have any queries or face technical difficulties joining the session, please reply directly to this email or contact the recruitment cell at <strong>careers@dypiu.ac.in</strong>.
+        </p>
+
+        <p style="margin-top: 30px; margin-bottom: 0;">
+          Warm regards,<br />
+          <strong>Selection & Recruitment Board</strong><br />
+          D Y Patil International University, Akurdi, Pune<br />
+          <span style="font-size: 12px; color: #64748b;">Website: <a href="https://www.dypiu.ac.in" style="color: #721b28;">www.dypiu.ac.in</a></span>
+        </p>
+      </div>
+    </div>
+  `;
+
+  return sendEmail({
+    to,
+    subject,
+    html,
+    text: `Dear ${candidateName}, Your interview for ${jobTitle} is scheduled on ${formattedDate} at ${timeDisplay} via Zoom. Link: ${zoomLink}`
+  });
+}
+
+/**
+ * FEATURE 1: Send Zoom Interview Cancelled Email.
+ */
+async function sendInterviewCancelledEmail({
+  to,
+  candidateName,
+  jobTitle,
+  interviewTitle,
+  interviewDate,
+  reason
+}) {
+  const formattedDate = new Date(interviewDate).toLocaleDateString('en-IN', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric'
+  });
+
+  const subject = `Interview Cancelled - D Y Patil International University | ${jobTitle || 'Faculty Position'}`;
+
+  const html = `
+    <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; background-color: #ffffff;">
+      <div style="background-color: #991b1b; padding: 22px 28px; color: #ffffff;">
+        <h2 style="margin: 0; font-size: 18px; font-weight: 800;">D Y PATIL INTERNATIONAL UNIVERSITY</h2>
+        <p style="margin: 4px 0 0 0; font-size: 13px; opacity: 0.9;">Recruitment Cell · Interview Status Update</p>
+      </div>
+
+      <div style="padding: 28px; color: #1e293b; line-height: 1.6; font-size: 14.5px;">
+        <p>Dear <strong>${candidateName || 'Candidate'}</strong>,</p>
+
+        <p>This is to inform you that the interview scheduled on <strong>${formattedDate}</strong> for the position of <strong>${jobTitle || 'Applied Role'}</strong> (${interviewTitle || 'Interview Round'}) has been <strong>cancelled</strong>.</p>
+
+        ${reason ? `
+        <div style="background-color: #fee2e2; border-left: 4px solid #ef4444; padding: 12px 16px; margin: 18px 0; border-radius: 4px;">
+          <strong style="color: #991b1b; font-size: 12px; text-transform: uppercase;">Reason / Remarks:</strong>
+          <p style="margin: 4px 0 0 0; color: #7f1d1d; font-size: 13.5px;">${reason}</p>
+        </div>` : ''}
+
+        <p>Our HR team will reach out to you if this round is rescheduled. We apologize for any inconvenience caused.</p>
+
+        <p style="margin-top: 28px;">
+          Best regards,<br />
+          <strong>Recruitment Cell</strong><br />
+          D Y Patil International University, Pune
+        </p>
+      </div>
+    </div>
+  `;
+
+  return sendEmail({
+    to,
+    subject,
+    html,
+    text: `Dear ${candidateName}, Your interview scheduled on ${formattedDate} for ${jobTitle} has been cancelled. Reason: ${reason || 'Administrative reschedule'}.`
+  });
+}
+
+/**
+ * FEATURE 2: Send Document Upload Request Email.
+ */
+async function sendDocumentRequestEmail({
+  to,
+  candidateName,
+  applicationNumber,
+  jobTitle,
+  requiredDocuments = [],
+  deadline,
+  priority = 'NORMAL',
+  message,
+  loginUrl
+}) {
+  const formattedDeadline = deadline
+    ? new Date(deadline).toLocaleDateString('en-IN', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+      })
+    : 'Within 5 working days';
+
+  const isUrgent = priority === 'URGENT';
+  const portalUrl = loginUrl || process.env.LOGIN_URL || 'https://intranet.dypiu.ac.in/recruitment/login';
+
+  const subject = `${isUrgent ? 'URGENT: ' : ''}Document Upload Required - D Y Patil International University | ${applicationNumber || 'Recruitment'}`;
+
+  const docListHtml = requiredDocuments.map((doc, idx) => `
+    <li style="padding: 6px 0; border-bottom: 1px solid #f1f5f9;">
+      <strong>${idx + 1}. ${typeof doc === 'string' ? doc : (doc.documentName || doc.name)}</strong>
+      ${doc.isMandatory !== false ? '<span style="color: #dc2626; font-size: 11px; margin-left: 6px;">[Mandatory]</span>' : ''}
+    </li>
+  `).join('');
+
+  const html = `
+    <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 650px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; background-color: #ffffff; box-shadow: 0 4px 15px rgba(0,0,0,0.06);">
+      <!-- Header -->
+      <div style="background: linear-gradient(135deg, #721b28 0%, #4a1019 100%); padding: 26px 30px; color: #ffffff; border-bottom: 3px solid #D4AF37;">
+        <table width="100%" cellpadding="0" cellspacing="0" border="0">
+          <tr>
+            <td>
+              <h1 style="margin: 0; font-size: 20px; font-weight: 800; font-family: Georgia, serif;">D Y PATIL INTERNATIONAL UNIVERSITY</h1>
+              <p style="margin: 4px 0 0 0; font-size: 13px; color: #FCD34D; font-weight: 600; text-transform: uppercase;">Akurdi, Pune · Human Resources Verification Desk</p>
+            </td>
+          </tr>
+        </table>
+      </div>
+
+      <!-- Content -->
+      <div style="padding: 30px; color: #1e293b; line-height: 1.65; font-size: 15px;">
+        <p style="margin-top: 0;">Dear <strong>${candidateName || 'Candidate'}</strong>,</p>
+
+        <p style="color: #334155;">
+          Your application ${applicationNumber ? `<strong>(${applicationNumber})</strong>` : ''} for the position of <strong>${jobTitle || 'Faculty Position'}</strong> has been reviewed by the HR Committee.
+        </p>
+
+        <p style="color: #334155;">
+          To proceed further with the verification and evaluation process, you are requested to upload the following original documents through the official <strong>Candidate Recruitment Portal</strong>:
+        </p>
+
+        ${isUrgent ? `
+        <div style="background-color: #fef2f2; border: 1px solid #fecaca; color: #991b1b; padding: 10px 14px; border-radius: 6px; font-weight: 700; font-size: 13px; margin: 16px 0;">
+          ⚠️ HIGH PRIORITY REQUEST: Please upload requested documents at your earliest convenience.
+        </div>` : ''}
+
+        <!-- Required Documents Card -->
+        <div style="background-color: #f8fafc; border: 1.5px solid #cbd5e1; border-radius: 10px; padding: 20px; margin: 20px 0;">
+          <div style="font-size: 13px; font-weight: 800; color: #721b28; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px;">
+            Checklist of Documents to Upload:
+          </div>
+          <ol style="margin: 0; padding-left: 20px; list-style-type: none; line-height: 1.7;">
+            ${docListHtml}
+          </ol>
+
+          <div style="margin-top: 16px; padding-top: 12px; border-top: 1px dashed #cbd5e1; display: flex; justify-content: space-between; align-items: center; font-size: 13.5px;">
+            <span style="color: #64748b; font-weight: 600;">Submission Deadline:</span>
+            <span style="color: #dc2626; font-weight: 800; background: #fee2e2; padding: 4px 10px; border-radius: 4px;">
+              📅 ${formattedDeadline}
+            </span>
+          </div>
+        </div>
+
+        ${message ? `
+        <div style="background-color: #fffbeb; border-left: 4px solid #f59e0b; padding: 12px 16px; margin: 18px 0; border-radius: 4px;">
+          <strong style="color: #92400e; font-size: 12px; text-transform: uppercase;">Message from HR:</strong>
+          <p style="margin: 4px 0 0 0; color: #78350f; font-size: 13.5px;">${message}</p>
+        </div>` : ''}
+
+        <!-- Login Call to Action -->
+        <div style="text-align: center; margin: 26px 0;">
+          <a href="${portalUrl}" target="_blank" style="display: inline-block; background-color: #721b28; color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 800; font-size: 15px; box-shadow: 0 4px 12px rgba(114, 27, 40, 0.35);">
+            🔐 Login to Portal & Upload Documents
+          </a>
+          <div style="font-size: 12px; color: #64748b; margin-top: 8px;">
+            Portal link: <a href="${portalUrl}" style="color: #721b28;">${portalUrl}</a>
+          </div>
+        </div>
+
+        <!-- Step by Step Instructions -->
+        <div style="background-color: #f1f5f9; border-radius: 8px; padding: 16px; margin: 20px 0; font-size: 13px; color: #334155;">
+          <strong style="color: #0f172a;">How to Upload Your Documents:</strong>
+          <ol style="margin: 8px 0 0 0; padding-left: 20px; line-height: 1.6;">
+            <li>Log in using your registered credentials (email & password provided upon registration/submission).</li>
+            <li>Go to the <strong>"My Documents"</strong> section in your Candidate Dashboard.</li>
+            <li>Click <strong>"Upload"</strong> next to each requested document.</li>
+            <li><strong>Accepted formats:</strong> PDF, JPG, PNG (Max file size: 5MB per document).</li>
+            <li>Once all documents are uploaded, click <strong>"Submit All Documents"</strong> to finalize.</li>
+          </ol>
+        </div>
+
+        <p style="margin-top: 24px; color: #64748b; font-size: 13.5px;">
+          If you need assistance or encounter issues logging in, please contact us at <strong>careers@dypiu.ac.in</strong>.
+        </p>
+
+        <p style="margin-top: 30px; margin-bottom: 0;">
+          Warm regards,<br />
+          <strong>Recruitment & Verification Cell</strong><br />
+          D Y Patil International University, Akurdi, Pune
+        </p>
+      </div>
+    </div>
+  `;
+
+  return sendEmail({
+    to,
+    subject,
+    html,
+    text: `Dear ${candidateName}, Original documents are requested for application ${applicationNumber}. Please login to upload them before ${formattedDeadline}. Link: ${portalUrl}`
+  });
+}
+
+/**
+ * FEATURE 2: Send Document Verification Result Notification (Verified / Rejected).
+ */
+async function sendDocumentVerificationUpdateEmail({
+  to,
+  candidateName,
+  applicationNumber,
+  status,
+  remarks,
+  rejectedItems = [],
+  loginUrl
+}) {
+  const isApproved = status === 'VERIFIED';
+  const portalUrl = loginUrl || process.env.LOGIN_URL || 'https://intranet.dypiu.ac.in/recruitment/login';
+
+  const subject = `Document Verification ${isApproved ? 'Approved' : 'Action Required'} - D Y Patil International University | ${applicationNumber || 'Application'}`;
+
+  const html = `
+    <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; background-color: #ffffff;">
+      <div style="background-color: ${isApproved ? '#047857' : '#b91c1c'}; padding: 22px 28px; color: #ffffff;">
+        <h2 style="margin: 0; font-size: 18px; font-weight: 800;">D Y PATIL INTERNATIONAL UNIVERSITY</h2>
+        <p style="margin: 4px 0 0 0; font-size: 13px; opacity: 0.9;">Document Verification Status Update</p>
+      </div>
+
+      <div style="padding: 26px; color: #1e293b; line-height: 1.6; font-size: 14.5px;">
+        <p>Dear <strong>${candidateName || 'Candidate'}</strong>,</p>
+
+        <p>
+          ${isApproved
+            ? `Your uploaded documents for application <strong>${applicationNumber || ''}</strong> have been <strong>successfully verified and approved</strong> by the HR Verification Cell.`
+            : `The HR Verification Cell has reviewed your uploaded documents for application <strong>${applicationNumber || ''}</strong> and identified items requiring correction or re-upload.`}
+        </p>
+
+        ${!isApproved && rejectedItems.length > 0 ? `
+        <div style="background-color: #fee2e2; border: 1px solid #fca5a5; border-radius: 8px; padding: 16px; margin: 18px 0;">
+          <strong style="color: #991b1b; font-size: 13px; text-transform: uppercase;">Documents Requiring Re-upload:</strong>
+          <ul style="margin: 8px 0 0 0; padding-left: 20px; color: #7f1d1d; font-size: 13.5px;">
+            ${rejectedItems.map(item => `
+              <li style="margin-bottom: 6px;">
+                <strong>${item.name || item.documentName}:</strong> ${item.reason || item.rejectionReason || 'Please provide clear legible copy.'}
+              </li>
+            `).join('')}
+          </ul>
+        </div>
+
+        <div style="text-align: center; margin: 24px 0;">
+          <a href="${portalUrl}" target="_blank" style="display: inline-block; background-color: #b91c1c; color: #ffffff; text-decoration: none; padding: 12px 26px; border-radius: 8px; font-weight: 700; font-size: 14px;">
+            Re-upload Documents in Portal &rarr;
+          </a>
+        </div>` : ''}
+
+        ${remarks ? `
+        <p style="font-size: 13.5px; color: #475569; font-style: italic;">Remarks: "${remarks}"</p>
+        ` : ''}
+
+        <p style="margin-top: 26px;">
+          Best regards,<br />
+          <strong>HR & Verification Team</strong><br />
+          D Y Patil International University, Pune
+        </p>
+      </div>
+    </div>
+  `;
+
+  return sendEmail({
+    to,
+    subject,
+    html,
+    text: `Dear ${candidateName}, Your document verification status for ${applicationNumber} is: ${status}. Please visit ${portalUrl} for details.`
+  });
+}
+
 module.exports = {
   sendEmail,
   sendOTPEmail,
   sendSubmissionConfirmationEmail,
-  sendApplicationStatusEmail
+  sendApplicationStatusEmail,
+  sendInterviewScheduledEmail,
+  sendInterviewCancelledEmail,
+  sendDocumentRequestEmail,
+  sendDocumentVerificationUpdateEmail
 };

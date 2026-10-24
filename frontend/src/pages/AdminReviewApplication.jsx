@@ -294,8 +294,46 @@ function AdminReviewApplication() {
 
         {/* ─── ADMINISTRATIVE ACTION PANEL (Clean Paper Form Style) ─── */}
         <section className="admin-review-panel no-print" style={{ border: '1px solid #d1d5db', backgroundColor: '#fafafa', padding: '24px', borderRadius: '4px', marginBottom: '40px' }}>
-          <div style={{ fontSize: '0.76rem', fontWeight: 800, letterSpacing: '1.2px', textTransform: 'uppercase', color: '#171717', marginBottom: '14px', borderBottom: '1px solid #e5e7eb', paddingBottom: '6px' }}>
-            HR / ADMINISTRATIVE REVIEW PANEL
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', borderBottom: '1px solid #e5e7eb', paddingBottom: '10px', flexWrap: 'wrap', gap: '10px' }}>
+            <div style={{ fontSize: '0.76rem', fontWeight: 800, letterSpacing: '1.2px', textTransform: 'uppercase', color: '#171717' }}>
+              HR / ADMINISTRATIVE REVIEW PANEL
+            </div>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <Link
+                to="/admin/documents"
+                style={{
+                  backgroundColor: '#721B28',
+                  color: '#ffffff',
+                  padding: '6px 14px',
+                  borderRadius: '4px',
+                  fontSize: '0.78rem',
+                  fontWeight: 700,
+                  textDecoration: 'none',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}
+              >
+                <span>📑 Request Original Documents</span>
+              </Link>
+              <Link
+                to="/admin/interviews"
+                style={{
+                  backgroundColor: '#0F172A',
+                  color: '#ffffff',
+                  padding: '6px 14px',
+                  borderRadius: '4px',
+                  fontSize: '0.78rem',
+                  fontWeight: 700,
+                  textDecoration: 'none',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}
+              >
+                <span>🎥 Schedule Zoom Interview</span>
+              </Link>
+            </div>
           </div>
 
           {statusSuccess && (

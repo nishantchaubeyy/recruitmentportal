@@ -70,6 +70,15 @@ function Header() {
               >
                 Dashboard
               </Link>
+              {user.role === 'APPLICANT' && (
+                <Link
+                  to="/applicant/documents"
+                  className={location.pathname.includes('/documents') ? 'active' : ''}
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  My Documents
+                </Link>
+              )}
               <button 
                 onClick={() => { setMobileMenuOpen(false); handleLogout(); }}
                 className="nav-logout-btn"
