@@ -313,7 +313,7 @@ function AdminInterviews() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-            <span style={{ backgroundColor: '#2563EB', color: '#fff', fontSize: '0.72rem', fontWeight: 800, padding: '3px 8px', borderRadius: '4px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+            <span style={{ backgroundColor: '#721B28', color: '#fff', fontSize: '0.72rem', fontWeight: 800, padding: '3px 8px', borderRadius: '4px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
               DYPIU HR
             </span>
             <span style={{ color: '#64748B', fontSize: '0.85rem', fontWeight: 600 }}>Interview Scheduling & Email Distribution</span>
@@ -453,15 +453,33 @@ function AdminInterviews() {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           {filteredInterviews.map((inv) => {
-            const formattedDate = new Date(inv.date).toLocaleDateString('en-IN', {
+            // Prefer scheduledAt over date (date defaults to now() on creation)
+            const displayDate = inv.scheduledAt ? new Date(inv.scheduledAt) : new Date(inv.date);
+            const formattedDate = displayDate.toLocaleDateString('en-IN', {
               weekday: 'short',
               day: 'numeric',
               month: 'short',
               year: 'numeric'
             });
-            const timeStr = inv.startTime && inv.endTime ? `${inv.startTime} - ${inv.endTime}` : (inv.startTime || inv.time);
-            const candidatesList = inv.candidates || [];
+            const timeStr = inv.startTime && inv.endTime
+              ? `${inv.startTime} - ${inv.endTime}`
+              : inv.startTime || inv.time
+              || displayDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+            const candidatesList = (inv.candidates && inv.candidates.length > 0)
+              ? inv.candidates
+              : (inv.candidate ? [{
+                  id: inv.candidate.id,
+                  candidate: inv.candidate,
+                  application: inv.application,
+                  emailStatus: inv.emailStatus || (inv.emailSent ? 'SENT' : 'PENDING'),
+                  candidateId: inv.candidate.id
+                }] : []);
             const isCancelled = inv.status === 'CANCELLED';
+            // Resolve panelists display
+            const panelistsDisplay = inv.selectedMembers?.length > 0
+              ? inv.selectedMembers.map(sm => sm.member?.name || sm.member?.email || '').filter(Boolean).join(', ')
+              : inv.interviewerName || null;
+            const panelName = inv.panel?.name || null;
 
             return (
               <div
@@ -483,8 +501,8 @@ function AdminInterviews() {
                         fontWeight: 800,
                         padding: '3px 8px',
                         borderRadius: '4px',
-                        backgroundColor: inv.status === 'CANCELLED' ? '#FEE2E2' : inv.status === 'RESCHEDULED' ? '#FEF3C7' : '#E0E7FF',
-                        color: inv.status === 'CANCELLED' ? '#991B1B' : inv.status === 'RESCHEDULED' ? '#92400E' : '#3730A3',
+                        backgroundColor: inv.status === 'CANCELLED' ? '#FEE2E2' : inv.status === 'RESCHEDULED' ? '#FEF3C7' : '#FDF2F4',
+                        color: inv.status === 'CANCELLED' ? '#991B1B' : inv.status === 'RESCHEDULED' ? '#92400E' : '#721B28',
                         textTransform: 'uppercase'
                       }}>
                         {inv.status}
@@ -538,9 +556,14 @@ function AdminInterviews() {
                         <strong>Passcode:</strong> <code style={{ backgroundColor: '#ffffff', padding: '2px 6px', borderRadius: '4px', border: '1px solid #CBD5E1' }}>{inv.zoomPassword}</code>
                       </div>
                     )}
-                    {inv.interviewerName && (
+                    {panelName && (
                       <div style={{ fontSize: '0.82rem', color: '#334155' }}>
-                        <strong>Interviewer:</strong> {inv.interviewerName}
+                        <strong>Panel:</strong> {panelName}
+                      </div>
+                    )}
+                    {panelistsDisplay && (
+                      <div style={{ fontSize: '0.82rem', color: '#334155' }}>
+                        <strong>Panelists:</strong> {panelistsDisplay}
                       </div>
                     )}
                   </div>
@@ -597,10 +620,10 @@ function AdminInterviews() {
                       >
                         <div>
                           <div style={{ fontSize: '0.84rem', fontWeight: 700, color: '#0F172A' }}>
-                            {ic.candidate?.name || 'Candidate'}
+                            {ic.candidate?.name || ic.application?.applicant?.name || 'Candidate'}
                           </div>
                           <div style={{ fontSize: '0.76rem', color: '#64748B' }}>
-                            {ic.candidate?.user?.email || ic.application?.applicationNumber || '—'}
+                            {ic.candidate?.user?.email || ic.application?.applicant?.user?.email || ic.application?.applicationNumber || '—'}
                           </div>
                         </div>
 
@@ -610,10 +633,10 @@ function AdminInterviews() {
                             fontWeight: 700,
                             padding: '2px 6px',
                             borderRadius: '4px',
-                            backgroundColor: ic.emailSent ? '#DEF7EC' : '#FDE8E8',
-                            color: ic.emailSent ? '#03543F' : '#9B1C1C'
+                            backgroundColor: ic.emailStatus === 'SENT' ? '#DEF7EC' : '#FDE8E8',
+                            color: ic.emailStatus === 'SENT' ? '#03543F' : '#9B1C1C'
                           }}>
-                            {ic.emailSent ? 'Email Sent ✓' : 'Email Pending'}
+                            {ic.emailStatus === 'SENT' ? 'Email Sent ✓' : 'Email Pending'}
                           </span>
                           {!isCancelled && (
                             <button

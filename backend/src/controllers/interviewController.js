@@ -356,16 +356,21 @@ async function getAllInterviews(req, res) {
       include: {
         job: true,
         candidate: { include: { user: true } },
-        application: true,
+        application: {
+          include: {
+            applicant: { include: { user: true } }
+          }
+        },
+        panel: true,
+        selectedMembers: {
+          include: {
+            member: true
+          }
+        },
         candidates: {
           include: {
             candidate: { include: { user: true } },
             application: true
-          }
-        },
-        panelMembers: {
-          include: {
-            user: { select: { id: true, email: true, role: true } }
           }
         }
       },

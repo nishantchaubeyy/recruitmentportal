@@ -99,8 +99,8 @@ function Footer() {
                 </Link>
               </li>
               <li style={{ marginBottom: '12px' }}>
-                <Link to="/register" className="footer-arrow-link">
-                  <span className="link-arrow">▸</span> Candidate Registration
+                <Link to="/" className="footer-arrow-link">
+                  <span className="link-arrow">▸</span> Apply Online (Vacancies)
                 </Link>
               </li>
             </ul>

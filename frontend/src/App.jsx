@@ -111,7 +111,7 @@ function App() {
           <Route path="/advertisements" element={<Navigate to="/advertisments" replace />} />
           <Route path="/jobs/:id" element={<PublicLayout><JobDetails /></PublicLayout>} />
           <Route path="/login" element={<PublicLayout><Login /></PublicLayout>} />
-          <Route path="/register" element={<PublicLayout><Register /></PublicLayout>} />
+          <Route path="/register" element={<Navigate to="/login" state={{ message: 'Account creation occurs automatically when you submit a job application. Please log in with the credentials sent to your email.' }} replace />} />
           <Route path="/track" element={<Navigate to="/" replace />} />
           <Route path="/track-application" element={<Navigate to="/" replace />} />
           <Route path="/application-tracking" element={<Navigate to="/" replace />} />

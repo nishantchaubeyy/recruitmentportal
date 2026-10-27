@@ -102,18 +102,28 @@ function Login() {
           </button>
         </form>
 
-        <div style={{ marginTop: '20px', textAlign: 'center', fontSize: '0.85rem', color: '#64748b' }}>
-          Don't have an account?{' '}
-          {(() => {
-            const searchParams = new URLSearchParams(location.search);
-            const redirectTarget = searchParams.get('redirect') || searchParams.get('returnTo') || location.state?.from;
-            const regTarget = redirectTarget ? `/register?redirect=${encodeURIComponent(redirectTarget)}` : '/register';
-            return (
-              <Link to={regTarget} state={{ from: redirectTarget }} style={{ fontWeight: 700, color: '#8B1235' }}>
-                Register here
-              </Link>
-            );
-          })()}
+        <div style={{
+          marginTop: '22px',
+          padding: '12px 14px',
+          backgroundColor: '#F8FAFC',
+          border: '1px solid #E2E8F0',
+          borderRadius: '6px',
+          textAlign: 'center',
+          fontSize: '0.82rem',
+          color: '#475569',
+          lineHeight: '1.45'
+        }}>
+          <div style={{ fontWeight: 700, color: '#0F172A', marginBottom: '3px' }}>
+            New Applicant?
+          </div>
+          <div>
+            Login credentials are automatically generated and sent to your email after submitting an application form.
+          </div>
+          <div style={{ marginTop: '8px' }}>
+            <Link to="/" style={{ fontWeight: 700, color: '#8B1235', textDecoration: 'none' }}>
+              Explore Vacancies & Apply Online →
+            </Link>
+          </div>
         </div>
       </div>
     </div>

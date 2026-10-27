@@ -124,25 +124,31 @@ export function statusBadgeStyle(status) {
   switch (status) {
     case APPLICATION_STATUS.SELECTED:
     case 'Selected':
+      return { bg: '#FDF2F4', text: '#721B28', border: '#F8D7DA' };
     case APPLICATION_STATUS.SHORTLISTED:
     case 'Shortlisted':
-      return { bg: '#FEF2F2', text: '#721B28', border: '#FECACA' };
+      return { bg: '#FAF5FF', text: '#581C87', border: '#E9D5FF' };
     case APPLICATION_STATUS.INTERVIEW_SCHEDULED:
     case 'Interview Scheduled':
-      return { bg: '#E0E7FF', text: '#3730A3', border: '#C7D2FE' };
+      return { bg: '#FEF3C7', text: '#92400E', border: '#FDE68A' };
     case APPLICATION_STATUS.UNDER_REVIEW:
     case 'Under Review':
+      return { bg: '#F8FAFC', text: '#334155', border: '#E2E8F0' };
     case APPLICATION_STATUS.WAITLISTED:
     case 'Waitlisted':
-      return { bg: '#FEF3C7', text: '#92400E', border: '#FDE68A' };
+      return { bg: '#FFFBEB', text: '#B45309', border: '#FDE68A' };
     case APPLICATION_STATUS.REJECTED:
     case 'Not Selected':
     case APPLICATION_STATUS.CLOSED:
     case 'Application Closed':
     case APPLICATION_STATUS.WITHDRAWN:
     case 'Withdrawn':
-      return { bg: '#FEE2E2', text: '#991B1B', border: '#FECACA' };
+      return { bg: '#F8FAFC', text: '#64748B', border: '#E2E8F0' };
+    case APPLICATION_STATUS.SUBMITTED:
+    case 'Application Submitted':
+    case APPLICATION_STATUS.DRAFT:
+    case 'Draft':
     default:
-      return { bg: '#F1F5F9', text: '#334155', border: '#E2E8F0' };
+      return { bg: '#F1F5F9', text: '#475569', border: '#CBD5E1' };
   }
 }
