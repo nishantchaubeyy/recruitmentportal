@@ -483,13 +483,18 @@ function Home() {
           background-color: #ffffff;
           border: 2px solid #8B1235;
           border-radius: 14px;
-          max-width: 850px;
-          width: 100%;
-          max-height: 90vh;
-          overflow-y: auto;
-          box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+          max-width: 90vw;
+          width: fit-content;
+          max-height: 92vh;
+          box-shadow: 0 25px 60px rgba(0, 0, 0, 0.35);
           position: relative;
-          padding: 24px;
+          padding: 20px 24px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          margin: auto;
+          box-sizing: border-box;
+          overflow: hidden;
         }
 
         .portal-modal-close-btn {
@@ -1054,15 +1059,35 @@ function Home() {
       {activePosterUrl && (
         <div className="portal-modal-overlay" onClick={() => setActivePosterUrl(null)}>
           <div className="poster-modal-card" onClick={(e) => e.stopPropagation()}>
-            <button className="portal-modal-close-btn" onClick={() => setActivePosterUrl(null)}>✕</button>
-            <div style={{ textAlign: 'center' }}>
-              <h3 style={{ margin: '0 0 16px 0', color: '#8B1235', fontFamily: 'Playfair Display, serif', fontSize: '1.4rem' }}>
+            <div style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', marginBottom: '14px', padding: '0 44px', boxSizing: 'border-box' }}>
+              <h3 style={{ margin: 0, color: '#8B1235', fontFamily: 'Playfair Display, serif', fontSize: '1.3rem', textAlign: 'center', fontWeight: 700 }}>
                 Official Recruitment Advertisement
               </h3>
+              <button className="portal-modal-close-btn" onClick={() => setActivePosterUrl(null)} title="Close">✕</button>
+            </div>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              width: '100%',
+              maxWidth: '100%',
+              maxHeight: 'calc(88vh - 65px)',
+              overflow: 'hidden'
+            }}>
               <img 
                 src={activePosterUrl} 
                 alt="Official Recruitment Poster" 
-                style={{ maxWidth: '100%', maxHeight: '78vh', objectFit: 'contain', borderRadius: '8px', boxShadow: '0 8px 24px rgba(0,0,0,0.2)' }}
+                style={{
+                  display: 'block',
+                  maxWidth: '100%',
+                  maxHeight: 'calc(85vh - 75px)',
+                  width: 'auto',
+                  height: 'auto',
+                  objectFit: 'contain',
+                  borderRadius: '6px',
+                  boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)',
+                  margin: '0 auto'
+                }}
               />
             </div>
           </div>

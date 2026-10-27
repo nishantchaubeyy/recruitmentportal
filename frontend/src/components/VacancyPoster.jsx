@@ -131,15 +131,18 @@ const VacancyPoster = ({ job, school, showApplyButton = false, style = {} }) => 
             onClick={(e) => e.stopPropagation()}
             style={{
               position: 'relative',
-              width: 'min(90vw, 700px)',
-              maxHeight: '90vh',
+              width: 'fit-content',
+              maxWidth: '90vw',
+              maxHeight: '92vh',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
               background: '#ffffff',
-              borderRadius: '8px',
+              border: '2px solid #8B1235',
+              borderRadius: '12px',
               overflow: 'hidden',
-              boxShadow: '0 25px 60px rgba(0,0,0,0.4)'
+              boxShadow: '0 25px 60px rgba(0,0,0,0.4)',
+              margin: 'auto'
             }}
           >
             {/* Header */}
@@ -148,11 +151,12 @@ const VacancyPoster = ({ job, school, showApplyButton = false, style = {} }) => 
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
-              padding: '12px 16px',
-              borderBottom: '1px solid #e5e5e5',
-              boxSizing: 'border-box'
+              padding: '12px 20px',
+              borderBottom: '1px solid #e2e8f0',
+              boxSizing: 'border-box',
+              gap: '16px'
             }}>
-              <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#8B1235' }}>
+              <span style={{ fontWeight: 700, fontSize: '1rem', color: '#8B1235', fontFamily: 'Playfair Display, serif' }}>
                 Official Recruitment Advertisement
               </span>
               <button
@@ -178,19 +182,28 @@ const VacancyPoster = ({ job, school, showApplyButton = false, style = {} }) => 
               </button>
             </div>
             {/* Poster image */}
-            <div style={{ width: '100%', overflowY: 'auto', maxHeight: 'calc(90vh - 56px)' }}>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              padding: '16px',
+              maxWidth: '100%',
+              maxHeight: 'calc(90vh - 60px)',
+              overflow: 'hidden'
+            }}>
               <img
                 src={posterImgSrc}
                 alt="Full Recruitment Poster"
                 style={{
-                  width: '100%',
-                  height: 'auto',
                   display: 'block',
-                  border: 'none',
-                  outline: 'none',
-                  boxShadow: 'none',
-                  borderRadius: 0,
-                  background: 'transparent'
+                  maxWidth: '100%',
+                  maxHeight: 'calc(85vh - 75px)',
+                  width: 'auto',
+                  height: 'auto',
+                  objectFit: 'contain',
+                  borderRadius: '6px',
+                  boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
+                  margin: '0 auto'
                 }}
               />
             </div>
