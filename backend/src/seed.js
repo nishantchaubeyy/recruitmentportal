@@ -129,11 +129,13 @@ async function main() {
   const allExistingSchools = await prisma.school.findMany();
   for (const existing of allExistingSchools) {
     if (!approvedSchoolNames.includes(existing.name)) {
-      console.log(`[Seed] Renaming obsolete school: ${existing.name}`);
-      await prisma.school.update({
-        where: { id: existing.id },
-        data: { name: `[ARCHIVED] ${existing.name}`, code: `ARCH-${existing.code || existing.id.slice(0, 6)}` }
-      });
+      if (!existing.name.startsWith('[ARCHIVED]')) {
+        console.log(`[Seed] Renaming obsolete school: ${existing.name}`);
+        await prisma.school.update({
+          where: { id: existing.id },
+          data: { name: `[ARCHIVED] ${existing.name}`, code: `ARCH-${existing.code || existing.id.slice(0, 6)}` }
+        });
+      }
     }
   }
 

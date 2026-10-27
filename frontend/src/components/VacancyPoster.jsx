@@ -131,47 +131,69 @@ const VacancyPoster = ({ job, school, showApplyButton = false, style = {} }) => 
             onClick={(e) => e.stopPropagation()}
             style={{
               position: 'relative',
-              maxWidth: '95vw',
-              maxHeight: '95vh',
+              width: 'min(90vw, 700px)',
+              maxHeight: '90vh',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
-              border: 'none',
-              boxShadow: 'none',
-              background: 'transparent'
+              background: '#ffffff',
+              borderRadius: '8px',
+              overflow: 'hidden',
+              boxShadow: '0 25px 60px rgba(0,0,0,0.4)'
             }}
           >
-            <button
-              onClick={() => setIsLightboxOpen(false)}
-              style={{
-                position: 'absolute',
-                top: '-40px',
-                right: '0',
-                background: 'none',
-                border: 'none',
-                color: '#ffffff',
-                fontSize: '2rem',
-                cursor: 'pointer',
-                fontWeight: 700
-              }}
-              title="Close Full View"
-            >
-              &times;
-            </button>
-            <img
-              src={posterImgSrc}
-              alt="Full Recruitment Poster"
-              style={{
-                maxWidth: '92vw',
-                maxHeight: '85vh',
-                objectFit: 'contain',
-                border: 'none',
-                outline: 'none',
-                boxShadow: 'none',
-                borderRadius: 0,
-                background: 'transparent'
-              }}
-            />
+            {/* Header */}
+            <div style={{
+              width: '100%',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              padding: '12px 16px',
+              borderBottom: '1px solid #e5e5e5',
+              boxSizing: 'border-box'
+            }}>
+              <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#8B1235' }}>
+                Official Recruitment Advertisement
+              </span>
+              <button
+                onClick={() => setIsLightboxOpen(false)}
+                style={{
+                  background: '#f1f5f9',
+                  border: 'none',
+                  borderRadius: '50%',
+                  width: '32px',
+                  height: '32px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '1.1rem',
+                  cursor: 'pointer',
+                  color: '#475569',
+                  fontWeight: 700,
+                  flexShrink: 0
+                }}
+                title="Close"
+              >
+                ×
+              </button>
+            </div>
+            {/* Poster image */}
+            <div style={{ width: '100%', overflowY: 'auto', maxHeight: 'calc(90vh - 56px)' }}>
+              <img
+                src={posterImgSrc}
+                alt="Full Recruitment Poster"
+                style={{
+                  width: '100%',
+                  height: 'auto',
+                  display: 'block',
+                  border: 'none',
+                  outline: 'none',
+                  boxShadow: 'none',
+                  borderRadius: 0,
+                  background: 'transparent'
+                }}
+              />
+            </div>
           </div>
         </div>
       )}

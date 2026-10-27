@@ -805,7 +805,7 @@ function Home() {
       {/* ─── OPEN POSITIONS SEARCH & ELONGATED VACANCY BOXES SECTION ─── */}
       <section id="open-positions" className="open-positions-section" aria-label="Open Positions">
         <div className="section-header-row">
-          <h2 className="section-title">OPEN POSITIONS</h2>
+          <h2 className="section-title">CURRENT OPENINGS</h2>
           <span className="result-count-text">
             ({filteredVacancies.length} {filteredVacancies.length === 1 ? 'role' : 'roles'})
           </span>

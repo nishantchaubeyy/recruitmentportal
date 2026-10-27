@@ -142,19 +142,33 @@ function AdminSchools() {
   };
 
   // Filtered Schools
-  const filteredSchools = schools.filter((s) => {
-    if (typeFilter && s.type !== typeFilter) return false;
-    const hasPoster = Boolean(s.posterUrl || s.recruitmentPosterUrl);
-    if (posterFilter === 'WITH_POSTER' && !hasPoster) return false;
-    if (posterFilter === 'WITHOUT_POSTER' && hasPoster) return false;
-    if (searchQuery) {
-      const q = searchQuery.toLowerCase();
-      const matchName = s.name?.toLowerCase().includes(q);
-      const matchCode = s.code?.toLowerCase().includes(q);
-      if (!matchName && !matchCode) return false;
-    }
-    return true;
-  });
+  const filteredSchools = schools
+    .filter((s) => {
+      const isArchived = s.name?.includes('[ARCHIVED]');
+      if (typeFilter && s.type !== typeFilter) return false;
+      const hasPoster = Boolean(s.posterUrl || s.recruitmentPosterUrl);
+      if (posterFilter === 'WITH_POSTER' && !hasPoster) return false;
+      if (posterFilter === 'WITHOUT_POSTER' && hasPoster) return false;
+      if (posterFilter === 'ACTIVE_ONLY' && isArchived) return false;
+      if (posterFilter === 'ARCHIVED' && !isArchived) return false;
+      if (searchQuery) {
+        const q = searchQuery.toLowerCase();
+        const cleanName = s.name?.replace(/^(\[ARCHIVED\]\s*)+/gi, '').toLowerCase();
+        const matchName = cleanName.includes(q) || s.name?.toLowerCase().includes(q);
+        const matchCode = s.code?.toLowerCase().includes(q);
+        if (!matchName && !matchCode) return false;
+      }
+      return true;
+    })
+    .sort((a, b) => {
+      const aArch = a.name?.includes('[ARCHIVED]');
+      const bArch = b.name?.includes('[ARCHIVED]');
+      if (aArch && !bArch) return 1;
+      if (!aArch && bArch) return -1;
+      const aClean = a.name?.replace(/^(\[ARCHIVED\]\s*)+/gi, '') || '';
+      const bClean = b.name?.replace(/^(\[ARCHIVED\]\s*)+/gi, '') || '';
+      return aClean.localeCompare(bClean);
+    });
 
   const totalWithPoster = schools.filter((s) => Boolean(s.posterUrl || s.recruitmentPosterUrl)).length;
   const totalSchools = schools.length;
@@ -165,10 +179,10 @@ function AdminSchools() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
         <div>
           <h2 style={{ margin: 0, color: '#0f172a', fontSize: '1.5rem', fontWeight: 800 }}>
-            Faculty & School Posters
+            Advertisements
           </h2>
           <p style={{ margin: '4px 0 0 0', color: '#64748b', fontSize: '0.88rem' }}>
-            Upload and manage recruitment posters per School/Faculty. Schools with an active poster will display the poster only, replacing vacancy cards.
+            Upload and manage recruitment advertisement posters per School/Faculty. Schools with an active poster display the poster directly, replacing vacancy cards.
           </p>
         </div>
 
@@ -229,11 +243,13 @@ function AdminSchools() {
         </div>
 
         <div style={{ flex: '1 1 180px' }}>
-          <label style={filterLabelStyle}>POSTER STATUS</label>
+          <label style={filterLabelStyle}>POSTER / SCHOOL STATUS</label>
           <select value={posterFilter} onChange={(e) => setPosterFilter(e.target.value)} style={selectStyle}>
-            <option value="">All Statuses</option>
-            <option value="WITH_POSTER">With Poster (Poster Mode)</option>
-            <option value="WITHOUT_POSTER">Without Poster (Vacancy Cards Mode)</option>
+            <option value="">All Schools ({schools.length})</option>
+            <option value="ACTIVE_ONLY">Active Faculties & Schools</option>
+            <option value="WITH_POSTER">With Advertisement Poster</option>
+            <option value="WITHOUT_POSTER">Without Poster (Vacancy Cards)</option>
+            <option value="ARCHIVED">Archived Schools</option>
           </select>
         </div>
 
@@ -286,6 +302,9 @@ function AdminSchools() {
                   const poster = school.posterUrl || school.recruitmentPosterUrl;
                   const hasPoster = Boolean(poster);
                   const activeVacancies = school._count?.jobs ?? 0;
+                  const isArchived = school.name?.includes('[ARCHIVED]');
+                  const displayName = school.name?.replace(/^(\[ARCHIVED\]\s*)+/gi, '') || school.name;
+                  const displayCode = school.code?.replace(/^(ARCH-)+/gi, 'ARCH-') || school.code;
 
                   return (
                     <tr
@@ -299,12 +318,28 @@ function AdminSchools() {
                     >
                       {/* School Name & Code */}
                       <td style={{ padding: '16px 20px' }}>
-                        <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '0.94rem' }}>
-                          {school.name}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                          <span style={{ fontWeight: 800, color: '#0f172a', fontSize: '0.94rem' }}>
+                            {displayName}
+                          </span>
+                          {isArchived && (
+                            <span style={{
+                              backgroundColor: '#fee2e2',
+                              color: '#991b1b',
+                              fontSize: '0.68rem',
+                              fontWeight: 800,
+                              padding: '2px 8px',
+                              borderRadius: '4px',
+                              letterSpacing: '0.4px',
+                              border: '1px solid #fecaca'
+                            }}>
+                              ARCHIVED
+                            </span>
+                          )}
                         </div>
-                        {school.code && (
+                        {displayCode && (
                           <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px', fontWeight: 600 }}>
-                            Code: {school.code}
+                            Code: {displayCode}
                           </div>
                         )}
                       </td>
@@ -460,7 +495,7 @@ function AdminSchools() {
                   {activeSchoolForUpload.posterUrl || activeSchoolForUpload.recruitmentPosterUrl ? 'Replace Recruitment Poster' : 'Upload Recruitment Poster'}
                 </h3>
                 <div style={{ fontSize: '0.82rem', color: '#0d9488', fontWeight: 700, marginTop: '2px' }}>
-                  {activeSchoolForUpload.name}
+                  {activeSchoolForUpload.name?.replace(/^(\[ARCHIVED\]\s*)+/gi, '')}
                 </div>
               </div>
               <button

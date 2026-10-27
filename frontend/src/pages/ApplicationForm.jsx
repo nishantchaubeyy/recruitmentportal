@@ -97,106 +97,53 @@ const STEPS = [
   { id: 7, title: 'Review & Submit', shortName: 'Review' }
 ];
 
-// Custom compact scrollable select popup (displays 12 numbers in view then scroll/slide)
-function CompactDropdownSelect({ value, options, onChange, placeholder, flex = 1 }) {
-  const [isOpen, setIsOpen] = useState(false);
-  const dropdownRef = useRef(null);
-
-  useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
-        setIsOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  const selectedOpt = options.find((o) => (typeof o === 'object' ? o.value : o) === value);
-  const displayLabel = selectedOpt
-    ? (typeof selectedOpt === 'object' ? selectedOpt.label : selectedOpt)
-    : placeholder;
-
+// DOB hybrid field: allows typing a number directly OR picking from a dropdown list
+function DobNumberInput({ value, onChange, placeholder, min, max, flex = 1, listId, options }) {
+  const inputStyle = {
+    width: '100%',
+    padding: '9px 10px',
+    borderRadius: '8px',
+    border: '1px solid #cbd5e1',
+    backgroundColor: '#ffffff',
+    color: value ? '#0f172a' : '#64748b',
+    fontSize: '0.86rem',
+    fontWeight: value ? 700 : 500,
+    boxSizing: 'border-box',
+    outline: 'none',
+    cursor: 'text'
+  };
   return (
-    <div ref={dropdownRef} style={{ position: 'relative', flex, minWidth: '80px' }}>
-      <button
-        type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        style={{
-          width: '100%',
-          padding: '9px 10px',
-          borderRadius: '8px',
-          border: '1px solid #cbd5e1',
-          backgroundColor: '#ffffff',
-          color: value ? '#0f172a' : '#64748b',
-          fontSize: '0.86rem',
-          fontWeight: value ? 700 : 500,
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          cursor: 'pointer',
-          userSelect: 'none',
-          boxShadow: 'none'
+    <div style={{ flex, minWidth: '72px' }}>
+      <input
+        type="number"
+        min={min}
+        max={max}
+        placeholder={placeholder}
+        value={value}
+        list={listId}
+        onChange={(e) => {
+          const v = e.target.value;
+          // Pad day/month to 2 digits when done typing
+          onChange(v);
         }}
-      >
-        <span>{displayLabel}</span>
-        <span style={{ fontSize: '0.65rem', color: '#64748b', marginLeft: '4px', transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }}>▼</span>
-      </button>
-
-      {isOpen && (
-        <div
-          style={{
-            position: 'absolute',
-            top: '100%',
-            left: 0,
-            right: 0,
-            marginTop: '4px',
-            maxHeight: '240px',
-            overflowY: 'auto',
-            backgroundColor: '#ffffff',
-            border: '1px solid #cbd5e1',
-            borderRadius: '8px',
-            boxShadow: '0 10px 25px rgba(15, 23, 42, 0.15)',
-            zIndex: 100,
-            padding: '4px 0'
-          }}
-        >
-          <div
-            onClick={() => { onChange(''); setIsOpen(false); }}
-            style={{
-              padding: '6px 10px',
-              fontSize: '0.84rem',
-              color: '#94a3b8',
-              cursor: 'pointer',
-              backgroundColor: value === '' ? '#f1f5f9' : 'transparent'
-            }}
-          >
-            {placeholder}
-          </div>
+        onBlur={(e) => {
+          const v = e.target.value;
+          if (v && (placeholder === 'DAY' || placeholder === 'MONTH')) {
+            onChange(String(Number(v)).padStart(2, '0'));
+          } else if (v) {
+            onChange(v);
+          }
+        }}
+        style={inputStyle}
+      />
+      {listId && options && (
+        <datalist id={listId}>
           {options.map((opt) => {
             const optVal = typeof opt === 'object' ? opt.value : opt;
             const optLbl = typeof opt === 'object' ? opt.label : opt;
-            const isSelected = value === optVal;
-            return (
-              <div
-                key={optVal}
-                onClick={() => { onChange(optVal); setIsOpen(false); }}
-                style={{
-                  padding: '6px 10px',
-                  fontSize: '0.84rem',
-                  fontWeight: isSelected ? 700 : 500,
-                  color: isSelected ? '#721b28' : '#1e293b',
-                  backgroundColor: isSelected ? '#fdf6e7' : 'transparent',
-                  cursor: 'pointer'
-                }}
-                onMouseEnter={(e) => { if (!isSelected) e.currentTarget.style.backgroundColor = '#f8fafc'; }}
-                onMouseLeave={(e) => { if (!isSelected) e.currentTarget.style.backgroundColor = 'transparent'; }}
-              >
-                {optLbl}
-              </div>
-            );
+            return <option key={optVal} value={optVal}>{optLbl}</option>;
           })}
-        </div>
+        </datalist>
       )}
     </div>
   );
@@ -259,8 +206,8 @@ function ApplicationForm() {
 
   // STEP 3: Academic Qualifications
   const [qualifications, setQualifications] = useState([
-    { qualificationDegree: 'SSC', degreeName: '10th Standard', instituteName: '', specialization: 'General', passingYear: '', cgpa: '', studyMode: 'Full-Time' },
-    { qualificationDegree: 'HSC', degreeName: '12th Standard', instituteName: '', specialization: 'Science', passingYear: '', cgpa: '', studyMode: 'Full-Time' },
+    { qualificationDegree: 'SSC', degreeName: 'SSC', instituteName: '', specialization: 'General', passingYear: '', cgpa: '', studyMode: 'Full-Time' },
+    { qualificationDegree: 'HSC', degreeName: 'HSC', instituteName: '', specialization: 'Science', passingYear: '', cgpa: '', studyMode: 'Full-Time' },
     { qualificationDegree: "Bachelor's", degreeName: '', instituteName: '', specialization: '', passingYear: '', cgpa: '', studyMode: 'Full-Time' }
   ]);
   const [subjectAppliedFor, setSubjectAppliedFor] = useState('');
@@ -522,7 +469,15 @@ function ApplicationForm() {
 
           if (existing.qualifications) {
             const q = typeof existing.qualifications === 'string' ? JSON.parse(existing.qualifications) : existing.qualifications;
-            if (Array.isArray(q) && q.length > 0) setQualifications(q);
+            if (Array.isArray(q) && q.length > 0) {
+              const sanitizedQ = q.map(item => {
+                let degName = item.degreeName;
+                if (item.qualificationDegree === 'SSC') degName = 'SSC';
+                else if (item.qualificationDegree === 'HSC') degName = 'HSC';
+                return { ...item, degreeName: degName };
+              });
+              setQualifications(sanitizedQ);
+            }
           }
 
           if (existing.experience) {
@@ -635,10 +590,26 @@ function ApplicationForm() {
             setError(`Academic qualification entry #${i + 1} (${q.qualificationDegree || 'Row'}) is incomplete. All fields are required once an academic entry is added.`);
             return;
           }
+
+          // Passing year: only numerical digits, valid 4-digit year
+          const yearStr = String(q.passingYear).trim();
+          if (!/^\d{4}$/.test(yearStr)) {
+            setError(`Invalid Passing Year in qualification #${i + 1}. Must be a 4-digit numerical year (e.g. 2020).`);
+            return;
+          }
+          const yrNum = parseInt(yearStr, 10);
+          const maxYr = new Date().getFullYear() + 2;
+          if (yrNum < 1950 || yrNum > maxYr) {
+            setError(`Invalid Passing Year in qualification #${i + 1}. Year must be between 1950 and ${maxYr}.`);
+            return;
+          }
+
+          // CGPA / %: valid decimal number between 0.00 and 100.00
           const cgpaStr = String(q.cgpa).trim();
+          const cgpaNum = parseFloat(cgpaStr);
           const decParts = cgpaStr.split('.');
-          if (isNaN(cgpaStr) || (decParts.length > 1 && decParts[1].length > 2)) {
-            setError(`Invalid CGPA / Percentage in qualification #${i + 1}. Must be up to 2 decimal places (e.g. 9.54 or 85.50).`);
+          if (isNaN(cgpaNum) || cgpaNum < 0 || cgpaNum > 100 || (decParts.length > 1 && decParts[1].length > 2)) {
+            setError(`Invalid CGPA / Percentage in qualification #${i + 1}. Must be a valid decimal number between 0.00 and 100.00 (e.g. 9.54 for CGPA or 85.50 for Percentage).`);
             return;
           }
         }
@@ -743,7 +714,29 @@ function ApplicationForm() {
   };
   const handleQualChange = (idx, field, val) => {
     const copy = [...qualifications];
-    if (field === 'cgpa') {
+    if (field === 'qualificationDegree') {
+      copy[idx].qualificationDegree = val;
+      if (val === 'SSC') {
+        copy[idx].degreeName = 'SSC';
+      } else if (val === 'HSC') {
+        copy[idx].degreeName = 'HSC';
+      } else if (copy[idx].degreeName === 'SSC' || copy[idx].degreeName === 'HSC') {
+        copy[idx].degreeName = '';
+      }
+    } else if (field === 'degreeName') {
+      if (copy[idx].qualificationDegree === 'SSC') {
+        copy[idx].degreeName = 'SSC';
+      } else if (copy[idx].qualificationDegree === 'HSC') {
+        copy[idx].degreeName = 'HSC';
+      } else {
+        copy[idx].degreeName = val;
+      }
+    } else if (field === 'passingYear') {
+      // Only numericals allowed, no letters or symbols, max 4 digits
+      const clean = val.replace(/\D/g, '').slice(0, 4);
+      copy[idx].passingYear = clean;
+    } else if (field === 'cgpa') {
+      // Decimal / percentage only: digits and at most one decimal point
       let clean = val.replace(/[^0-9.]/g, '');
       const parts = clean.split('.');
       if (parts.length > 2) {
@@ -752,7 +745,11 @@ function ApplicationForm() {
       if (parts.length > 1) {
         clean = parts[0] + '.' + parts[1].slice(0, 2);
       }
-      copy[idx][field] = clean;
+      const numVal = parseFloat(clean);
+      if (!isNaN(numVal) && numVal > 100) {
+        clean = '100';
+      }
+      copy[idx].cgpa = clean;
     } else {
       copy[idx][field] = val;
     }
@@ -1169,26 +1166,35 @@ function ApplicationForm() {
               <div className="form-group">
                 <label style={{ fontWeight: 700, fontSize: '0.85rem' }}>Date of Birth <span className="required">*</span></label>
                 <div className="app-dob-inputs-flex" style={{ display: 'flex', gap: '6px' }}>
-                  <CompactDropdownSelect
+                  <DobNumberInput
                     value={dobDay}
-                    options={DAYS_LIST}
                     onChange={(val) => setDobDay(val)}
-                    placeholder="Day"
+                    placeholder="DAY"
+                    min={1}
+                    max={31}
                     flex={1}
+                    listId="dob-day-list"
+                    options={DAYS_LIST}
                   />
-                  <CompactDropdownSelect
+                  <DobNumberInput
                     value={dobMonth}
-                    options={MONTHS_LIST}
                     onChange={(val) => setDobMonth(val)}
-                    placeholder="Month"
+                    placeholder="MONTH"
+                    min={1}
+                    max={12}
                     flex={1.5}
+                    listId="dob-month-list"
+                    options={MONTHS_LIST}
                   />
-                  <CompactDropdownSelect
+                  <DobNumberInput
                     value={dobYear}
-                    options={YEARS_LIST}
                     onChange={(val) => setDobYear(val)}
-                    placeholder="Year"
+                    placeholder="YEAR"
+                    min={1940}
+                    max={new Date().getFullYear() - 18}
                     flex={1.2}
+                    listId="dob-year-list"
+                    options={YEARS_LIST}
                   />
                 </div>
               </div>
@@ -1425,58 +1431,90 @@ function ApplicationForm() {
               STEP 3 — Academic Qualifications
             </h3>
 
-            {qualifications.map((q, idx) => (
-              <div key={idx} style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', padding: '16px', marginBottom: '16px', borderRadius: '10px' }}>
-                <div className="app-qual-grid" style={{ display: 'grid', gridTemplateColumns: '130px 1fr 1fr 1fr 90px 90px 110px', gap: '10px' }}>
-                  <div className="form-group" style={{ marginBottom: 0 }}>
-                    <label style={{ fontSize: '11px', fontWeight: 700 }}>Degree Type</label>
-                    <select value={q.qualificationDegree} onChange={(e) => handleQualChange(idx, 'qualificationDegree', e.target.value)}>
-                      <option value="SSC">SSC (10th)</option>
-                      <option value="HSC">HSC (12th)</option>
-                      <option value="Diploma">Diploma</option>
-                      <option value="Bachelor's">Bachelor's</option>
-                      <option value="Master's">Master's</option>
-                      <option value="Ph.D.">Ph.D.</option>
-                      <option value="Other">Other</option>
-                    </select>
-                  </div>
+            {qualifications.map((q, idx) => {
+              const isLockedDegree = q.qualificationDegree === 'SSC' || q.qualificationDegree === 'HSC';
+              return (
+                <div key={idx} style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', padding: '16px', marginBottom: '16px', borderRadius: '10px' }}>
+                  <div className="app-qual-grid" style={{ display: 'grid', gridTemplateColumns: '130px 1fr 1fr 1fr 90px 90px 110px', gap: '10px' }}>
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label style={{ fontSize: '11px', fontWeight: 700 }}>Type</label>
+                      <select value={q.qualificationDegree} onChange={(e) => handleQualChange(idx, 'qualificationDegree', e.target.value)}>
+                        <option value="SSC">SSC (10th)</option>
+                        <option value="HSC">HSC (12th)</option>
+                        <option value="Diploma">Diploma</option>
+                        <option value="Bachelor's">Bachelor's</option>
+                        <option value="Master's">Master's</option>
+                        <option value="Ph.D.">Ph.D.</option>
+                        <option value="Other">Other</option>
+                      </select>
+                    </div>
 
-                  <div className="form-group" style={{ marginBottom: 0 }}>
-                    <label style={{ fontSize: '11px', fontWeight: 700 }}>Degree Name</label>
-                    <input type="text" placeholder="e.g. B.Tech / MBA" value={q.degreeName} onChange={(e) => handleQualChange(idx, 'degreeName', e.target.value)} />
-                  </div>
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label style={{ fontSize: '11px', fontWeight: 700 }}>Degree Name</label>
+                      <input
+                        type="text"
+                        placeholder={isLockedDegree ? '' : "e.g. B.Tech / MBA"}
+                        value={isLockedDegree ? (q.qualificationDegree === 'SSC' ? 'SSC' : 'HSC') : q.degreeName}
+                        readOnly={isLockedDegree}
+                        tabIndex={isLockedDegree ? -1 : 0}
+                        onChange={(e) => handleQualChange(idx, 'degreeName', e.target.value)}
+                        style={isLockedDegree ? {
+                          backgroundColor: '#f1f5f9',
+                          color: '#0f172a',
+                          fontWeight: 700,
+                          cursor: 'not-allowed',
+                          border: '1px solid #cbd5e1'
+                        } : {}}
+                        title={isLockedDegree ? `Degree name is fixed as ${q.qualificationDegree} and cannot be changed` : undefined}
+                      />
+                    </div>
 
-                  <div className="form-group" style={{ marginBottom: 0 }}>
-                    <label style={{ fontSize: '11px', fontWeight: 700 }}>University / Board</label>
-                    <input type="text" placeholder="University" value={q.instituteName} onChange={(e) => handleQualChange(idx, 'instituteName', e.target.value)} />
-                  </div>
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label style={{ fontSize: '11px', fontWeight: 700 }}>University / Board</label>
+                      <input type="text" placeholder="University" value={q.instituteName} onChange={(e) => handleQualChange(idx, 'instituteName', e.target.value)} />
+                    </div>
 
-                  <div className="form-group" style={{ marginBottom: 0 }}>
-                    <label style={{ fontSize: '11px', fontWeight: 700 }}>Specialization</label>
-                    <input type="text" placeholder="Specialization" value={q.specialization} onChange={(e) => handleQualChange(idx, 'specialization', e.target.value)} />
-                  </div>
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label style={{ fontSize: '11px', fontWeight: 700 }}>Specialization</label>
+                      <input type="text" placeholder="Specialization" value={q.specialization} onChange={(e) => handleQualChange(idx, 'specialization', e.target.value)} />
+                    </div>
 
-                  <div className="form-group" style={{ marginBottom: 0 }}>
-                    <label style={{ fontSize: '11px', fontWeight: 700 }}>Year</label>
-                    <input type="text" placeholder="Year" value={q.passingYear} onChange={(e) => handleQualChange(idx, 'passingYear', e.target.value)} />
-                  </div>
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label style={{ fontSize: '11px', fontWeight: 700 }}>Year</label>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        maxLength={4}
+                        placeholder="Year"
+                        value={q.passingYear}
+                        onChange={(e) => handleQualChange(idx, 'passingYear', e.target.value)}
+                      />
+                    </div>
 
-                  <div className="form-group" style={{ marginBottom: 0 }}>
-                    <label style={{ fontSize: '11px', fontWeight: 700 }}>CGPA / %</label>
-                    <input type="text" placeholder="e.g. 9.54" value={q.cgpa} onChange={(e) => handleQualChange(idx, 'cgpa', e.target.value)} />
-                  </div>
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label style={{ fontSize: '11px', fontWeight: 700 }}>CGPA / %</label>
+                      <input
+                        type="text"
+                        inputMode="decimal"
+                        placeholder="e.g. 9.54"
+                        value={q.cgpa}
+                        onChange={(e) => handleQualChange(idx, 'cgpa', e.target.value)}
+                      />
+                    </div>
 
-                  <div className="form-group" style={{ marginBottom: 0 }}>
-                    <label style={{ fontSize: '11px', fontWeight: 700 }}>Mode</label>
-                    <select value={q.studyMode} onChange={(e) => handleQualChange(idx, 'studyMode', e.target.value)}>
-                      <option value="Full-Time">Full-Time</option>
-                      <option value="Part-Time">Part-Time</option>
-                      <option value="Distance">Distance</option>
-                    </select>
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label style={{ fontSize: '11px', fontWeight: 700 }}>Mode</label>
+                      <select value={q.studyMode} onChange={(e) => handleQualChange(idx, 'studyMode', e.target.value)}>
+                        <option value="Full-Time">Full-Time</option>
+                        <option value="Part-Time">Part-Time</option>
+                        <option value="Distance">Distance</option>
+                      </select>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
 
             <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
               <button type="button" className="btn-add btn-gold" onClick={handleAddQualification} style={{ backgroundColor: '#d9a43c', border: '1.5px solid #d9a43c', color: '#111111', padding: '8px 16px', borderRadius: '8px', fontWeight: 700, cursor: 'pointer', fontSize: '0.85rem' }}>

@@ -73,7 +73,9 @@ async function createInterview(req, res) {
     candidateId,
     applicationIds = [],
     applicationId,
-    panelMemberUserIds = []
+    panelMemberUserIds = [],
+    panelId,
+    panelistMemberIds = []
   } = req.body;
 
   const targetDate = interviewDate || date;
@@ -125,6 +127,7 @@ async function createInterview(req, res) {
           jobId,
           applicationId: primaryApp ? primaryApp.id : applicationId || null,
           candidateId: primaryCandidateId,
+          panelId: panelId || null,
           date: new Date(targetDate),
           time: targetStartTime,
           startTime: targetStartTime,
@@ -175,22 +178,22 @@ async function createInterview(req, res) {
         }
       }
 
-      // Assign Panel Members if provided
-      if (Array.isArray(panelMemberUserIds) && panelMemberUserIds.length > 0) {
-        for (const userId of panelMemberUserIds) {
-          await tx.interviewPanel.create({
+      // Assign Panelists if provided
+      if (Array.isArray(panelistMemberIds) && panelistMemberIds.length > 0) {
+        for (const memberId of panelistMemberIds) {
+          await tx.interviewPanelist.create({
             data: {
               interviewId: created.id,
-              userId
+              memberId
             }
-          });
+          }).catch(err => console.warn('Could not link panelist member:', err.message));
         }
       }
 
       return created;
     });
 
-    // Asynchronously dispatch personalized emails to ALL selected candidates
+    // Asynchronously dispatch personalized emails with Zoom link to ALL selected candidates
     let emailsSentCount = 0;
     for (const cId of selectedCandidateIds) {
       try {
@@ -241,6 +244,50 @@ async function createInterview(req, res) {
         }
       } catch (err) {
         console.error(`Failed to send interview email to candidate ${cId}:`, err.message);
+      }
+    }
+
+    // Asynchronously dispatch interview invite with Zoom link to ALL selected panelists
+    if (Array.isArray(panelistMemberIds) && panelistMemberIds.length > 0) {
+      try {
+        const panelists = await prisma.panelMember.findMany({
+          where: { id: { in: panelistMemberIds } },
+          include: { panel: true }
+        });
+
+        // Resolve candidate names for panelist email
+        const candidateNames = candidateApplications.map(a => {
+          const contact = resolveCandidateContact(a.applicant, a);
+          return contact.name || a.applicant?.name || 'Candidate';
+        });
+        const candidateNamesStr = candidateNames.length > 1
+          ? `${candidateNames[0]} (+${candidateNames.length - 1} other${candidateNames.length > 2 ? 's' : ''})`
+          : candidateNames[0] || 'Candidate';
+
+        const scheduledDateObj = new Date(targetDate);
+
+        for (const panelist of panelists) {
+          if (panelist.email) {
+            const otherPanelists = panelists.filter(p => p.id !== panelist.id).map(p => p.name);
+            sendPanelistInterviewInvite({
+              to: panelist.email,
+              panelistName: panelist.name,
+              candidateName: candidateNamesStr,
+              position: job.position,
+              panelName: panelist.panel?.name || 'Interview Panel',
+              scheduledAt: scheduledDateObj,
+              durationMinutes: 30,
+              zoomJoinUrl: targetZoomLink,
+              zoomStartUrl: targetZoomLink,
+              zoomMeetingId,
+              zoomPassword,
+              otherPanelists,
+              notes
+            }).catch(err => console.error(`Failed to send interview email to panelist ${panelist.email}:`, err.message));
+          }
+        }
+      } catch (err) {
+        console.error('Failed to dispatch emails to panelists:', err.message);
       }
     }
 

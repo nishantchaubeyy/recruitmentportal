@@ -289,7 +289,9 @@ export const POSITIONS_DATA = {
 
 function PositionsExplorer({ category = 'teaching', title, subtitle }) {
   const navigate = useNavigate();
-  const [selectedItem, setSelectedItem] = useState(null);
+  const pageCat = category === 'nonteaching' ? 'nonteaching' : 'teaching';
+  const currentList = POSITIONS_DATA[pageCat] || [];
+  const [selectedItem, setSelectedItem] = useState(currentList[0] || null);
   const detailRef = useRef(null);
 
   const handleItemClick = (item) => {
@@ -312,8 +314,6 @@ function PositionsExplorer({ category = 'teaching', title, subtitle }) {
     }
   };
 
-  const pageCat = category === 'nonteaching' ? 'nonteaching' : 'teaching';
-  const currentList = POSITIONS_DATA[pageCat] || [];
 
   return (
     <section className="pos-section" id="open-positions" data-cat={pageCat}>

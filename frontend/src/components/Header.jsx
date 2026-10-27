@@ -32,27 +32,7 @@ function Header() {
         </button>
 
         <nav className={mobileMenuOpen ? 'mobile-open' : ''}>
-          <Link 
-            to="/teaching" 
-            className={location.pathname === '/teaching' ? 'active' : ''}
-            onClick={() => setMobileMenuOpen(false)}
-          >
-            Teaching
-          </Link>
-          <Link 
-            to="/non-teaching" 
-            className={location.pathname === '/non-teaching' ? 'active' : ''}
-            onClick={() => setMobileMenuOpen(false)}
-          >
-            Non-Teaching
-          </Link>
-          <Link 
-            to="/customized" 
-            className={location.pathname === '/customized' ? 'active' : ''}
-            onClick={() => setMobileMenuOpen(false)}
-          >
-            Customized Vacancies
-          </Link>
+
           <Link 
             to="/advertisments" 
             className={location.pathname === '/advertisments' || location.pathname === '/advertisements' ? 'active' : ''}

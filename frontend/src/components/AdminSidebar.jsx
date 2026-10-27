@@ -34,14 +34,13 @@ function AdminSidebar() {
   const navItems = [
     { label: 'Dashboard', path: '/admin/dashboard', icon: IconDashboard },
     { label: 'Vacancies', path: '/admin/jobs', icon: IconBriefcase },
-    { label: 'Customized Vacancies', path: '/admin/customized-vacancies', icon: IconBriefcase },
-    { label: 'Faculty Posters', path: '/admin/schools', icon: IconFileText },
     { label: 'Applications', path: '/admin/applications', icon: IconFileText },
     { label: 'Interview Panels', path: '/admin/interview-panels', icon: IconUsers },
-    { label: 'Interviews (Zoom)', path: '/admin/interviews', icon: IconCalendar },
+    { label: 'Interviews', path: '/admin/interviews', icon: IconCalendar },
     { label: 'Document Verification', path: '/admin/documents', icon: IconFolder },
     { label: 'Interested Applicants', path: '/admin/vacancy-interests', icon: IconUserCheck },
     { label: 'Reports', path: '/admin/reports', icon: IconBarChart },
+    { label: 'Advertisements', path: '/admin/schools', icon: IconFileText },
     ...(isSuperAdminOrHRAdmin ? [{ label: 'User Management', path: '/admin/users', icon: IconUsers }] : [])
   ];
 

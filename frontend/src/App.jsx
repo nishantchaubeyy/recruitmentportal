@@ -14,7 +14,7 @@ import JobDetails from './pages/JobDetails';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Advertisments from './pages/Advertisments';
-import CustomizedPositions from './pages/CustomizedPositions';
+
 
 // Applicant Pages
 import ApplicantDashboard from './pages/ApplicantDashboard';
@@ -39,7 +39,7 @@ import AdminReports from './pages/AdminReports';
 import AdminInterestedApplicants from './pages/AdminInterestedApplicants';
 import AdminSchools from './pages/AdminSchools';
 import AdminInterviewPanels from './pages/AdminInterviewPanels';
-import AdminCustomizedJobs from './pages/AdminCustomizedJobs';
+
 import CommitteeDashboard from './pages/CommitteeDashboard';
 
 /**
@@ -106,8 +106,7 @@ function App() {
           <Route path="/apply/:jobId" element={<PublicLayout><ApplicationForm /></PublicLayout>} />
           <Route path="/teaching" element={<PublicLayout><TeachingPositions /></PublicLayout>} />
           <Route path="/non-teaching" element={<PublicLayout><NonTeachingPositions /></PublicLayout>} />
-          <Route path="/customized" element={<PublicLayout><CustomizedPositions /></PublicLayout>} />
-          <Route path="/other-vacancies" element={<Navigate to="/customized" replace />} />
+
           <Route path="/advertisments" element={<PublicLayout><Advertisments /></PublicLayout>} />
           <Route path="/advertisements" element={<Navigate to="/advertisments" replace />} />
           <Route path="/jobs/:id" element={<PublicLayout><JobDetails /></PublicLayout>} />
@@ -230,14 +229,7 @@ function App() {
               </AdminRoute>
             } 
           />
-          <Route 
-            path="/admin/customized-vacancies" 
-            element={
-              <AdminRoute>
-                <AdminCustomizedJobs />
-              </AdminRoute>
-            } 
-          />
+
           <Route 
             path="/admin/vacancy-interests" 
             element={

@@ -28,6 +28,8 @@ function AdminInterviews() {
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [selectedInterview, setSelectedInterview] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [panels, setPanels] = useState([]);
+  const [activePanelTab, setActivePanelTab] = useState('');
 
   // New Interview Form
   const [formData, setFormData] = useState({
@@ -42,7 +44,9 @@ function AdminInterviews() {
     interviewerName: '',
     interviewType: 'Technical',
     notes: '',
-    candidateIds: []
+    candidateIds: [],
+    panelId: '',
+    selectedPanelistIds: []
   });
 
   // Reschedule Form
@@ -68,15 +72,21 @@ function AdminInterviews() {
     try {
       setLoading(true);
       setError('');
-      const [interviewsRes, appsRes, jobsRes] = await Promise.all([
+      const [interviewsRes, appsRes, jobsRes, panelsRes] = await Promise.all([
         apiRequest('/interviews'),
         apiRequest('/applications?limit=200'),
-        apiRequest('/admin/vacancies')
+        apiRequest('/admin/vacancies'),
+        apiRequest('/admin/panels').catch(() => [])
       ]);
 
+      const panelsList = Array.isArray(panelsRes) ? panelsRes : [];
       setInterviews(Array.isArray(interviewsRes) ? interviewsRes : (interviewsRes?.data || []));
       setApplications(appsRes?.data || appsRes || []);
       setJobs(Array.isArray(jobsRes) ? jobsRes : (jobsRes?.data || []));
+      setPanels(panelsList);
+      if (panelsList.length > 0) {
+        setActivePanelTab(panelsList[0].id);
+      }
     } catch (err) {
       setError(err.message || 'Failed to load interview records.');
     } finally {
@@ -114,6 +124,51 @@ function AdminInterviews() {
     setFormData(prev => ({ ...prev, candidateIds: [] }));
   };
 
+  const handlePanelSelect = (pId) => {
+    setActivePanelTab(pId);
+    const chosen = panels.find(p => p.id === pId);
+    if (chosen) {
+      const activeMemberIds = (chosen.members || []).filter(m => m.isActive).map(m => m.id);
+      const memberNames = (chosen.members || []).filter(m => m.isActive).map(m => m.name).join(', ');
+      setFormData(prev => ({
+        ...prev,
+        panelId: pId,
+        selectedPanelistIds: activeMemberIds,
+        interviewerName: memberNames ? `${chosen.name} (${memberNames})` : prev.interviewerName
+      }));
+    }
+  };
+
+  const handlePanelistToggle = (memberId) => {
+    setFormData(prev => {
+      const exists = prev.selectedPanelistIds.includes(memberId);
+      const updated = exists
+        ? prev.selectedPanelistIds.filter(id => id !== memberId)
+        : [...prev.selectedPanelistIds, memberId];
+      return { ...prev, selectedPanelistIds: updated };
+    });
+  };
+
+  const handleSelectAllPanelists = (panelId) => {
+    const chosen = panels.find(p => p.id === panelId);
+    if (!chosen) return;
+    const activeIds = (chosen.members || []).filter(m => m.isActive).map(m => m.id);
+    setFormData(prev => ({
+      ...prev,
+      selectedPanelistIds: Array.from(new Set([...prev.selectedPanelistIds, ...activeIds]))
+    }));
+  };
+
+  const handleDeselectAllPanelists = (panelId) => {
+    const chosen = panels.find(p => p.id === panelId);
+    if (!chosen) return;
+    const panelMemberIds = (chosen.members || []).map(m => m.id);
+    setFormData(prev => ({
+      ...prev,
+      selectedPanelistIds: prev.selectedPanelistIds.filter(id => !panelMemberIds.includes(id))
+    }));
+  };
+
   // Schedule Submit
   const handleScheduleSubmit = async (e) => {
     e.preventDefault();
@@ -136,11 +191,13 @@ function AdminInterviews() {
         method: 'POST',
         body: JSON.stringify({
           ...formData,
-          date: formData.interviewDate
+          date: formData.interviewDate,
+          panelId: formData.panelId,
+          panelistMemberIds: formData.selectedPanelistIds
         })
       });
 
-      setSuccess(res.message || 'Zoom interview scheduled & links emailed to selected candidates.');
+      setSuccess(res.message || 'Interview scheduled & Zoom links emailed to selected candidate(s) and panelists.');
       setShowScheduleModal(false);
       setFormData({
         title: '',
@@ -154,7 +211,9 @@ function AdminInterviews() {
         interviewerName: '',
         interviewType: 'Technical',
         notes: '',
-        candidateIds: []
+        candidateIds: [],
+        panelId: '',
+        selectedPanelistIds: []
       });
       fetchInitialData();
     } catch (err) {
@@ -254,15 +313,15 @@ function AdminInterviews() {
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
             <span style={{ backgroundColor: '#2563EB', color: '#fff', fontSize: '0.72rem', fontWeight: 800, padding: '3px 8px', borderRadius: '4px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-              Feature 1
+              DYPIU HR
             </span>
-            <span style={{ color: '#64748B', fontSize: '0.85rem', fontWeight: 600 }}>Zoom Integration & Email Distribution</span>
+            <span style={{ color: '#64748B', fontSize: '0.85rem', fontWeight: 600 }}>Interview Scheduling & Email Distribution</span>
           </div>
           <h1 style={{ margin: 0, fontSize: '1.75rem', fontWeight: 800, color: '#0F172A', letterSpacing: '-0.3px' }}>
-            Interview Management
+            Interviews
           </h1>
           <p style={{ margin: '4px 0 0 0', color: '#64748B', fontSize: '0.92rem' }}>
-            Schedule Zoom interviews for single or multiple shortlisted candidates with automated, personalized email distribution.
+            Schedule interviews for single or multiple candidates with automated Zoom link delivery to both candidates and panelists.
           </p>
         </div>
 
@@ -284,7 +343,7 @@ function AdminInterviews() {
           }}
         >
           <IconPlus size={16} />
-          Schedule Zoom Interview
+          Schedule Interview
         </button>
       </div>
 
@@ -381,13 +440,13 @@ function AdminInterviews() {
           </div>
           <h3 style={{ margin: '0 0 6px 0', color: '#0F172A', fontSize: '1.15rem', fontWeight: 800 }}>No interviews scheduled</h3>
           <p style={{ color: '#64748B', fontSize: '0.88rem', maxWidth: '440px', margin: '0 auto 20px auto' }}>
-            There are currently no interview sessions matching your filter criteria. Click below to schedule a Zoom interview.
+            There are currently no interview sessions matching your filter criteria. Click below to schedule an interview.
           </p>
           <button
             onClick={() => setShowScheduleModal(true)}
             style={{ backgroundColor: '#0F172A', color: '#ffffff', border: 'none', padding: '9px 20px', borderRadius: '8px', fontWeight: 700, fontSize: '0.86rem', cursor: 'pointer' }}
           >
-            + Schedule Zoom Interview
+            + Schedule Interview
           </button>
         </div>
       ) : (
@@ -660,9 +719,9 @@ function AdminInterviews() {
           <div style={{ backgroundColor: '#ffffff', borderRadius: '16px', maxWidth: '780px', width: '100%', maxHeight: '92vh', overflowY: 'auto', padding: '32px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid #E2E8F0', paddingBottom: '14px' }}>
               <div>
-                <h3 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 800, color: '#0F172A' }}>Schedule Zoom Interview</h3>
+                <h3 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 800, color: '#0F172A' }}>Schedule Interview</h3>
                 <p style={{ margin: '4px 0 0 0', color: '#64748B', fontSize: '0.85rem' }}>
-                  Distribute the same Zoom meeting link to single or multiple candidates via email.
+                  Distribute the interview details & Zoom meeting link to candidate(s) and selected panelists via email.
                 </p>
               </div>
               <button onClick={() => setShowScheduleModal(false)} style={{ border: 'none', background: 'transparent', fontSize: '1.4rem', cursor: 'pointer', color: '#94A3B8' }}>&times;</button>
@@ -832,6 +891,133 @@ function AdminInterviews() {
                     <option value="Presentation">Presentation / Demo Lecture</option>
                   </select>
                 </div>
+              </div>
+
+              {/* Panelists Section (A, B, C) */}
+              <div style={{ backgroundColor: '#F8FAFC', border: '1.5px solid #E2E8F0', borderRadius: '10px', padding: '16px', marginBottom: '18px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
+                  <div>
+                    <div style={{ fontSize: '0.84rem', fontWeight: 800, color: '#0F172A', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span>👥 Select Panelists (Panel A, B, C)</span>
+                      <span style={{ fontSize: '0.72rem', backgroundColor: '#EFF6FF', color: '#1D4ED8', padding: '2px 8px', borderRadius: '12px', fontWeight: 700, border: '1px solid #BFDBFE' }}>
+                        {formData.selectedPanelistIds.length} Panelist{formData.selectedPanelistIds.length !== 1 ? 's' : ''} Selected
+                      </span>
+                    </div>
+                    <div style={{ fontSize: '0.76rem', color: '#64748B', marginTop: '2px' }}>
+                      The Zoom meeting link will be emailed to both selected candidates AND panelists.
+                    </div>
+                  </div>
+
+                  {/* Panel selection buttons (Panel A, B, C) */}
+                  <div style={{ display: 'flex', gap: '6px' }}>
+                    {panels.map(p => {
+                      const isCurrentTab = activePanelTab === p.id;
+                      return (
+                        <button
+                          key={p.id}
+                          type="button"
+                          onClick={() => handlePanelSelect(p.id)}
+                          style={{
+                            padding: '6px 14px',
+                            borderRadius: '6px',
+                            fontSize: '0.8rem',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            border: isCurrentTab ? '1.5px solid #721B28' : '1px solid #CBD5E1',
+                            backgroundColor: isCurrentTab ? '#721B28' : '#FFFFFF',
+                            color: isCurrentTab ? '#FFFFFF' : '#334155',
+                            transition: 'all 0.15s ease'
+                          }}
+                        >
+                          {p.name}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Panel Members List for Active Tab */}
+                {(() => {
+                  const activePanel = panels.find(p => p.id === activePanelTab) || panels[0];
+                  if (!activePanel) {
+                    return (
+                      <div style={{ fontSize: '0.8rem', color: '#64748B', padding: '8px 0' }}>
+                        No interview panels configured. You can set them up in <a href="/admin/interview-panels" style={{ color: '#2563EB', fontWeight: 600 }}>Interview Panels</a>.
+                      </div>
+                    );
+                  }
+                  const members = activePanel.members || [];
+                  return (
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                        <span style={{ fontSize: '0.76rem', fontWeight: 700, color: '#475569' }}>
+                          {activePanel.name} ({activePanel.description || 'Interview Panel'}) · {members.length} members
+                        </span>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <button
+                            type="button"
+                            onClick={() => handleSelectAllPanelists(activePanel.id)}
+                            style={{ border: 'none', background: 'none', color: '#2563EB', fontSize: '0.74rem', fontWeight: 700, cursor: 'pointer' }}
+                          >
+                            Select All in {activePanel.code ? `Panel ${activePanel.code}` : activePanel.name}
+                          </button>
+                          <span style={{ color: '#CBD5E1' }}>|</span>
+                          <button
+                            type="button"
+                            onClick={() => handleDeselectAllPanelists(activePanel.id)}
+                            style={{ border: 'none', background: 'none', color: '#64748B', fontSize: '0.74rem', fontWeight: 600, cursor: 'pointer' }}
+                          >
+                            Clear
+                          </button>
+                        </div>
+                      </div>
+
+                      {members.length === 0 ? (
+                        <div style={{ fontSize: '0.8rem', color: '#94A3B8', fontStyle: 'italic', padding: '8px 0' }}>
+                          No members in this panel yet.
+                        </div>
+                      ) : (
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '8px' }}>
+                          {members.map(member => {
+                            const isSelected = formData.selectedPanelistIds.includes(member.id);
+                            return (
+                              <label
+                                key={member.id}
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'flex-start',
+                                  gap: '10px',
+                                  padding: '9px 12px',
+                                  borderRadius: '8px',
+                                  border: isSelected ? '1.5px solid #2563EB' : '1px solid #E2E8F0',
+                                  backgroundColor: isSelected ? '#EFF6FF' : '#FFFFFF',
+                                  cursor: 'pointer',
+                                  transition: 'all 0.15s ease'
+                                }}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={isSelected}
+                                  onChange={() => handlePanelistToggle(member.id)}
+                                  style={{ marginTop: '3px', cursor: 'pointer' }}
+                                />
+                                <div style={{ fontSize: '0.8rem', lineHeight: 1.3 }}>
+                                  <div style={{ fontWeight: 700, color: '#0F172A' }}>{member.name}</div>
+                                  {member.designation && (
+                                    <div style={{ color: '#64748B', fontSize: '0.72rem' }}>{member.designation}</div>
+                                  )}
+                                  <div style={{ color: '#2563EB', fontSize: '0.72rem', marginTop: '2px', wordBreak: 'break-all', fontWeight: 500 }}>
+                                    {member.email}
+                                  </div>
+                                </div>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
 
               {/* Multi-Candidate Selection Table */}
