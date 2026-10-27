@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { apiRequest } from '../utils/api';
-import { IconCheckCircle } from './icons/AdminIcons';
 
 function ScheduleInterviewModal({ application, isOpen, onClose, onSuccess }) {
   const [panels, setPanels] = useState([]);
   const [loadingPanels, setLoadingPanels] = useState(false);
   const [selectedPanelId, setSelectedPanelId] = useState('');
   const [selectedPanelistIds, setSelectedPanelistIds] = useState([]);
-  
+
+  // Candidate/Application selection (used when opened without preselected application)
+  const [availableApplications, setAvailableApplications] = useState([]);
+  const [selectedAppId, setSelectedAppId] = useState('');
+
   // Date and Time (default tomorrow at 10:00 AM)
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
@@ -17,6 +20,7 @@ function ScheduleInterviewModal({ application, isOpen, onClose, onSuccess }) {
   const [interviewTime, setInterviewTime] = useState('10:00 AM');
   const [durationMinutes, setDurationMinutes] = useState(30);
   const [notes, setNotes] = useState('');
+  const [zoomJoinUrl, setZoomJoinUrl] = useState('');
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -27,8 +31,14 @@ function ScheduleInterviewModal({ application, isOpen, onClose, onSuccess }) {
       fetchPanels();
       setError('');
       setZoomNotice('');
+
+      if (application?.id) {
+        setSelectedAppId(application.id);
+      } else {
+        fetchAvailableApplications();
+      }
     }
-  }, [isOpen]);
+  }, [isOpen, application]);
 
   async function fetchPanels() {
     try {
@@ -42,11 +52,26 @@ function ScheduleInterviewModal({ application, isOpen, onClose, onSuccess }) {
         setSelectedPanelistIds(activeMembers.map(m => m.id));
       }
     } catch (err) {
-      setError('Failed to load interview panels.');
+      setError('Failed to load interview panels. Please verify panels are set up.');
     } finally {
       setLoadingPanels(false);
     }
   }
+
+  async function fetchAvailableApplications() {
+    try {
+      const res = await apiRequest('/applications?limit=200');
+      const list = Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : []);
+      setAvailableApplications(list);
+      if (list.length > 0 && !selectedAppId) {
+        setSelectedAppId(list[0].id);
+      }
+    } catch (err) {
+      console.warn('Could not load applications for interview selector:', err.message);
+    }
+  }
+
+  const currentApp = application || availableApplications.find(a => a.id === selectedAppId);
 
   const handlePanelChange = (panelId) => {
     setSelectedPanelId(panelId);
@@ -81,8 +106,10 @@ function ScheduleInterviewModal({ application, isOpen, onClose, onSuccess }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!application?.id) {
-      setError('Invalid application reference.');
+    const effectiveAppId = currentApp?.id || selectedAppId;
+
+    if (!effectiveAppId) {
+      setError('Please select a valid candidate application.');
       return;
     }
     if (!selectedPanelId) {
@@ -103,21 +130,23 @@ function ScheduleInterviewModal({ application, isOpen, onClose, onSuccess }) {
       setError('');
       setZoomNotice('');
 
-      // Build scheduledAt date object
-      // Combine date and time string
+      // Build scheduledAt date object (IST to UTC)
       const scheduledDateTime = new Date(`${interviewDate} ${interviewTime}`);
       const validDate = isNaN(scheduledDateTime.getTime()) ? new Date(interviewDate) : scheduledDateTime;
 
+      const payload = {
+        applicationId: effectiveAppId,
+        panelId: selectedPanelId,
+        panelistIds: selectedPanelistIds,
+        scheduledAt: validDate.toISOString(),
+        durationMinutes: parseInt(durationMinutes, 10) || 30,
+        notes: notes.trim() || undefined,
+        zoomJoinUrl: zoomJoinUrl.trim() || undefined
+      };
+
       const res = await apiRequest('/admin/interviews/schedule-panel', {
         method: 'POST',
-        body: JSON.stringify({
-          applicationId: application.id,
-          panelId: selectedPanelId,
-          panelistMemberIds: selectedPanelistIds,
-          scheduledAt: validDate.toISOString(),
-          durationMinutes: parseInt(durationMinutes) || 30,
-          notes
-        })
+        body: JSON.stringify(payload)
       });
 
       if (res?.zoomWarning) {
@@ -134,22 +163,30 @@ function ScheduleInterviewModal({ application, isOpen, onClose, onSuccess }) {
     }
   };
 
-  if (!isOpen || !application) return null;
+  if (!isOpen) return null;
 
-  const candidateName = application.applicant?.name ||
-    `${application.personalInfo?.firstName || ''} ${application.personalInfo?.lastName || ''}`.trim() ||
+  const candidateName = currentApp?.applicant?.name ||
+    `${currentApp?.personalInfo?.firstName || ''} ${currentApp?.personalInfo?.lastName || ''}`.trim() ||
     'Candidate';
-  const positionTitle = application.job?.position || application.personalInfo?.postAppliedFor || 'Faculty Position';
-  const candidateEmail = application.applicant?.user?.email || application.personalInfo?.email || 'N/A';
+  const positionTitle = currentApp?.job?.position || currentApp?.personalInfo?.postAppliedFor || 'Faculty Position';
+  const candidateEmail = currentApp?.applicant?.user?.email || currentApp?.personalInfo?.email || 'N/A';
 
   return (
     <div style={modalBackdropStyle}>
       <div style={modalContainerStyle}>
         
-        {/* MODAL HEADER */}
-        <div style={{ backgroundColor: '#721B28', color: '#FFFFFF', padding: '18px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        {/* MODAL HEADER - Maroon / Gold / White */}
+        <div style={{
+          background: 'linear-gradient(135deg, #721B28 0%, #4A1019 100%)',
+          color: '#FFFFFF',
+          padding: '20px 24px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          borderBottom: '3px solid #D9A43C'
+        }}>
           <div>
-            <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, letterSpacing: '-0.2px' }}>
+            <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, letterSpacing: '-0.2px', color: '#FFFFFF' }}>
               Schedule Interview with Panel & Zoom Invite
             </h3>
             <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: '#FCD34D', fontWeight: 600 }}>
@@ -160,33 +197,72 @@ function ScheduleInterviewModal({ application, isOpen, onClose, onSuccess }) {
             onClick={onClose}
             disabled={submitting}
             style={closeBtnStyle}
+            aria-label="Close"
           >
             &times;
           </button>
         </div>
 
         {/* CANDIDATE SUMMARY BANNER */}
-        <div style={{ backgroundColor: '#FEF3C7', borderBottom: '1px solid #FDE68A', padding: '12px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
-          <div>
-            <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#92400E', textTransform: 'uppercase' }}>Candidate: </span>
-            <strong style={{ fontSize: '0.9rem', color: '#0F172A' }}>{candidateName}</strong>
-            <span style={{ fontSize: '0.8rem', color: '#475569', marginLeft: '6px' }}>({candidateEmail})</span>
+        {application ? (
+          <div style={{
+            backgroundColor: '#FEF3C7',
+            borderBottom: '1px solid #FDE68A',
+            padding: '12px 24px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '10px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '0.74rem', fontWeight: 800, color: '#92400E', letterSpacing: '0.5px' }}>CANDIDATE:</span>
+              <strong style={{ fontSize: '0.92rem', color: '#0F172A' }}>{candidateName}</strong>
+              <span style={{ fontSize: '0.8rem', color: '#475569' }}>({candidateEmail})</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '0.74rem', fontWeight: 800, color: '#92400E', letterSpacing: '0.5px' }}>ROLE:</span>
+              <strong style={{ fontSize: '0.86rem', color: '#0F172A' }}>{positionTitle}</strong>
+              <span style={{
+                backgroundColor: '#FFFFFF',
+                color: '#721B28',
+                border: '1px solid #FDE68A',
+                fontSize: '0.76rem',
+                fontWeight: 700,
+                padding: '1px 8px',
+                borderRadius: '4px'
+              }}>
+                #{application.applicationNumber}
+              </span>
+            </div>
           </div>
-          <div>
-            <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#92400E', textTransform: 'uppercase' }}>Role: </span>
-            <strong style={{ fontSize: '0.86rem', color: '#0F172A' }}>{positionTitle}</strong>
-            <span style={{ fontSize: '0.78rem', color: '#64748B', marginLeft: '6px' }}>#{application.applicationNumber}</span>
+        ) : (
+          <div style={{ padding: '16px 24px 0', backgroundColor: '#FDFBF7' }}>
+            <label style={labelStyle}>Select Candidate / Application *</label>
+            <select
+              value={selectedAppId}
+              onChange={e => setSelectedAppId(e.target.value)}
+              style={inputStyle}
+              required
+            >
+              <option value="">-- Choose Candidate Application --</option>
+              {availableApplications.map(app => (
+                <option key={app.id} value={app.id}>
+                  {app.applicant?.name || 'Candidate'} — {app.applicationNumber} ({app.job?.position || 'Position'})
+                </option>
+              ))}
+            </select>
           </div>
-        </div>
+        )}
 
         {error && (
-          <div style={{ margin: '16px 24px 0', padding: '10px 14px', backgroundColor: '#FEE2E2', border: '1px solid #FECACA', color: '#991B1B', borderRadius: '6px', fontSize: '0.86rem' }}>
-            {error}
+          <div style={{ margin: '16px 24px 0', padding: '12px 16px', backgroundColor: '#FEF2F2', border: '1px solid #FECACA', color: '#991B1B', borderRadius: '8px', fontSize: '0.86rem' }}>
+            <strong>Error: </strong> {error}
           </div>
         )}
 
         {zoomNotice && (
-          <div style={{ margin: '16px 24px 0', padding: '10px 14px', backgroundColor: '#FFFBEB', border: '1px solid #FDE68A', color: '#B45309', borderRadius: '6px', fontSize: '0.86rem' }}>
+          <div style={{ margin: '16px 24px 0', padding: '12px 16px', backgroundColor: '#FFFBEB', border: '1px solid #FDE68A', color: '#92400E', borderRadius: '8px', fontSize: '0.86rem' }}>
             {zoomNotice}
           </div>
         )}
@@ -196,10 +272,10 @@ function ScheduleInterviewModal({ application, isOpen, onClose, onSuccess }) {
           {/* 1. SELECT PANEL */}
           <div>
             <label style={labelStyle}>
-              Select Interview Panel *
+              1. Select Interview Panel *
             </label>
             {loadingPanels ? (
-              <p style={{ margin: 0, fontSize: '0.84rem', color: '#64748B' }}>Loading panels...</p>
+              <p style={{ margin: 0, fontSize: '0.84rem', color: '#64748B' }}>Loading panels from Interview Panels Management...</p>
             ) : (
               <select
                 value={selectedPanelId}
@@ -218,11 +294,11 @@ function ScheduleInterviewModal({ application, isOpen, onClose, onSuccess }) {
 
           {/* 2. MULTI-SELECT PANELISTS */}
           <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
               <label style={{ ...labelStyle, margin: 0 }}>
-                Pick Panelists from {currentPanel?.name || 'Selected Panel'} *
+                2. Pick Panelists from {currentPanel?.name || 'Selected Panel'} (At least 1 required) *
               </label>
-              <div style={{ display: 'flex', gap: '8px' }}>
+              <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
                 <button
                   type="button"
                   onClick={handleSelectAll}
@@ -242,11 +318,11 @@ function ScheduleInterviewModal({ application, isOpen, onClose, onSuccess }) {
             </div>
 
             <div style={{
-              maxHeight: '160px',
+              maxHeight: '170px',
               overflowY: 'auto',
               border: '1px solid #CBD5E1',
-              borderRadius: '6px',
-              padding: '8px 12px',
+              borderRadius: '8px',
+              padding: '8px 10px',
               backgroundColor: '#FAFAFA',
               display: 'flex',
               flexDirection: 'column',
@@ -266,12 +342,13 @@ function ScheduleInterviewModal({ application, isOpen, onClose, onSuccess }) {
                         display: 'flex',
                         alignItems: 'center',
                         gap: '10px',
-                        padding: '6px 8px',
-                        backgroundColor: checked ? '#FEF2F2' : '#FFFFFF',
-                        border: `1px solid ${checked ? '#FECACA' : '#E2E8F0'}`,
+                        padding: '8px 10px',
+                        backgroundColor: checked ? '#FDF8F6' : '#FFFFFF',
+                        border: `1.5px solid ${checked ? '#721B28' : '#E2E8F0'}`,
                         borderRadius: '6px',
                         cursor: member.isActive ? 'pointer' : 'not-allowed',
-                        opacity: member.isActive ? 1 : 0.6
+                        opacity: member.isActive ? 1 : 0.6,
+                        transition: 'all 0.15s ease'
                       }}
                     >
                       <input
@@ -279,13 +356,24 @@ function ScheduleInterviewModal({ application, isOpen, onClose, onSuccess }) {
                         checked={checked}
                         disabled={!member.isActive}
                         onChange={() => handlePanelistToggle(member.id)}
-                        style={{ accentColor: '#721B28', cursor: 'pointer' }}
+                        style={{ accentColor: '#721B28', cursor: 'pointer', width: '16px', height: '16px' }}
                       />
                       <div style={{ flex: 1, fontSize: '0.84rem' }}>
                         <span style={{ fontWeight: 700, color: '#0F172A' }}>{member.name}</span>
                         <span style={{ color: '#64748B', marginLeft: '6px', fontSize: '0.78rem' }}>({member.email})</span>
                         {member.designation && (
-                          <span style={{ color: '#721B28', marginLeft: '6px', fontSize: '0.76rem', fontWeight: 600 }}>&bull; {member.designation}</span>
+                          <span style={{
+                            backgroundColor: '#FEF3C7',
+                            color: '#92400E',
+                            marginLeft: '8px',
+                            fontSize: '0.72rem',
+                            fontWeight: 700,
+                            padding: '2px 8px',
+                            borderRadius: '4px',
+                            border: '1px solid #FDE68A'
+                          }}>
+                            {member.designation}
+                          </span>
                         )}
                       </div>
                     </label>
@@ -293,15 +381,15 @@ function ScheduleInterviewModal({ application, isOpen, onClose, onSuccess }) {
                 })
               )}
             </div>
-            <div style={{ fontSize: '0.74rem', color: '#64748B', marginTop: '4px' }}>
-              {selectedPanelistIds.length} panelist(s) selected to evaluate and receive meeting details.
+            <div style={{ fontSize: '0.74rem', color: '#64748B', marginTop: '6px' }}>
+              <strong>{selectedPanelistIds.length}</strong> panelist(s) selected to evaluate and receive meeting details.
             </div>
           </div>
 
           {/* 3. DATE, TIME & DURATION */}
           <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 1fr', gap: '12px' }}>
             <div>
-              <label style={labelStyle}>Interview Date *</label>
+              <label style={labelStyle}>3. Interview Date *</label>
               <input
                 type="date"
                 required
@@ -312,7 +400,7 @@ function ScheduleInterviewModal({ application, isOpen, onClose, onSuccess }) {
               />
             </div>
             <div>
-              <label style={labelStyle}>Time (IST) *</label>
+              <label style={labelStyle}>Start Time (IST) *</label>
               <input
                 type="text"
                 required
@@ -336,30 +424,54 @@ function ScheduleInterviewModal({ application, isOpen, onClose, onSuccess }) {
             </div>
           </div>
 
-          {/* 4. OPTIONAL ADMINISTRATIVE NOTES */}
+          {/* 4. OPTIONAL NOTES / AGENDA */}
           <div>
-            <label style={labelStyle}>Interview Notes / Agenda (Optional)</label>
+            <label style={labelStyle}>4. Interview Notes / Agenda (Optional)</label>
             <textarea
               rows={2}
-              placeholder="e.g. Please bring teaching portfolio and be prepared for a 15-minute presentation."
+              placeholder="e.g. Please prepare a 15-minute presentation on your research domain and teaching portfolio."
               style={{ ...inputStyle, resize: 'vertical' }}
               value={notes}
               onChange={e => setNotes(e.target.value)}
             />
           </div>
 
-          {/* AUTOMATION NOTICE */}
-          <div style={{ backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '6px', padding: '10px 14px', fontSize: '0.78rem', color: '#475569' }}>
-            <strong>Automated Actions on Confirm:</strong>
-            <ul style={{ margin: '4px 0 0 0', paddingLeft: '18px' }}>
-              <li>Creates scheduled <strong>Zoom Meeting</strong> room (Server-to-Server OAuth).</li>
-              <li>Emails personalized invitations with Zoom links to <strong>candidate</strong> and <strong>each selected panelist</strong>.</li>
-              <li>Advances application stage to <strong>Interview Scheduled</strong> in screening pipeline.</li>
+          {/* 5. ZOOM: AUTO OR PASTE FALLBACK */}
+          <div>
+            <label style={labelStyle}>
+              5. Zoom Join Link (Optional Fallback / Manual Meeting)
+            </label>
+            <input
+              type="url"
+              placeholder="https://zoom.us/j/... (Leave blank for automated Zoom creation)"
+              style={inputStyle}
+              value={zoomJoinUrl}
+              onChange={e => setZoomJoinUrl(e.target.value)}
+            />
+            <span style={{ fontSize: '0.72rem', color: '#64748B', display: 'block', marginTop: '3px' }}>
+              If Server-to-Server Zoom OAuth is configured, a meeting will be auto-generated. If not, paste a link here or email will advise HR will coordinate.
+            </span>
+          </div>
+
+          {/* AUTOMATION NOTICE - Warm Neutral / Gold border */}
+          <div style={{
+            backgroundColor: '#FDFBF7',
+            border: '1px solid #FDE68A',
+            borderRadius: '8px',
+            padding: '12px 16px',
+            fontSize: '0.78rem',
+            color: '#475569'
+          }}>
+            <strong style={{ color: '#721B28' }}>Automated Actions on Confirm:</strong>
+            <ul style={{ margin: '6px 0 0 0', paddingLeft: '18px', display: 'flex', flexDirection: 'column', gap: '3px' }}>
+              <li>Creates scheduled <strong>Zoom Meeting</strong> room (if configured) or uses provided link.</li>
+              <li>Emails personalized invitations with Zoom link to <strong>candidate</strong> and <strong>each selected panelist</strong>.</li>
+              <li>Updates application stage to <strong>Interview Scheduled</strong> in screening pipeline.</li>
             </ul>
           </div>
 
-          {/* BUTTON ACTIONS */}
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '6px' }}>
+          {/* BUTTON ACTIONS - Maroon / White / Gold */}
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '4px' }}>
             <button
               type="button"
               disabled={submitting}
@@ -374,8 +486,8 @@ function ScheduleInterviewModal({ application, isOpen, onClose, onSuccess }) {
               style={{
                 backgroundColor: '#721B28',
                 color: '#FFFFFF',
-                padding: '10px 22px',
-                borderRadius: '6px',
+                padding: '10px 24px',
+                borderRadius: '8px',
                 border: 'none',
                 fontWeight: 700,
                 fontSize: '0.88rem',
@@ -383,7 +495,9 @@ function ScheduleInterviewModal({ application, isOpen, onClose, onSuccess }) {
                 opacity: submitting ? 0.7 : 1,
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '8px'
+                gap: '8px',
+                boxShadow: '0 2px 6px rgba(114, 27, 40, 0.3)',
+                transition: 'background-color 0.15s ease'
               }}
             >
               {submitting ? 'Creating Meeting & Dispatching...' : 'Confirm & Schedule Interview \u2192'}
@@ -400,7 +514,8 @@ function ScheduleInterviewModal({ application, isOpen, onClose, onSuccess }) {
 const modalBackdropStyle = {
   position: 'fixed',
   inset: 0,
-  backgroundColor: 'rgba(15, 23, 42, 0.7)',
+  backgroundColor: 'rgba(15, 23, 42, 0.75)',
+  backdropFilter: 'blur(3px)',
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
@@ -410,21 +525,29 @@ const modalBackdropStyle = {
 
 const modalContainerStyle = {
   backgroundColor: '#FFFFFF',
-  borderRadius: '12px',
+  borderRadius: '14px',
   maxWidth: '680px',
   width: '100%',
-  maxHeight: '90vh',
+  maxHeight: '92vh',
   overflowY: 'auto',
-  boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
+  boxShadow: '0 20px 40px -15px rgba(0, 0, 0, 0.35)',
+  border: '1px solid #E2E8F0'
 };
 
 const closeBtnStyle = {
-  background: 'none',
+  background: 'rgba(255, 255, 255, 0.15)',
   border: 'none',
-  fontSize: '1.6rem',
+  borderRadius: '6px',
+  width: '32px',
+  height: '32px',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  fontSize: '1.4rem',
   lineHeight: 1,
   color: '#FFFFFF',
-  cursor: 'pointer'
+  cursor: 'pointer',
+  transition: 'all 0.15s ease'
 };
 
 const labelStyle = {
@@ -432,17 +555,20 @@ const labelStyle = {
   fontSize: '0.82rem',
   fontWeight: 700,
   color: '#0F172A',
-  marginBottom: '4px'
+  marginBottom: '5px'
 };
 
 const inputStyle = {
   width: '100%',
   padding: '9px 12px',
-  border: '1px solid #CBD5E1',
-  borderRadius: '6px',
+  border: '1.5px solid #CBD5E1',
+  borderRadius: '8px',
   fontSize: '0.86rem',
   outline: 'none',
-  boxSizing: 'border-box'
+  boxSizing: 'border-box',
+  color: '#0F172A',
+  backgroundColor: '#FFFFFF',
+  transition: 'border-color 0.15s ease'
 };
 
 const textActionBtnStyle = {
@@ -452,18 +578,20 @@ const textActionBtnStyle = {
   fontSize: '0.76rem',
   fontWeight: 700,
   cursor: 'pointer',
-  padding: 0
+  padding: 0,
+  textDecoration: 'underline'
 };
 
 const secondaryBtnStyle = {
   backgroundColor: '#FFFFFF',
-  border: '1px solid #CBD5E1',
+  border: '1.5px solid #CBD5E1',
   color: '#475569',
   padding: '10px 18px',
-  borderRadius: '6px',
+  borderRadius: '8px',
   fontWeight: 700,
   fontSize: '0.86rem',
-  cursor: 'pointer'
+  cursor: 'pointer',
+  transition: 'background-color 0.15s ease'
 };
 
 export default ScheduleInterviewModal;

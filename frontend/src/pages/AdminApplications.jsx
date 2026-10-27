@@ -494,7 +494,7 @@ function AdminApplications() {
                             title="Schedule panel interview with Zoom invite"
                           >
                             <IconCalendar size={13} color="#FFFFFF" />
-                            Schedule Interview
+                            {app.status === 'INTERVIEW_SCHEDULED' ? 'Reschedule' : 'Schedule Interview'}
                           </button>
                           <button 
                             onClick={() => navigate(`/admin/applications/${app.id}`)}

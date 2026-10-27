@@ -16,7 +16,7 @@ const committeeRoutes = require('./routes/committeeRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const prisma = require('./services/prisma');
 const storageService = require('./services/storageService');
-
+// DYPIU Recruitment Portal Backend
 const app = express();
 const PORT = process.env.PORT || 5000;
 

@@ -62,6 +62,25 @@ function AdminDocumentVerification() {
   const [priority, setPriority] = useState('NORMAL');
   const [message, setMessage] = useState('');
 
+  const getCandidateDisplay = (app) => {
+    let name = app?.applicant?.name;
+    if (!name || name === 'Applicant') {
+      if (app?.personalInfo) {
+        try {
+          const p = typeof app.personalInfo === 'string' ? JSON.parse(app.personalInfo) : app.personalInfo;
+          const full = `${p?.firstName || ''} ${p?.lastName || ''}`.trim();
+          if (full) name = full;
+        } catch {}
+      }
+    }
+    if (!name && app?.applicant?.user?.email) {
+      name = app.applicant.user.email;
+    }
+    const appNum = app?.applicationNumber || 'Application';
+    const pos = app?.job?.position || 'Applied Position';
+    return `${name || 'Candidate'} — ${appNum} (${pos})`;
+  };
+
   useEffect(() => {
     fetchInitialData();
   }, []);
@@ -70,13 +89,23 @@ function AdminDocumentVerification() {
     try {
       setLoading(true);
       setError('');
+
       const [reqsRes, appsRes] = await Promise.all([
-        apiRequest('/documents'),
-        apiRequest('/applications?limit=200')
+        apiRequest('/documents').catch(err => {
+          console.warn('Notice: Could not fetch existing document requests:', err.message);
+          return [];
+        }),
+        apiRequest('/applications?limit=200').catch(err => {
+          console.warn('Notice: Could not fetch applications:', err.message);
+          return [];
+        })
       ]);
 
-      setRequests(Array.isArray(reqsRes) ? reqsRes : []);
-      setApplications(appsRes?.data || appsRes || []);
+      const requestsList = Array.isArray(reqsRes) ? reqsRes : [];
+      const appsList = Array.isArray(appsRes?.data) ? appsRes.data : (Array.isArray(appsRes) ? appsRes : []);
+
+      setRequests(requestsList);
+      setApplications(appsList);
     } catch (err) {
       setError(err.message || 'Failed to load document verification data.');
     } finally {
@@ -104,7 +133,17 @@ function AdminDocumentVerification() {
   // Submit New Document Request
   const handleSendRequestSubmit = async (e) => {
     e.preventDefault();
-    if (!selectedApplicantId || checkedDocs.length === 0 || !deadline) {
+
+    let candidateId = selectedApplicantId;
+    if (!candidateId && selectedApplicationId) {
+      const selected = applications.find(a => a.id === selectedApplicationId);
+      if (selected) {
+        candidateId = selected.applicantId || selected.applicant?.id;
+        setSelectedApplicantId(candidateId);
+      }
+    }
+
+    if (!candidateId || checkedDocs.length === 0 || !deadline) {
       setError('Please select a candidate, deadline date, and at least one document.');
       return;
     }
@@ -123,7 +162,7 @@ function AdminDocumentVerification() {
       const res = await apiRequest('/documents', {
         method: 'POST',
         body: JSON.stringify({
-          candidateId: selectedApplicantId,
+          candidateId,
           applicationId: selectedApplicationId || null,
           documents: documentsPayload,
           deadline,
@@ -283,6 +322,14 @@ function AdminDocumentVerification() {
             const nextWeek = new Date();
             nextWeek.setDate(nextWeek.getDate() + 7);
             setDeadline(nextWeek.toISOString().slice(0, 10));
+            if (applications.length === 0) {
+              apiRequest('/applications?limit=200')
+                .then(res => {
+                  const list = Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : []);
+                  setApplications(list);
+                })
+                .catch(() => {});
+            }
             setShowRequestModal(true);
           }}
           style={{
@@ -629,17 +676,23 @@ function AdminDocumentVerification() {
                     setSelectedApplicationId(appId);
                     const selected = applications.find(a => a.id === appId);
                     if (selected) {
-                      setSelectedApplicantId(selected.applicantId);
+                      setSelectedApplicantId(selected.applicantId || selected.applicant?.id || '');
+                    } else {
+                      setSelectedApplicantId('');
                     }
                   }}
                   style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.88rem' }}
                 >
                   <option value="">-- Choose Candidate --</option>
-                  {applications.map(app => (
-                    <option key={app.id} value={app.id}>
-                      {app.applicant?.name || 'Applicant'} — {app.applicationNumber} ({app.job?.position || 'Applied Position'})
-                    </option>
-                  ))}
+                  {applications.length === 0 ? (
+                    <option value="" disabled>-- No Candidates / Submitted Applications Found --</option>
+                  ) : (
+                    applications.map(app => (
+                      <option key={app.id} value={app.id}>
+                        {getCandidateDisplay(app)}
+                      </option>
+                    ))
+                  )}
                 </select>
               </div>
 
