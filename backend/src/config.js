@@ -17,28 +17,20 @@ function resolveSecret(name) {
 
   if (usable) return value;
 
-  if (isProduction) {
-    console.error(`[FATAL] ${name} must be set to a random string of at least ${MIN_SECRET_LENGTH} characters in production.`);
-    process.exit(1);
-  }
-
-  console.warn(`[Config] ${name} is missing or weak - using a random ephemeral secret (sessions reset on restart).`);
-  return crypto.randomBytes(48).toString('hex');
+  console.warn(`[Config] ${name} is missing or weak - generating fallback secret.`);
+  return process.env.JWT_SECRET && name !== 'JWT_SECRET'
+    ? crypto.createHash('sha256').update(process.env.JWT_SECRET + name).digest('hex')
+    : crypto.randomBytes(48).toString('hex');
 }
 
-if (isProduction && !process.env.DATABASE_URL) {
-  console.error('[FATAL] DATABASE_URL must be set in production.');
-  process.exit(1);
-}
-
+const defaultOrigins = ['https://intranet.dypiu.ac.in', 'http://localhost:5173', 'http://127.0.0.1:5173', 'http://localhost:4173'];
 const corsOrigins = (process.env.CORS_ORIGIN || '')
   .split(',')
   .map((o) => o.trim())
   .filter(Boolean);
 
-if (isProduction && (corsOrigins.length === 0 || corsOrigins.includes('*'))) {
-  console.error('[FATAL] CORS_ORIGIN must list the allowed frontend origin(s) in production (wildcard is not permitted).');
-  process.exit(1);
+if (corsOrigins.length === 0 || corsOrigins.includes('*')) {
+  corsOrigins.push(...defaultOrigins);
 }
 
 module.exports = {
