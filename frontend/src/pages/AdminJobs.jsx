@@ -128,6 +128,7 @@ function AdminJobs() {
             <option value="">All Types</option>
             <option value="TEACHING">Teaching</option>
             <option value="NON_TEACHING">Non-Teaching</option>
+            <option value="CUSTOM">Customized</option>
           </select>
         </div>
 
@@ -203,7 +204,7 @@ function AdminJobs() {
                       fontSize: '0.74rem',
                       fontWeight: 800
                     }}>
-                      {v.type}
+                      {v.type === 'CUSTOM' ? (v.customLabel || v.customCategory || 'Customized') : v.type}
                     </span>
                   </td>
                   <td style={tdStyle}>

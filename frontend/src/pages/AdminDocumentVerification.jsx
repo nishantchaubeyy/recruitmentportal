@@ -301,7 +301,7 @@ function AdminDocumentVerification() {
           }}
         >
           <IconPlus size={16} />
-          + Request Documents from Candidate
+          Request Documents from Candidate
         </button>
       </div>
 
@@ -380,7 +380,7 @@ function AdminDocumentVerification() {
             onClick={() => setShowRequestModal(true)}
             style={{ backgroundColor: '#721B28', color: '#ffffff', border: 'none', padding: '9px 20px', borderRadius: '8px', fontWeight: 700, fontSize: '0.86rem', cursor: 'pointer' }}
           >
-            + Request Documents from Candidate
+            Request Documents from Candidate
           </button>
         </div>
       ) : (

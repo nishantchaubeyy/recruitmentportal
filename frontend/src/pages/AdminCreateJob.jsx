@@ -1,15 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams, Link } from 'react-router-dom';
+import { useNavigate, useParams, Link, useSearchParams } from 'react-router-dom';
 import { apiRequest, getMediaUrl } from '../utils/api';
 
 function AdminCreateJob() {
   const { id } = useParams(); // If id exists, it's Edit mode
   const isEditMode = Boolean(id);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  const initialType = searchParams.get('type') === 'CUSTOM' ? 'CUSTOM' : 'TEACHING';
 
   const [formData, setFormData] = useState({
     vacancyNumber: '',
-    type: 'TEACHING',
+    type: initialType,
+    customCategory: searchParams.get('type') === 'CUSTOM' ? (searchParams.get('category') || 'Visiting Faculty') : '',
+    customLabel: searchParams.get('type') === 'CUSTOM' ? (searchParams.get('category') || 'Visiting Faculty') : '',
     schoolId: '',
     departmentId: '',
     positionId: '',
@@ -72,7 +77,8 @@ function AdminCreateJob() {
 
   const fetchSchools = async (type) => {
     try {
-      const data = await apiRequest(`/admin/schools?type=${type}`);
+      const query = type === 'CUSTOM' ? '' : `?type=${type}`;
+      const data = await apiRequest(`/admin/schools${query}`);
       setSchools(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error('Fetch schools error:', err);
@@ -105,6 +111,8 @@ function AdminCreateJob() {
         setFormData({
           vacancyNumber: data.vacancyNumber || '',
           type: data.type || 'TEACHING',
+          customCategory: data.customCategory || data.customLabel || '',
+          customLabel: data.customLabel || data.customCategory || '',
           schoolId: data.schoolId || '',
           departmentId: data.departmentId || '',
           positionId: data.positionId || '',
@@ -207,6 +215,12 @@ function AdminCreateJob() {
       return;
     }
 
+    if (payload.type === 'CUSTOM' && !payload.customCategory && !payload.customLabel) {
+      setErrorMsg('Category / Label is required for Customized Vacancies (e.g. Visiting Faculty, Project Fellow, Internship).');
+      setSubmitting(false);
+      return;
+    }
+
     try {
       const endpoint = isEditMode ? `/admin/vacancies/${id}` : '/admin/vacancies';
       const method = isEditMode ? 'PUT' : 'POST';
@@ -280,10 +294,38 @@ function AdminCreateJob() {
                 <select style={selectStyle} value={formData.type} onChange={handleTypeChange}>
                   <option value="TEACHING">Teaching</option>
                   <option value="NON_TEACHING">Non-Teaching</option>
+                  <option value="CUSTOM">Customized (Visiting, Contract, Internship, etc.)</option>
                 </select>
               </div>
 
-              <div style={formGroupStyle}>
+              {formData.type === 'CUSTOM' ? (
+                <div style={formGroupStyle}>
+                  <label style={labelStyle}>Category / Label *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Visiting Faculty, Consultant, Internship"
+                    style={inputStyle}
+                    value={formData.customCategory}
+                    onChange={(e) => setFormData({ ...formData, customCategory: e.target.value, customLabel: e.target.value })}
+                  />
+                </div>
+              ) : (
+                <div style={formGroupStyle}>
+                  <label style={labelStyle}>Vacancy / Reference Number</label>
+                  <input
+                    type="text"
+                    placeholder="Auto-generated if left blank (e.g. VAC-2026-001)"
+                    style={inputStyle}
+                    value={formData.vacancyNumber}
+                    onChange={(e) => setFormData({ ...formData, vacancyNumber: e.target.value })}
+                  />
+                </div>
+              )}
+            </div>
+
+            {formData.type === 'CUSTOM' && (
+              <div style={{ ...formGroupStyle, marginTop: '12px' }}>
                 <label style={labelStyle}>Vacancy / Reference Number</label>
                 <input
                   type="text"
@@ -293,7 +335,7 @@ function AdminCreateJob() {
                   onChange={(e) => setFormData({ ...formData, vacancyNumber: e.target.value })}
                 />
               </div>
-            </div>
+            )}
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', marginTop: '12px' }}>
               {/* School / Institute Dropdown */}

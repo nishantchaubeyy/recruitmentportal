@@ -20,7 +20,7 @@ model User {
   admin             Admin?
   notifications     Notification[]
   auditLogs         AuditLog[]
-  interviewPanels   InterviewPanel[]
+  interviewsCreated Interview[]          @relation("CreatedInterviews")
   evaluations       Evaluation[]
   vacanciesCreated  Job[]            @relation("CreatedVacancies")
   docRequestsCreated DocumentRequest[] @relation("DocumentRequestsRequestedBy")
@@ -139,6 +139,8 @@ model Job {
   bannerUrl           String?
   posterUrl           String?
   imageUrl            String?
+  customCategory      String?     // e.g. "Visiting Faculty", "Project Fellow", "Internship"
+  customLabel         String?     // display name for the type badge
   status              String      @default("DRAFT") // DRAFT, PUBLISHED, CLOSED, ARCHIVED
   createdBy           String?
   createdByUser       User?       @relation("CreatedVacancies", fields: [createdBy], references: [id], onDelete: SetNull)
@@ -272,14 +274,20 @@ model Interview {
   job                Job                 @relation(fields: [jobId], references: [id], onDelete: Cascade)
   candidateId        String?
   candidate          Applicant?          @relation(fields: [candidateId], references: [id], onDelete: Cascade)
-  date               DateTime
-  time               String
+  panelId            String?
+  panel              InterviewPanel?     @relation(fields: [panelId], references: [id], onDelete: SetNull)
+  scheduledAt        DateTime?
+  durationMinutes    Int                 @default(30)
+  date               DateTime            @default(now())
+  time               String              @default("10:00 AM")
   startTime          String?
   endTime            String?
   mode               String              @default("ZOOM")
   venue              String?
   meetingLink        String?
   zoomLink           String?
+  zoomJoinUrl        String?
+  zoomStartUrl       String?
   zoomMeetingId      String?
   zoomPassword       String?
   interviewerName    String?
@@ -291,29 +299,57 @@ model Interview {
   emailSent          Boolean             @default(false)
   emailSentAt        DateTime?
   emailStatus        String              @default("PENDING") // PENDING, SENT, FAILED
+  createdById        String?
+  createdByUser      User?               @relation("CreatedInterviews", fields: [createdById], references: [id], onDelete: SetNull)
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt
 
-  panelMembers       InterviewPanel[]
+  selectedMembers    InterviewPanelist[]
   evaluations        Evaluation[]
   candidates         InterviewCandidate[]
 
   @@index([applicationId])
   @@index([candidateId])
   @@index([jobId])
+  @@index([panelId])
   @@index([date])
 }
 
 model InterviewPanel {
-  id          String    @id @default(uuid())
-  interviewId String
-  interview   Interview @relation(fields: [interviewId], references: [id], onDelete: Cascade)
-  userId      String
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt   DateTime  @default(now())
+  id          String         @id @default(uuid())
+  name        String         // "Panel A" | "Panel B" | "Panel C" (or custom)
+  code        String         @unique // "A" | "B" | "C"
+  description String?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  members     PanelMember[]
+  interviews  Interview[]
+}
 
-  @@unique([interviewId, userId])
-  @@index([userId])
+model PanelMember {
+  id                   String              @id @default(uuid())
+  panelId              String
+  name                 String
+  email                String
+  phone                String?
+  designation          String?
+  isActive             Boolean             @default(true)
+  panel                InterviewPanel      @relation(fields: [panelId], references: [id], onDelete: Cascade)
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+  interviewAssignments InterviewPanelist[]
+
+  @@unique([panelId, email])
+}
+
+model InterviewPanelist {
+  id          String      @id @default(uuid())
+  interviewId String
+  memberId    String
+  interview   Interview   @relation(fields: [interviewId], references: [id], onDelete: Cascade)
+  member      PanelMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@unique([interviewId, memberId])
 }
 
 model Evaluation {

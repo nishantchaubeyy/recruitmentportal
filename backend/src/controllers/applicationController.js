@@ -366,6 +366,14 @@ async function submitApplication(req, res) {
         return res.status(400).json({ error: 'This application has already been submitted.' });
       }
 
+      // Enforce mandatory resume document
+      const resumeDoc = await prisma.applicationDocument.findFirst({
+        where: { applicationId: existingApplication.id, documentType: 'resume' }
+      });
+      if (!resumeDoc && !payload.skipDocumentCheck) {
+        return res.status(400).json({ error: 'Uploading your Resume / CV (PDF) is mandatory before submitting your application.' });
+      }
+
       submittedApp = await prisma.$transaction(async (tx) => {
         const app = await tx.application.update({
           where: { id: existingApplication.id },
@@ -560,7 +568,13 @@ async function getAllApplications(req, res) {
     type,
     department,
     jobId,
+    vacancyId,
+    schoolId,
+    position,
+    candidateName,
+    applicationId,
     search,
+    q,
     sortBy = 'createdAt',
     sortOrder = 'desc'
   } = req.query;
@@ -573,44 +587,86 @@ async function getAllApplications(req, res) {
   const limitNum = Math.min(Math.max(parseInt(limit) || 10, 1), 100);
   const skip = (pageNum - 1) * limitNum;
 
-  const where = {};
+  const andConditions = [];
 
   if (req.user.role === 'APPLICANT') {
-    where.applicantId = req.user.applicantId;
+    andConditions.push({ applicantId: req.user.applicantId });
   } else if (isStaffRole(req.user.role)) {
     if (status && status !== 'ALL') {
       if (status === 'INTERVIEW' || status === 'INTERVIEW_SCHEDULED') {
-        where.status = { in: ['INTERVIEW', 'INTERVIEW_SCHEDULED', 'Interview Scheduled'] };
+        andConditions.push({ status: { in: ['INTERVIEW', 'INTERVIEW_SCHEDULED', 'Interview Scheduled'] } });
       } else if (status === 'SUBMITTED') {
-        where.status = { in: ['SUBMITTED', 'Application Submitted'] };
+        andConditions.push({ status: { in: ['SUBMITTED', 'Application Submitted'] } });
       } else if (status === 'UNDER_REVIEW') {
-        where.status = { in: ['UNDER_REVIEW', 'Under Review'] };
+        andConditions.push({ status: { in: ['UNDER_REVIEW', 'Under Review'] } });
       } else if (status === 'SHORTLISTED') {
-        where.status = { in: ['SHORTLISTED', 'Shortlisted'] };
+        andConditions.push({ status: { in: ['SHORTLISTED', 'Shortlisted'] } });
       } else if (status === 'SELECTED') {
-        where.status = { in: ['SELECTED', 'Selected'] };
+        andConditions.push({ status: { in: ['SELECTED', 'Selected'] } });
       } else if (status === 'REJECTED') {
-        where.status = { in: ['REJECTED', 'Not Selected', 'Application Closed'] };
+        andConditions.push({ status: { in: ['REJECTED', 'Not Selected', 'Application Closed'] } });
       } else {
-        where.status = status;
+        andConditions.push({ status });
       }
     } else {
-      where.status = { not: APPLICATION_STATUS.DRAFT };
+      andConditions.push({ status: { not: APPLICATION_STATUS.DRAFT } });
     }
-    if (type) where.job = { ...where.job, type };
-    if (department) where.job = { ...where.job, department: { contains: department, mode: 'insensitive' } };
-    if (jobId) where.jobId = jobId;
+
+    if (type && type !== 'ALL') {
+      andConditions.push({ job: { type } });
+    }
+
+    if (department) {
+      andConditions.push({ job: { department: { contains: department, mode: 'insensitive' } } });
+    }
+
+    if (schoolId && schoolId !== 'ALL') {
+      andConditions.push({
+        OR: [
+          { schoolId },
+          { job: { schoolId } }
+        ]
+      });
+    }
+
+    const targetJobId = vacancyId || jobId;
+    if (targetJobId && targetJobId !== 'ALL') {
+      andConditions.push({ jobId: targetJobId });
+    }
+
+    if (position && position !== 'ALL') {
+      andConditions.push({
+        job: { position: { contains: position, mode: 'insensitive' } }
+      });
+    }
+
+    if (candidateName && candidateName.trim()) {
+      andConditions.push({
+        applicant: { name: { contains: candidateName.trim(), mode: 'insensitive' } }
+      });
+    }
+
+    if (applicationId && applicationId.trim()) {
+      andConditions.push({
+        applicationNumber: { contains: applicationId.trim(), mode: 'insensitive' }
+      });
+    }
   } else {
     return res.status(403).json({ error: 'Access denied.' });
   }
 
-  if (search) {
-    where.OR = [
-      { applicationNumber: { contains: search, mode: 'insensitive' } },
-      { applicant: { name: { contains: search, mode: 'insensitive' } } },
-      { job: { position: { contains: search, mode: 'insensitive' } } }
-    ];
+  const freeSearch = (q || search || '').trim();
+  if (freeSearch) {
+    andConditions.push({
+      OR: [
+        { applicationNumber: { contains: freeSearch, mode: 'insensitive' } },
+        { applicant: { name: { contains: freeSearch, mode: 'insensitive' } } },
+        { job: { position: { contains: freeSearch, mode: 'insensitive' } } }
+      ]
+    });
   }
+
+  const where = andConditions.length > 0 ? { AND: andConditions } : {};
 
   const allowedSort = ['createdAt', 'updatedAt', 'submittedAt', 'status'];
   const orderField = allowedSort.includes(sortBy) ? sortBy : 'createdAt';
@@ -625,7 +681,12 @@ async function getAllApplications(req, res) {
           applicant: {
             select: { name: true, mobile: true, user: { select: { email: true } } }
           },
-          job: true
+          job: true,
+          documents: {
+            where: { documentType: 'resume' },
+            select: { id: true, documentType: true, originalName: true },
+            take: 1
+          }
         },
         orderBy: { [orderField]: orderDir },
         skip,

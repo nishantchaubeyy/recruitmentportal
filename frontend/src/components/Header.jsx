@@ -47,6 +47,13 @@ function Header() {
             Non-Teaching
           </Link>
           <Link 
+            to="/customized" 
+            className={location.pathname === '/customized' ? 'active' : ''}
+            onClick={() => setMobileMenuOpen(false)}
+          >
+            Customized Vacancies
+          </Link>
+          <Link 
             to="/advertisments" 
             className={location.pathname === '/advertisments' || location.pathname === '/advertisements' ? 'active' : ''}
             onClick={() => setMobileMenuOpen(false)}

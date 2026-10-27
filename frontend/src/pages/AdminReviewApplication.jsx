@@ -4,6 +4,7 @@ import { apiRequest, API_URL } from '../utils/api';
 import { HR_STATUS_OPTIONS, statusLabel, APPLICATION_STATUS } from '../utils/status';
 import DossierPrintDocument from '../components/DossierPrintDocument';
 import { viewCandidateDocument, downloadCandidateDocument } from '../utils/pdfHelper';
+import ScheduleInterviewModal from '../components/ScheduleInterviewModal';
 
 function AdminReviewApplication() {
   const { id } = useParams();
@@ -20,6 +21,7 @@ function AdminReviewApplication() {
   const [interviewTime, setInterviewTime] = useState('10:00 AM');
   const [interviewVenue, setInterviewVenue] = useState('DYPIU Akurdi Pune Campus - Conference Room A');
   const [interviewMode, setInterviewMode] = useState('IN_PERSON');
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
 
   const fetchApplicationDetails = async () => {
     try {
@@ -316,23 +318,25 @@ function AdminReviewApplication() {
               >
                 <span>📑 Request Original Documents</span>
               </Link>
-              <Link
-                to="/admin/interviews"
+              <button
+                type="button"
+                onClick={() => setShowScheduleModal(true)}
                 style={{
-                  backgroundColor: '#0F172A',
+                  backgroundColor: '#721B28',
                   color: '#ffffff',
                   padding: '6px 14px',
                   borderRadius: '4px',
                   fontSize: '0.78rem',
                   fontWeight: 700,
-                  textDecoration: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '4px'
                 }}
               >
-                <span>🎥 Schedule Zoom Interview</span>
-              </Link>
+                <span>🎥 Schedule Interview (Panel & Zoom)</span>
+              </button>
             </div>
           </div>
 
@@ -682,6 +686,20 @@ function AdminReviewApplication() {
       <div className="print-only">
         <DossierPrintDocument app={app} />
       </div>
+
+      {/* SCHEDULE INTERVIEW WITH PANEL MODAL */}
+      <ScheduleInterviewModal
+        application={app}
+        isOpen={showScheduleModal}
+        onClose={() => setShowScheduleModal(false)}
+        onSuccess={(res) => {
+          setShowScheduleModal(false);
+          let msg = 'Interview scheduled with panel successfully.';
+          if (res?.zoomWarning) msg += ` (Notice: ${res.zoomWarning})`;
+          setStatusSuccess(msg);
+          fetchApplicationDetails();
+        }}
+      />
     </>
   );
 }

@@ -59,7 +59,7 @@ async function getPublicVacancies(req, res) {
     deadline: { gte: startOfToday }
   };
 
-  if (targetCategory && (targetCategory === 'TEACHING' || targetCategory === 'NON_TEACHING')) {
+  if (targetCategory && (targetCategory === 'TEACHING' || targetCategory === 'NON_TEACHING' || targetCategory === 'CUSTOM')) {
     where.type = targetCategory;
   }
 
@@ -148,7 +148,7 @@ async function getAllJobs(req, res) {
 
   const where = {};
 
-  if (type && (type === 'TEACHING' || type === 'NON_TEACHING')) {
+  if (type && (type === 'TEACHING' || type === 'NON_TEACHING' || type === 'CUSTOM')) {
     where.type = type;
   }
 
@@ -281,6 +281,8 @@ async function createJob(req, res) {
     deadline,
     requiredDocuments,
     eligibilityCriteria,
+    customCategory,
+    customLabel,
     status
   } = req.body;
 
@@ -288,8 +290,12 @@ async function createJob(req, res) {
     return res.status(400).json({ error: 'Position, vacancy type, qualification, experience, description, and deadline are required.' });
   }
 
-  if (type !== 'TEACHING' && type !== 'NON_TEACHING') {
-    return res.status(400).json({ error: 'Vacancy type must be TEACHING or NON_TEACHING.' });
+  if (type !== 'TEACHING' && type !== 'NON_TEACHING' && type !== 'CUSTOM') {
+    return res.status(400).json({ error: 'Vacancy type must be TEACHING, NON_TEACHING, or CUSTOM.' });
+  }
+
+  if (type === 'CUSTOM' && !customCategory && !customLabel) {
+    return res.status(400).json({ error: 'Category / Label is required for Customized Vacancies (e.g. Visiting Faculty, Project Fellow, Internship).' });
   }
 
   try {
@@ -326,6 +332,8 @@ async function createJob(req, res) {
         bannerUrl: req.body.bannerUrl || null,
         posterUrl: req.body.posterUrl || null,
         imageUrl: req.body.imageUrl || null,
+        customCategory: customCategory?.trim() || customLabel?.trim() || null,
+        customLabel: customLabel?.trim() || customCategory?.trim() || null,
         status: status || 'DRAFT',
         createdBy: req.user ? req.user.id : null
       }
@@ -378,8 +386,8 @@ async function updateJob(req, res) {
     if (updateData.numPositions !== undefined) updateData.numPositions = parseInt(updateData.numPositions) || 1;
     if (updateData.deadline) updateData.deadline = new Date(updateData.deadline);
     if (updateData.openingDate) updateData.openingDate = new Date(updateData.openingDate);
-    if (updateData.type && !['TEACHING', 'NON_TEACHING'].includes(updateData.type)) {
-      return res.status(400).json({ error: 'Vacancy type must be TEACHING or NON_TEACHING.' });
+    if (updateData.type && !['TEACHING', 'NON_TEACHING', 'CUSTOM'].includes(updateData.type)) {
+      return res.status(400).json({ error: 'Vacancy type must be TEACHING, NON_TEACHING, or CUSTOM.' });
     }
     if (updateData.status && !['DRAFT', 'PUBLISHED', 'CLOSED', 'ARCHIVED'].includes(updateData.status)) {
       return res.status(400).json({ error: 'Invalid vacancy status.' });

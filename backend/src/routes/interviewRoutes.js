@@ -11,6 +11,7 @@ router.get('/my', authenticate, interviewController.getMyInterviews);
 router.get('/calendar', authenticate, interviewController.getInterviewCalendar);
 router.get('/', authenticate, interviewController.getAllInterviews);
 router.post('/', authenticate, requireAdmin, interviewController.createInterview);
+router.post('/panel-schedule', authenticate, requireAdmin, interviewController.scheduleInterviewWithPanel);
 
 router.get('/:id', authenticate, interviewController.getInterviewById);
 router.put('/:id', authenticate, requireAdmin, interviewController.updateInterview);

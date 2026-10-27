@@ -1179,6 +1179,247 @@ async function sendDocumentVerificationUpdateEmail({
   });
 }
 
+/**
+ * FEATURE 1: Email candidate when interview is scheduled with a panel
+ */
+async function sendCandidateInterviewInvite({
+  to,
+  candidateName,
+  position,
+  panelName,
+  scheduledAt,
+  durationMinutes = 30,
+  zoomJoinUrl,
+  zoomMeetingId,
+  zoomPassword,
+  notes
+}) {
+  const formattedDate = new Date(scheduledAt).toLocaleDateString('en-IN', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric'
+  });
+  const formattedTime = new Date(scheduledAt).toLocaleTimeString('en-IN', {
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+
+  const subject = `Interview scheduled — ${position}`;
+
+  const html = `
+    <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 650px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; background-color: #ffffff; box-shadow: 0 4px 15px rgba(0,0,0,0.06);">
+      <div style="background: linear-gradient(135deg, #721b28 0%, #4a1019 100%); padding: 26px 30px; color: #ffffff; border-bottom: 3px solid #D4AF37;">
+        <h1 style="margin: 0; font-size: 20px; font-weight: 800; font-family: Georgia, serif;">D Y PATIL INTERNATIONAL UNIVERSITY</h1>
+        <p style="margin: 4px 0 0 0; font-size: 13px; color: #FCD34D; font-weight: 600; text-transform: uppercase;">Akurdi, Pune · Recruitment Cell</p>
+      </div>
+
+      <div style="padding: 30px; color: #1e293b; line-height: 1.65; font-size: 15px;">
+        <p style="margin-top: 0;">Dear <strong>${candidateName || 'Candidate'}</strong>,</p>
+        <p>You have been shortlisted and scheduled for an interview for the position of <strong>${position}</strong> at D Y Patil International University, Pune.</p>
+
+        <div style="background: #fdfaf7; border: 1.5px solid #fed7aa; border-radius: 10px; padding: 20px; margin: 24px 0;">
+          <div style="font-size: 12px; font-weight: 800; color: #721b28; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 12px;">
+            Interview Session Details
+          </div>
+
+          <table width="100%" cellpadding="8" cellspacing="0" style="border-collapse: collapse; font-size: 14px;">
+            <tr style="border-bottom: 1px solid #fee2e2;">
+              <td style="color: #64748b; font-weight: 600; width: 35%;">Position:</td>
+              <td style="color: #0f172a; font-weight: 700;">${position}</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #fee2e2;">
+              <td style="color: #64748b; font-weight: 600;">Interview Panel:</td>
+              <td style="color: #721b28; font-weight: 700;">${panelName || 'Interview Panel'}</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #fee2e2;">
+              <td style="color: #64748b; font-weight: 600;">Date & Time:</td>
+              <td style="color: #0f172a; font-weight: 700;">${formattedDate} at ${formattedTime} (IST)</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #fee2e2;">
+              <td style="color: #64748b; font-weight: 600;">Duration:</td>
+              <td style="color: #0f172a; font-weight: 700;">${durationMinutes} minutes</td>
+            </tr>
+            ${zoomJoinUrl ? `
+            <tr style="border-bottom: 1px solid #fee2e2;">
+              <td style="color: #64748b; font-weight: 600;">Platform:</td>
+              <td style="color: #0f172a; font-weight: 700;">Zoom Video Conference</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #fee2e2;">
+              <td style="color: #64748b; font-weight: 600;">Meeting ID:</td>
+              <td style="color: #0f172a; font-family: monospace; font-size: 15px; font-weight: 700;">${zoomMeetingId || 'N/A'}</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #fee2e2;">
+              <td style="color: #64748b; font-weight: 600;">Password:</td>
+              <td style="color: #0f172a; font-family: monospace; font-size: 15px; font-weight: 700;">${zoomPassword || 'N/A'}</td>
+            </tr>
+            ` : `
+            <tr>
+              <td style="color: #64748b; font-weight: 600;">Venue / Link:</td>
+              <td style="color: #0f172a; font-weight: 700;">To be communicated / On campus</td>
+            </tr>
+            `}
+          </table>
+
+          ${zoomJoinUrl ? `
+          <div style="text-align: center; margin-top: 20px;">
+            <a href="${zoomJoinUrl}" target="_blank" style="display: inline-block; background-color: #721b28; color: #ffffff; text-decoration: none; padding: 12px 28px; border-radius: 6px; font-weight: 700; font-size: 14px; letter-spacing: 0.3px;">
+              Join Zoom Meeting &rarr;
+            </a>
+          </div>
+          ` : ''}
+        </div>
+
+        ${notes ? `
+        <div style="background: #f8fafc; border-left: 4px solid #721b28; padding: 12px 16px; margin: 16px 0; font-size: 13.5px; color: #334155;">
+          <strong>Instructions / Notes:</strong><br />
+          ${notes}
+        </div>
+        ` : ''}
+
+        <p style="margin-top: 24px;">Please be present in the virtual waiting room 5-10 minutes prior to your scheduled time with your presentation and qualification certificates ready.</p>
+
+        <p style="margin-top: 28px;">
+          Best regards,<br />
+          <strong>Recruitment Cell</strong><br />
+          D Y Patil International University, Pune
+        </p>
+      </div>
+    </div>
+  `;
+
+  return sendEmail({
+    to,
+    subject,
+    html,
+    text: `Interview scheduled for ${position} on ${formattedDate} at ${formattedTime}. Panel: ${panelName}. Zoom Link: ${zoomJoinUrl || 'N/A'}`
+  });
+}
+
+/**
+ * FEATURE 1: Email panelist when assigned to an interview
+ */
+async function sendPanelistInterviewInvite({
+  to,
+  panelistName,
+  candidateName,
+  position,
+  panelName,
+  scheduledAt,
+  durationMinutes = 30,
+  zoomStartUrl,
+  zoomJoinUrl,
+  zoomMeetingId,
+  zoomPassword,
+  otherPanelists = [],
+  notes
+}) {
+  const formattedDate = new Date(scheduledAt).toLocaleDateString('en-IN', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric'
+  });
+  const formattedTime = new Date(scheduledAt).toLocaleTimeString('en-IN', {
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+
+  const subject = `Interview assignment — ${candidateName} — ${position}`;
+  const meetingUrl = zoomStartUrl || zoomJoinUrl;
+
+  const html = `
+    <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 650px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; background-color: #ffffff; box-shadow: 0 4px 15px rgba(0,0,0,0.06);">
+      <div style="background: linear-gradient(135deg, #721b28 0%, #4a1019 100%); padding: 26px 30px; color: #ffffff; border-bottom: 3px solid #D4AF37;">
+        <h1 style="margin: 0; font-size: 20px; font-weight: 800; font-family: Georgia, serif;">D Y PATIL INTERNATIONAL UNIVERSITY</h1>
+        <p style="margin: 4px 0 0 0; font-size: 13px; color: #FCD34D; font-weight: 600; text-transform: uppercase;">Akurdi, Pune · Recruitment Cell</p>
+      </div>
+
+      <div style="padding: 30px; color: #1e293b; line-height: 1.65; font-size: 15px;">
+        <p style="margin-top: 0;">Dear <strong>${panelistName || 'Panelist'}</strong>,</p>
+        <p>You have been assigned as an interview panelist for candidate <strong>${candidateName}</strong> applying for the position of <strong>${position}</strong> (${panelName || 'Interview Panel'}).</p>
+
+        <div style="background: #fdfaf7; border: 1.5px solid #fed7aa; border-radius: 10px; padding: 20px; margin: 24px 0;">
+          <div style="font-size: 12px; font-weight: 800; color: #721b28; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 12px;">
+            Interview Session Details
+          </div>
+
+          <table width="100%" cellpadding="8" cellspacing="0" style="border-collapse: collapse; font-size: 14px;">
+            <tr style="border-bottom: 1px solid #fee2e2;">
+              <td style="color: #64748b; font-weight: 600; width: 35%;">Candidate:</td>
+              <td style="color: #0f172a; font-weight: 700;">${candidateName}</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #fee2e2;">
+              <td style="color: #64748b; font-weight: 600;">Position:</td>
+              <td style="color: #0f172a; font-weight: 700;">${position}</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #fee2e2;">
+              <td style="color: #64748b; font-weight: 600;">Panel:</td>
+              <td style="color: #721b28; font-weight: 700;">${panelName || 'Interview Panel'}</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #fee2e2;">
+              <td style="color: #64748b; font-weight: 600;">Date & Time:</td>
+              <td style="color: #0f172a; font-weight: 700;">${formattedDate} at ${formattedTime} (IST)</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #fee2e2;">
+              <td style="color: #64748b; font-weight: 600;">Duration:</td>
+              <td style="color: #0f172a; font-weight: 700;">${durationMinutes} minutes</td>
+            </tr>
+            ${otherPanelists.length > 0 ? `
+            <tr style="border-bottom: 1px solid #fee2e2;">
+              <td style="color: #64748b; font-weight: 600;">Co-Panelists:</td>
+              <td style="color: #0f172a; font-weight: 600;">${otherPanelists.join(', ')}</td>
+            </tr>
+            ` : ''}
+            ${meetingUrl ? `
+            <tr style="border-bottom: 1px solid #fee2e2;">
+              <td style="color: #64748b; font-weight: 600;">Platform:</td>
+              <td style="color: #0f172a; font-weight: 700;">Zoom Video Conference</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #fee2e2;">
+              <td style="color: #64748b; font-weight: 600;">Meeting ID:</td>
+              <td style="color: #0f172a; font-family: monospace; font-size: 15px; font-weight: 700;">${zoomMeetingId || 'N/A'}</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #fee2e2;">
+              <td style="color: #64748b; font-weight: 600;">Password:</td>
+              <td style="color: #0f172a; font-family: monospace; font-size: 15px; font-weight: 700;">${zoomPassword || 'N/A'}</td>
+            </tr>
+            ` : ''}
+          </table>
+
+          ${meetingUrl ? `
+          <div style="text-align: center; margin-top: 20px;">
+            <a href="${meetingUrl}" target="_blank" style="display: inline-block; background-color: #721b28; color: #ffffff; text-decoration: none; padding: 12px 28px; border-radius: 6px; font-weight: 700; font-size: 14px; letter-spacing: 0.3px;">
+              Start / Join Zoom Meeting &rarr;
+            </a>
+          </div>
+          ` : ''}
+        </div>
+
+        ${notes ? `
+        <div style="background: #f8fafc; border-left: 4px solid #721b28; padding: 12px 16px; margin: 16px 0; font-size: 13.5px; color: #334155;">
+          <strong>Administrative Notes:</strong><br />
+          ${notes}
+        </div>
+        ` : ''}
+
+        <p style="margin-top: 28px;">
+          Best regards,<br />
+          <strong>Recruitment Cell & HR Office</strong><br />
+          D Y Patil International University, Pune
+        </p>
+      </div>
+    </div>
+  `;
+
+  return sendEmail({
+    to,
+    subject,
+    html,
+    text: `Interview assignment for ${candidateName} applying for ${position} on ${formattedDate} at ${formattedTime}. Panel: ${panelName}. Zoom Link: ${meetingUrl || 'N/A'}`
+  });
+}
+
 module.exports = {
   sendEmail,
   sendOTPEmail,
@@ -1187,5 +1428,8 @@ module.exports = {
   sendInterviewScheduledEmail,
   sendInterviewCancelledEmail,
   sendDocumentRequestEmail,
-  sendDocumentVerificationUpdateEmail
+  sendDocumentVerificationUpdateEmail,
+  sendCandidateInterviewInvite,
+  sendPanelistInterviewInvite
 };
+

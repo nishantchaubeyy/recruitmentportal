@@ -427,6 +427,74 @@ async function main() {
     }
   }
 
+  // 6. Seed Default Interview Panels (Panel A, Panel B, Panel C)
+  console.log('[Seed] Seeding Interview Panels (Panel A, Panel B, Panel C)...');
+  const defaultPanels = [
+    {
+      code: 'A',
+      name: 'Panel A',
+      description: 'Academic & Faculty Interview Panel A',
+      members: [
+        { name: 'Dr. Rajiv Sharma', email: 'rajiv.sharma@dypiu.ac.in', phone: '9822011223', designation: 'Professor & Dean, Academic Affairs' },
+        { name: 'Dr. Ananya Sen', email: 'ananya.sen@dypiu.ac.in', phone: '9822011224', designation: 'Associate Professor, CSE' }
+      ]
+    },
+    {
+      code: 'B',
+      name: 'Panel B',
+      description: 'Technical & Research Interview Panel B',
+      members: [
+        { name: 'Dr. Vikramaditya Joshi', email: 'vikram.joshi@dypiu.ac.in', phone: '9822011225', designation: 'Professor & HOD, Biosciences' },
+        { name: 'Dr. Neha Deshmukh', email: 'neha.deshmukh@dypiu.ac.in', phone: '9822011226', designation: 'Assistant Professor, Media & Design' }
+      ]
+    },
+    {
+      code: 'C',
+      name: 'Panel C',
+      description: 'Executive & Leadership Interview Panel C',
+      members: [
+        { name: 'Dr. Suresh Kulkarni', email: 'suresh.kulkarni@dypiu.ac.in', phone: '9822011227', designation: 'Professor & Director, Research' },
+        { name: 'Ms. Sneha Patil', email: 'sneha.patil@dypiu.ac.in', phone: '9822011228', designation: 'Deputy Registrar, Administration' }
+      ]
+    }
+  ];
+
+  for (const pData of defaultPanels) {
+    const { members, ...panelFields } = pData;
+    let panel = await prisma.interviewPanel.findUnique({
+      where: { code: panelFields.code }
+    });
+
+    if (!panel) {
+      panel = await prisma.interviewPanel.create({
+        data: panelFields
+      });
+      console.log(`[Seed] Created ${panel.name} (${panel.code})`);
+    }
+
+    if (members && members.length > 0) {
+      for (const m of members) {
+        const existingMember = await prisma.panelMember.findUnique({
+          where: {
+            panelId_email: {
+              panelId: panel.id,
+              email: m.email
+            }
+          }
+        });
+        if (!existingMember) {
+          await prisma.panelMember.create({
+            data: {
+              panelId: panel.id,
+              ...m
+            }
+          });
+          console.log(`[Seed] Added panelist ${m.name} to ${panel.name}`);
+        }
+      }
+    }
+  }
+
   console.log('[Seed] Database seeding completed successfully.');
 }
 

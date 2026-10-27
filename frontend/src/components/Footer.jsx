@@ -71,6 +71,11 @@ function Footer() {
                 </Link>
               </li>
               <li style={{ marginBottom: '12px' }}>
+                <Link to="/customized" className="footer-arrow-link">
+                  <span className="link-arrow">▸</span> Customized Vacancies
+                </Link>
+              </li>
+              <li style={{ marginBottom: '12px' }}>
                 <Link to="/advertisments" className="footer-arrow-link">
                   <span className="link-arrow">▸</span> Advertisements
                 </Link>

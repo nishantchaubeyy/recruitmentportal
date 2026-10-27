@@ -653,6 +653,14 @@ function ApplicationForm() {
       }
     }
 
+    if (currentStep === 6) {
+      const hasResume = Boolean(resumeFile) || (Array.isArray(uploadedDocsList) && uploadedDocsList.some(d => d.documentType === 'resume'));
+      if (!hasResume) {
+        setError('Uploading your Resume / CV (PDF format, max 5MB) is mandatory before proceeding.');
+        return;
+      }
+    }
+
     const next = Math.min(7, currentStep + 1);
     setCurrentStep(next);
     triggerAutosave(next);
@@ -862,6 +870,12 @@ function ApplicationForm() {
 
     if (!emailVerified) {
       setError('Please verify your email address via OTP before final submission.');
+      return;
+    }
+
+    const hasResume = Boolean(resumeFile) || (Array.isArray(uploadedDocsList) && uploadedDocsList.some(d => d.documentType === 'resume'));
+    if (!hasResume) {
+      setError('Resume / CV is mandatory. Please return to Step 6 and upload your Resume / CV (PDF format).');
       return;
     }
 
@@ -1668,26 +1682,48 @@ function ApplicationForm() {
             </h3>
 
             <div className="app-form-grid-2col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-              <div style={{ border: '2px dashed #cbd5e1', borderRadius: '12px', padding: '20px', textAlign: 'center', backgroundColor: '#f8fafc' }}>
-                <div style={{ fontSize: '1.8rem', marginBottom: '6px' }}>📄</div>
-                <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.92rem' }}>
-                  {resumeFile ? `Selected: ${resumeFile.name}` : 'Upload Resume / CV (PDF)'}
+              <div style={{
+                border: (resumeFile || uploadedDocsList.some(d => d.documentType === 'resume')) ? '2px solid #16A34A' : '2px dashed #721B28',
+                borderRadius: '12px',
+                padding: '20px',
+                textAlign: 'center',
+                backgroundColor: (resumeFile || uploadedDocsList.some(d => d.documentType === 'resume')) ? '#F0FDF4' : '#FFF5F5'
+              }}>
+                <div style={{ fontSize: '1.8rem', marginBottom: '6px' }}>
+                  {(resumeFile || uploadedDocsList.some(d => d.documentType === 'resume')) ? '✅' : '📄'}
+                </div>
+                <div style={{ fontWeight: 700, color: '#0F172A', fontSize: '0.92rem' }}>
+                  {resumeFile ? `Selected: ${resumeFile.name}` : (uploadedDocsList.find(d => d.documentType === 'resume')?.originalName || 'Upload Resume / CV (PDF)')}
+                  <span style={{ color: '#DC2626', fontWeight: 800, marginLeft: '6px' }}>* Mandatory</span>
+                </div>
+                <div style={{ fontSize: '0.75rem', color: '#64748B', marginTop: '4px' }}>
+                  {(resumeFile || uploadedDocsList.some(d => d.documentType === 'resume'))
+                    ? 'Resume successfully uploaded to your dossier.'
+                    : 'Required for panel screening and evaluation (PDF only, max 5MB)'}
                 </div>
                 <input
                   type="file"
                   accept=".pdf"
+                  required
                   style={{ marginTop: '10px' }}
                   onChange={(e) => {
                     const f = e.target.files[0];
-                    setResumeFile(f);
-                    handleFileUpload(f, 'resume');
+                    if (f) {
+                      setResumeFile(f);
+                      handleFileUpload(f, 'resume');
+                    }
                   }}
                 />
               </div>
 
               <div style={{ border: '2px dashed #cbd5e1', borderRadius: '12px', padding: '20px', textAlign: 'center', backgroundColor: '#f8fafc' }}>
+                <div style={{ fontSize: '1.8rem', marginBottom: '6px' }}>📜</div>
                 <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.92rem' }}>
                   {certificatesFile ? `Selected: ${certificatesFile.name}` : 'Upload Certificates (PDF)'}
+                  <span style={{ color: '#64748B', fontSize: '0.78rem', fontWeight: 600, marginLeft: '6px' }}>(Optional)</span>
+                </div>
+                <div style={{ fontSize: '0.75rem', color: '#64748B', marginTop: '4px' }}>
+                  Educational degrees, experience letters, or certifications (PDF only, max 5MB)
                 </div>
                 <input
                   type="file"
@@ -1695,8 +1731,10 @@ function ApplicationForm() {
                   style={{ marginTop: '10px' }}
                   onChange={(e) => {
                     const f = e.target.files[0];
-                    setCertificatesFile(f);
-                    handleFileUpload(f, 'qualification');
+                    if (f) {
+                      setCertificatesFile(f);
+                      handleFileUpload(f, 'qualification');
+                    }
                   }}
                 />
               </div>
@@ -1737,6 +1775,12 @@ function ApplicationForm() {
                 <div><strong>Mobile:</strong> {mobile}</div>
                 <div><strong>City & State:</strong> {city}, {state}</div>
                 <div><strong>Qualifications:</strong> {qualifications.map(q => q.qualificationDegree).join(', ')}</div>
+                <div>
+                  <strong>Resume / CV:</strong>{' '}
+                  <span style={{ color: (resumeFile || uploadedDocsList.some(d => d.documentType === 'resume')) ? '#16A34A' : '#DC2626', fontWeight: 700 }}>
+                    {resumeFile?.name || uploadedDocsList.find(d => d.documentType === 'resume')?.originalName || 'Not uploaded'}
+                  </span>
+                </div>
               </div>
             </div>
 

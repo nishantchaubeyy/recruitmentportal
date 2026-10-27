@@ -1,8 +1,11 @@
 const prisma = require('../services/prisma');
 const { logAuditAction } = require('../services/auditService');
+const { createZoomMeeting } = require('../services/zoomService');
 const {
   sendInterviewScheduledEmail,
-  sendInterviewCancelledEmail
+  sendInterviewCancelledEmail,
+  sendCandidateInterviewInvite,
+  sendPanelistInterviewInvite
 } = require('../services/emailService');
 
 /**
@@ -760,8 +763,202 @@ async function deleteInterview(req, res) {
   }
 }
 
+/**
+ * FEATURE 1: Schedule Interview with Panel A/B/C, panelists, Zoom meeting & automated emails.
+ */
+async function scheduleInterviewWithPanel(req, res) {
+  const {
+    applicationId,
+    panelId,
+    panelistMemberIds = [],
+    scheduledAt,
+    durationMinutes = 30,
+    notes
+  } = req.body;
+
+  if (!applicationId || !panelId || !scheduledAt) {
+    return res.status(400).json({ error: 'Application, panel, and scheduled date/time are required.' });
+  }
+
+  if (!Array.isArray(panelistMemberIds) || panelistMemberIds.length === 0) {
+    return res.status(400).json({ error: 'Please select at least one panelist member for the interview.' });
+  }
+
+  try {
+    const application = await prisma.application.findUnique({
+      where: { id: applicationId },
+      include: {
+        applicant: { include: { user: true } },
+        job: true
+      }
+    });
+
+    if (!application) {
+      return res.status(404).json({ error: 'Application record not found.' });
+    }
+
+    const panel = await prisma.interviewPanel.findUnique({
+      where: { id: panelId },
+      include: {
+        members: {
+          where: { id: { in: panelistMemberIds }, isActive: true }
+        }
+      }
+    });
+
+    if (!panel) {
+      return res.status(404).json({ error: 'Interview panel not found.' });
+    }
+
+    const selectedMembers = panel.members;
+    if (selectedMembers.length === 0) {
+      return res.status(400).json({ error: 'Selected panelists are invalid or inactive in this panel.' });
+    }
+
+    // Resolve candidate contact
+    const candidateContact = resolveCandidateContact(application.applicant, application);
+    const candidateName = candidateContact.name || application.applicant?.name || 'Candidate';
+    const positionName = application.job?.position || 'Faculty Position';
+
+    // 1. Zoom Meeting Creation
+    const zoomTopic = `DYPIU Interview — ${candidateName} — ${positionName}`;
+    const zoomResult = await createZoomMeeting({
+      topic: zoomTopic,
+      startTime: scheduledAt,
+      durationMinutes: Number(durationMinutes) || 30,
+      agenda: notes || `DYPIU Recruitment Panel Interview (${panel.name})`
+    });
+
+    const scheduledDateObj = new Date(scheduledAt);
+    const timeStr = scheduledDateObj.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+
+    // 2. Persist Interview and InterviewPanelist records
+    const interview = await prisma.$transaction(async (tx) => {
+      const created = await tx.interview.create({
+        data: {
+          title: `Interview — ${panel.name} — ${positionName}`,
+          jobId: application.jobId,
+          applicationId: application.id,
+          candidateId: application.applicantId,
+          panelId: panel.id,
+          scheduledAt: scheduledDateObj,
+          durationMinutes: Number(durationMinutes) || 30,
+          date: scheduledDateObj,
+          time: timeStr,
+          startTime: timeStr,
+          mode: 'ZOOM',
+          venue: 'Zoom Video Conference',
+          meetingLink: zoomResult.joinUrl || '',
+          zoomLink: zoomResult.joinUrl || '',
+          zoomJoinUrl: zoomResult.joinUrl || null,
+          zoomStartUrl: zoomResult.startUrl || null,
+          zoomMeetingId: zoomResult.meetingId || null,
+          zoomPassword: zoomResult.password || null,
+          interviewerName: selectedMembers.map(m => m.name).join(', '),
+          interviewType: `${panel.name} Interview`,
+          notes: notes || null,
+          round: panel.name,
+          status: 'SCHEDULED',
+          emailStatus: 'SENT',
+          createdById: req.user?.id || null,
+          selectedMembers: {
+            create: selectedMembers.map(m => ({ memberId: m.id }))
+          }
+        },
+        include: {
+          panel: true,
+          selectedMembers: { include: { member: true } }
+        }
+      });
+
+      // Link candidate for unified interview tracking
+      await tx.interviewCandidate.create({
+        data: {
+          interviewId: created.id,
+          candidateId: application.applicantId,
+          applicationId: application.id,
+          emailStatus: 'SENT',
+          attendanceStatus: 'PENDING'
+        }
+      });
+
+      // Update application status to INTERVIEW_SCHEDULED
+      await tx.application.update({
+        where: { id: application.id },
+        data: { status: 'INTERVIEW_SCHEDULED' }
+      });
+
+      // Log Status History
+      await tx.applicationStatusHistory.create({
+        data: {
+          applicationId: application.id,
+          previousStatus: application.status,
+          newStatus: 'INTERVIEW_SCHEDULED',
+          changedByUserId: req.user.id,
+          comment: `Scheduled for interview with ${panel.name} on ${scheduledDateObj.toLocaleDateString('en-IN')} at ${timeStr}${zoomResult.joinUrl ? ' via Zoom.' : '.'}`
+        }
+      });
+
+      return created;
+    });
+
+    // 3. Dispatch Emails asynchronously
+    if (candidateContact.email) {
+      sendCandidateInterviewInvite({
+        to: candidateContact.email,
+        candidateName,
+        position: positionName,
+        panelName: panel.name,
+        scheduledAt: scheduledDateObj,
+        durationMinutes: Number(durationMinutes) || 30,
+        zoomJoinUrl: zoomResult.joinUrl,
+        zoomMeetingId: zoomResult.meetingId,
+        zoomPassword: zoomResult.password,
+        notes
+      }).catch(err => console.error('[Email Error] Candidate invite:', err));
+    }
+
+    for (const member of selectedMembers) {
+      if (member.email) {
+        const otherPanelists = selectedMembers.filter(m => m.id !== member.id).map(m => m.name);
+        sendPanelistInterviewInvite({
+          to: member.email,
+          panelistName: member.name,
+          candidateName,
+          position: positionName,
+          panelName: panel.name,
+          scheduledAt: scheduledDateObj,
+          durationMinutes: Number(durationMinutes) || 30,
+          zoomStartUrl: zoomResult.startUrl,
+          zoomJoinUrl: zoomResult.joinUrl,
+          zoomMeetingId: zoomResult.meetingId,
+          zoomPassword: zoomResult.password,
+          otherPanelists,
+          notes
+        }).catch(err => console.error(`[Email Error] Panelist ${member.email}:`, err));
+      }
+    }
+
+    if (req.user) {
+      logAuditAction(req.user.id, 'SCHEDULE_PANEL_INTERVIEW', 'Interview', interview.id, null, JSON.stringify({ panelId, scheduledAt, zoomMeetingId: zoomResult.meetingId }), req.ip);
+    }
+
+    return res.status(201).json({
+      success: true,
+      message: 'Interview scheduled successfully.',
+      interview,
+      zoomCreated: Boolean(zoomResult.success),
+      zoomWarning: zoomResult.success ? null : (zoomResult.error || 'Interview saved but Zoom link could not be generated. Configure ZOOM_* env vars.')
+    });
+  } catch (error) {
+    console.error('Schedule interview with panel error:', error);
+    return res.status(500).json({ error: error.message || 'Failed to schedule interview.' });
+  }
+}
+
 module.exports = {
   createInterview,
+  scheduleInterviewWithPanel,
   getAllInterviews,
   getMyInterviews,
   getInterviewCalendar,
@@ -773,3 +970,4 @@ module.exports = {
   assignPanelMembers,
   deleteInterview
 };
+
