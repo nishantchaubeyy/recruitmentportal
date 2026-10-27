@@ -23,6 +23,7 @@ function Register() {
 
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [verificationToken, setVerificationToken] = useState('');
 
   const { login } = useContext(AuthContext);
   const navigate = useNavigate();
@@ -34,6 +35,7 @@ function Register() {
     // Reset OTP verification if email changes
     if (id === 'email' && emailVerified) {
       setEmailVerified(false);
+      setVerificationToken('');
       setOtpSent(false);
       setOtpInput('');
       setOtpMessage('');
@@ -71,10 +73,13 @@ function Register() {
     setError('');
     setVerifyingOtp(true);
     try {
-      await apiRequest('/auth/verify-otp', {
+      const res = await apiRequest('/auth/verify-otp', {
         method: 'POST',
         body: JSON.stringify({ email: formData.email, otp: otpInput })
       });
+      if (res?.verificationToken) {
+        setVerificationToken(res.verificationToken);
+      }
       setEmailVerified(true);
       setOtpSent(false);
       setOtpMessage('✓ Email verified successfully!');
@@ -112,7 +117,7 @@ function Register() {
     try {
       const data = await apiRequest('/auth/register', {
         method: 'POST',
-        body: JSON.stringify({ name, email, mobile, password, confirmPassword })
+        body: JSON.stringify({ name, email, mobile, password, confirmPassword, verificationToken })
       });
 
       login(data.token, data.user);

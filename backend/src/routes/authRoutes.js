@@ -9,9 +9,12 @@ router.post('/login', authController.login);
 router.post('/refresh', authController.refreshToken);
 router.post('/send-otp', authController.sendOTP);
 router.post('/verify-otp', authController.verifyOTP);
+router.post('/forgot-password', authController.forgotPassword);
+router.post('/reset-password', authController.resetPassword);
 router.get('/me', authenticate, authController.getMe);
+router.post('/change-password', authenticate, authController.changePassword);
 
-// Applicant Auth Explicit Alias Routes
+// Applicant Auth Explicit Alias Routes (backward compat)
 router.post('/applicant/auth/register', authController.register);
 router.post('/applicant/auth/login', authController.login);
 router.post('/applicant/auth/refresh', authController.refreshToken);

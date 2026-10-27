@@ -5,16 +5,17 @@ const auditController = require('../controllers/auditController');
 const panelController = require('../controllers/panelController');
 const interviewController = require('../controllers/interviewController');
 const applicationController = require('../controllers/applicationController');
-const { authenticate, authorize } = require('../middleware/authMiddleware');
+const { authenticate, authorize, requireSuperAdmin } = require('../middleware/authMiddleware');
 
 const adminOnly = authorize('SUPER_ADMIN', 'HR_ADMIN', 'ADMIN');
 
 // Super Admin & HR Admin User Management
 router.get('/users', authenticate, adminOnly, userController.getAllUsers);
-router.post('/users', authenticate, authorize('SUPER_ADMIN', 'ADMIN'), userController.createUser);
-router.put('/users/:id', authenticate, authorize('SUPER_ADMIN', 'ADMIN'), userController.updateUser);
-router.patch('/users/:id/status', authenticate, authorize('SUPER_ADMIN', 'ADMIN'), userController.updateUserStatus);
-router.patch('/users/:id/role', authenticate, authorize('SUPER_ADMIN', 'ADMIN'), userController.updateUserRole);
+router.post('/users', authenticate, requireSuperAdmin, userController.createUser);
+router.put('/users/:id', authenticate, requireSuperAdmin, userController.updateUser);
+router.patch('/users/:id/status', authenticate, requireSuperAdmin, userController.updateUserStatus);
+router.patch('/users/:id/role', authenticate, requireSuperAdmin, userController.updateUserRole);
+router.post('/users/:id/reset-password', authenticate, requireSuperAdmin, userController.resetUserPassword);
 
 // System Audit Logs (Super Admin & HR Admin)
 router.get('/audit-logs', authenticate, adminOnly, auditController.getAuditLogs);

@@ -15,77 +15,84 @@ const interviewRoutes = require('./routes/interviewRoutes');
 const committeeRoutes = require('./routes/committeeRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const prisma = require('./services/prisma');
+const storageService = require('./services/storageService');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Fail fast in production if critical secrets are not configured.
-if (process.env.NODE_ENV === 'production') {
-  const missing = ['JWT_SECRET', 'REFRESH_SECRET', 'DATABASE_URL'].filter((k) => !process.env[k]);
-  if (missing.length) {
-    console.error(`[FATAL] Missing required environment variables in production: ${missing.join(', ')}`);
-    process.exit(1);
-  }
-}
+app.disable('x-powered-by');
 
-// Security HTTP Headers Middleware (Helmet)
+// This server only returns JSON and files, so the strictest CSP is appropriate.
 app.use(helmet({
-  contentSecurityPolicy: false,
-  crossOriginResourcePolicy: { policy: "cross-origin" }
+  contentSecurityPolicy: {
+    useDefaults: false,
+    directives: {
+      defaultSrc: ["'none'"],
+      frameAncestors: ["'none'"],
+      baseUri: ["'none'"],
+      formAction: ["'none'"]
+    }
+  },
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+  referrerPolicy: { policy: 'no-referrer' },
+  hsts: process.env.NODE_ENV === 'production' ? { maxAge: 31536000, includeSubDomains: true } : false
 }));
 
 // Enable CORS. Restrict to configured origins in production via CORS_ORIGIN
 // (comma-separated list); defaults to allowing all origins for local development.
-const corsOrigins = (process.env.CORS_ORIGIN || '*')
-  .split(',')
-  .map((o) => o.trim())
-  .filter(Boolean);
+const { corsOrigins } = require('./config');
+const allowedOrigins = new Set(corsOrigins);
 
 app.use(cors({
-  origin: corsOrigins.includes('*') ? '*' : corsOrigins,
+  origin(origin, callback) {
+    // No Origin header: same-origin navigation, curl, server-to-server.
+    if (!origin || allowedOrigins.size === 0 || allowedOrigins.has('*') || allowedOrigins.has(origin)) return callback(null, true);
+    return callback(null, false);
+  },
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  maxAge: 600
 }));
 
-// Global Rate Limiter: max 300 requests per 15 minutes per IP
-const globalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 300,
-  message: { error: 'Too many requests from this IP. Please try again later.' },
+const limiter = (windowMs, max, message) => rateLimit({
+  windowMs,
+  max,
+  message: { error: message },
   standardHeaders: true,
   legacyHeaders: false
 });
-app.use('/api', globalLimiter);
 
-// Auth Rate Limiter: max 30 login/register attempts per 15 minutes
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 30,
-  message: { error: 'Too many authentication attempts. Please try again later.' }
-});
-app.use('/api/auth/login', authLimiter);
-app.use('/api/auth/register', authLimiter);
+const MIN = 60 * 1000;
+app.use('/api', limiter(15 * MIN, 600, 'Too many requests from this IP. Please try again later.'));
+app.use('/api/auth/login', limiter(15 * MIN, 20, 'Too many login attempts. Please try again later.'));
+app.use('/api/auth/register', limiter(60 * MIN, 15, 'Too many registration attempts. Please try again later.'));
+app.use('/api/auth/send-otp', limiter(60 * MIN, 12, 'Too many verification requests. Please try again later.'));
+app.use('/api/auth/verify-otp', limiter(15 * MIN, 30, 'Too many verification attempts. Please try again later.'));
+app.use('/api/auth/forgot-password', limiter(60 * MIN, 10, 'Too many reset requests. Please try again later.'));
+app.use('/api/auth/reset-password', limiter(15 * MIN, 20, 'Too many reset attempts. Please try again later.'));
+app.use('/api/auth/refresh', limiter(15 * MIN, 120, 'Too many session refresh attempts.'));
 
 // Body parser middleware
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ extended: false, limit: '100kb' }));
 
-// Ensure upload root folder exists on startup
-const uploadRoot = process.env.UPLOAD_DIR || (process.env.VERCEL ? '/tmp/uploads' : 'uploads');
+// Uploads: only recruitment poster images are public. Candidate and application
+// documents are private and are only reachable through authorised API endpoints.
 try {
-  if (!fs.existsSync(uploadRoot)) {
-    fs.mkdirSync(uploadRoot, { recursive: true });
-  }
+  fs.mkdirSync(storageService.POSTER_ROOT, { recursive: true });
 } catch (err) {
   console.warn('Notice: Could not create upload directory:', err.message);
 }
 
-// Static file serving for uploads (recruitment posters, documents, etc.)
-app.use('/uploads', express.static(path.resolve(uploadRoot)));
+app.use('/uploads/posters', (req, res, next) => {
+  if (!/\.(jpe?g|png|webp)$/i.test(req.path)) return res.status(404).end();
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('Content-Security-Policy', "default-src 'none'; sandbox");
+  return next();
+}, express.static(path.resolve(storageService.POSTER_ROOT), { index: false, dotfiles: 'deny', maxAge: '1h' }));
 
-// Health check endpoint
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', environment: process.env.NODE_ENV || 'development', time: new Date() });
+  res.json({ status: 'ok' });
 });
 
 const vacancyInterestRoutes = require('./routes/vacancyInterestRoutes');
@@ -105,25 +112,35 @@ app.use('/api', vacancyInterestRoutes);
 // plus /api/jobs and /api/jobs/:id. Mounted once at /api.
 app.use('/api', jobRoutes);
 
-// Global Error Handler
-app.use((err, req, res, next) => {
-  console.error('Unhandled Server Error:', err);
+app.use('/api', (req, res) => {
+  res.status(404).json({ error: 'Endpoint not found.' });
+});
 
-  if (
-    err.message === 'Only PDF files are accepted.' ||
-    err.message === 'Only JPEG, JPG, PNG, and WebP image files are accepted.' ||
-    err.message?.includes('Only PDF, JPG, JPEG, and PNG files are accepted') ||
-    err.code === 'LIMIT_FILE_SIZE'
-  ) {
-    const message = err.code === 'LIMIT_FILE_SIZE'
-      ? 'File size exceeds the allowed limit (max 5MB).'
-      : err.message;
-    return res.status(400).json({ error: message });
+// Global error handler - never leaks internals to the client.
+// eslint-disable-next-line no-unused-vars
+app.use((err, req, res, next) => {
+  if (err.type === 'entity.parse.failed') {
+    return res.status(400).json({ error: 'Malformed JSON request body.' });
+  }
+  if (err.type === 'entity.too.large') {
+    return res.status(413).json({ error: 'Request body is too large.' });
+  }
+  if (err.code === 'LIMIT_FILE_SIZE') {
+    return res.status(400).json({ error: 'The file exceeds the allowed size limit.' });
+  }
+  if (err.name === 'MulterError') {
+    return res.status(400).json({ error: 'Invalid file upload.' });
+  }
+  if (/^Only (PDF|JPEG)/.test(err.message || '')) {
+    return res.status(400).json({ error: err.message });
   }
 
-  res.status(500).json({
-    error: err.message || 'An internal server error occurred.'
-  });
+  console.error('Unhandled Server Error:', err);
+  return res.status(500).json({ error: 'An internal server error occurred.' });
+});
+
+process.on('unhandledRejection', (reason) => {
+  console.error('[Process] Unhandled promise rejection:', reason);
 });
 
 // Server Initialization (Only listen when running directly, not on Vercel)
@@ -142,21 +159,22 @@ if (process.env.NODE_ENV !== 'test' && !process.env.VERCEL) {
 
   server.on('error', (err) => {
     if (err.code === 'EADDRINUSE') {
-      console.error(`[Server] Port ${PORT} is already in use. Retrying or update PORT in .env.`);
+      console.error(`[Server] Port ${PORT} is already in use.`);
     } else {
       console.error('[Server] Server error:', err);
     }
   });
 
-  // Graceful Shutdown
-  process.on('SIGTERM', async () => {
-    console.log('[Server] SIGTERM received. Shutting down gracefully...');
+  const shutdown = (signal) => {
+    console.log(`[Server] ${signal} received. Shutting down gracefully...`);
     server.close(async () => {
       await prisma.$disconnect();
-      console.log('[Server] Shutdown complete.');
       process.exit(0);
     });
-  });
+    setTimeout(() => process.exit(1), 10000).unref();
+  };
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+  process.on('SIGINT', () => shutdown('SIGINT'));
 }
 
 module.exports = app;

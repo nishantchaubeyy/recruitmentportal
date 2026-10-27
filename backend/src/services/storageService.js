@@ -1,156 +1,94 @@
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
+const { uploadRoot } = require('../config');
 
-const UPLOAD_ROOT = process.env.UPLOAD_DIR || 'uploads';
-
-/**
- * Saves a file to local storage in the structured path:
- * uploads/jobs/:jobId/applications/:applicationId/filename
- * 
- * @param {Object} file - The file object from Multer (buffer or temp file path)
- * @param {string} jobId - The associated Job ID
- * @param {string} applicationId - The associated Application ID
- * @returns {Promise<Object>} Object containing file path/key and metadata
- */
-async function saveFile(file, jobId, applicationId) {
-  // Define destination directory: uploads/jobs/:jobId/applications/:applicationId
-  const relativeDir = path.join('jobs', jobId, 'applications', applicationId);
-  const destDir = path.join(UPLOAD_ROOT, relativeDir);
-
-  // Ensure the directory exists
-  if (!fs.existsSync(destDir)) {
-    fs.mkdirSync(destDir, { recursive: true });
-  }
-
-  // Generate a unique filename prefix to avoid collisions if identical names are uploaded
-  const timestamp = Date.now();
-  const safeName = `${timestamp}-${file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
-  const destPath = path.join(destDir, safeName);
-  const fileKey = path.join(relativeDir, safeName).replace(/\\/g, '/'); // Normalize slashes for db storage
-
-  // Move the file from temp storage to final destination
-  if (file.path) {
-    // If multer is using diskStorage (temp file)
-    fs.renameSync(file.path, destPath);
-  } else if (file.buffer) {
-    // If multer is using memoryStorage
-    fs.writeFileSync(destPath, file.buffer);
-  } else {
-    throw new Error('Invalid file format. Cannot save.');
-  }
-
-  return {
-    fileKey,
-    absolutePath: path.resolve(destPath),
-    originalName: file.originalname,
-    mimeType: file.mimetype,
-    size: file.size
-  };
-}
+const UPLOAD_ROOT = path.resolve(uploadRoot);
+const POSTER_PREFIX = 'posters/';
 
 /**
- * Resolves the absolute path for a given file key.
- * 
- * @param {string} fileKey - The file key stored in the database
- * @returns {string} Absolute path on the local system
+ * Resolve a stored file key to an absolute path, refusing anything that would
+ * escape the upload root (path traversal via a tampered database value).
  */
 function getFileLocation(fileKey) {
-  return path.resolve(UPLOAD_ROOT, fileKey);
+  if (typeof fileKey !== 'string' || !fileKey) throw new Error('Invalid file key.');
+  const resolved = path.resolve(UPLOAD_ROOT, fileKey);
+  const relative = path.relative(UPLOAD_ROOT, resolved);
+  if (!relative || relative.startsWith('..') || path.isAbsolute(relative)) {
+    throw new Error('Invalid file key.');
+  }
+  return resolved;
 }
 
 /**
- * Deletes a file from local storage.
- * 
- * @param {string} fileKey - The file key to delete
+ * Persist a verified upload under `<root>/<dirParts...>/<random>.<ext>`.
+ * File names are random and the extension comes from the sniffed file type -
+ * the client-supplied name is only retained as metadata.
  */
+async function persist(file, dirParts) {
+  if (!file?.buffer) throw new Error('Invalid file payload.');
+
+  const ext = file.detectedExt || '.bin';
+  const fileName = `${crypto.randomBytes(16).toString('hex')}${ext}`;
+  const relativeDir = path.posix.join(...dirParts);
+  const destDir = getFileLocation(relativeDir);
+
+  await fs.promises.mkdir(destDir, { recursive: true });
+  await fs.promises.writeFile(path.join(destDir, fileName), file.buffer, { mode: 0o640 });
+
+  const fileKey = path.posix.join(relativeDir, fileName);
+  return {
+    fileKey,
+    webUrl: `/uploads/${fileKey}`,
+    originalName: String(file.originalname || fileName).slice(0, 200),
+    mimeType: file.mimetype,
+    size: file.size
+  };
+}
+
+const saveFile = (file, jobId, applicationId) =>
+  persist(file, ['jobs', jobId, 'applications', applicationId]);
+
+const savePosterFile = (file, schoolId) => persist(file, ['posters', schoolId]);
+
+const saveCandidateDocumentFile = (file, candidateId) => persist(file, ['candidates', candidateId]);
+
 async function deleteFile(fileKey) {
-  const filePath = path.resolve(UPLOAD_ROOT, fileKey);
-  if (fs.existsSync(filePath)) {
-    fs.unlinkSync(filePath);
+  try {
+    await fs.promises.unlink(getFileLocation(fileKey));
+  } catch (err) {
+    if (err.code !== 'ENOENT' && err.message !== 'Invalid file key.') throw err;
   }
 }
 
-/**
- * Saves a recruitment poster image to local storage:
- * uploads/posters/:schoolId/poster-timestamp-filename.ext
- * 
- * @param {Object} file - Multer file object
- * @param {string} schoolId - School ID
- * @returns {Promise<Object>} Object containing fileKey, webUrl, etc.
- */
-async function savePosterFile(file, schoolId) {
-  const relativeDir = path.join('posters', schoolId);
-  const destDir = path.join(UPLOAD_ROOT, relativeDir);
-
-  if (!fs.existsSync(destDir)) {
-    fs.mkdirSync(destDir, { recursive: true });
+/** Only poster images may be served publicly. */
+function posterKeyFromUrl(url) {
+  if (typeof url !== 'string' || !url.startsWith(`/uploads/${POSTER_PREFIX}`)) return null;
+  const key = url.slice('/uploads/'.length);
+  try {
+    getFileLocation(key);
+    return key;
+  } catch {
+    return null;
   }
-
-  const timestamp = Date.now();
-  const safeName = `${timestamp}-${file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
-  const destPath = path.join(destDir, safeName);
-  const fileKey = path.join(relativeDir, safeName).replace(/\\/g, '/');
-  const webUrl = `/uploads/${fileKey}`;
-
-  if (file.path) {
-    fs.renameSync(file.path, destPath);
-  } else if (file.buffer) {
-    fs.writeFileSync(destPath, file.buffer);
-  } else {
-    throw new Error('Invalid file format. Cannot save poster.');
-  }
-
-  return {
-    fileKey,
-    webUrl,
-    absolutePath: path.resolve(destPath),
-    originalName: file.originalname,
-    mimeType: file.mimetype,
-    size: file.size
-  };
 }
 
-/**
- * Saves candidate uploaded verification document to:
- * uploads/candidates/:candidateId/:timestamp-filename.ext
- */
-async function saveCandidateDocumentFile(file, candidateId) {
-  const relativeDir = path.join('candidates', candidateId);
-  const destDir = path.join(UPLOAD_ROOT, relativeDir);
-
-  if (!fs.existsSync(destDir)) {
-    fs.mkdirSync(destDir, { recursive: true });
+function fileExists(fileKey) {
+  try {
+    return fs.existsSync(getFileLocation(fileKey));
+  } catch {
+    return false;
   }
-
-  const timestamp = Date.now();
-  const safeName = `${timestamp}-${file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
-  const destPath = path.join(destDir, safeName);
-  const fileKey = path.join(relativeDir, safeName).replace(/\\/g, '/');
-  const webUrl = `/uploads/${fileKey}`;
-
-  if (file.path) {
-    fs.renameSync(file.path, destPath);
-  } else if (file.buffer) {
-    fs.writeFileSync(destPath, file.buffer);
-  } else {
-    throw new Error('Invalid file format. Cannot save document.');
-  }
-
-  return {
-    fileKey,
-    webUrl,
-    absolutePath: path.resolve(destPath),
-    originalName: file.originalname,
-    mimeType: file.mimetype,
-    size: file.size
-  };
 }
 
 module.exports = {
+  UPLOAD_ROOT,
+  POSTER_ROOT: path.join(UPLOAD_ROOT, 'posters'),
   saveFile,
   savePosterFile,
   saveCandidateDocumentFile,
   getFileLocation,
-  deleteFile
+  deleteFile,
+  posterKeyFromUrl,
+  fileExists
 };
-

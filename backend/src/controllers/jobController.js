@@ -1,6 +1,81 @@
 const prisma = require('../services/prisma');
 const { matchAndNotifyInterestedApplicants } = require('../services/interestMatchingService');
 const storageService = require('../services/storageService');
+const { logAuditAction } = require('../services/auditService');
+const { cleanString, parseDate, searchTerm } = require('../utils/validate');
+
+const JOB_STATUSES = ['DRAFT', 'PUBLISHED', 'CLOSED', 'ARCHIVED'];
+
+/** Only same-site poster uploads or https image links may be stored as a poster/banner URL. */
+function validMediaUrl(value) {
+  if (value === null || value === '') return true;
+  if (typeof value !== 'string' || value.length > 500) return false;
+  if (storageService.posterKeyFromUrl(value)) return true;
+  return /^https:\/\/[^\s]+$/i.test(value);
+}
+
+function stripInternal(job) {
+  const { createdBy, ...rest } = job;
+  return rest;
+}
+
+/**
+ * Validate and normalise vacancy fields shared by create and update.
+ * Returns { error } or { data } containing only whitelisted, typed values.
+ */
+function normaliseJobInput(input, { partial }) {
+  const data = {};
+  const need = (cond, msg) => (cond ? null : msg);
+
+  const strings = {
+    position: 200, department: 200, employmentType: 50, qualification: 2000, experience: 1000,
+    skills: 2000, description: 10000, salaryScale: 200, location: 200,
+    requiredDocuments: 2000, eligibilityCriteria: 4000
+  };
+  for (const [key, max] of Object.entries(strings)) {
+    if (input[key] === undefined) continue;
+    if (typeof input[key] !== 'string') return { error: `"${key}" must be text.` };
+    data[key] = cleanString(input[key], max);
+  }
+
+  if (input.type !== undefined) {
+    if (!['TEACHING', 'NON_TEACHING'].includes(input.type)) return { error: 'Vacancy type must be TEACHING or NON_TEACHING.' };
+    data.type = input.type;
+  }
+  if (input.status !== undefined) {
+    if (!JOB_STATUSES.includes(input.status)) return { error: 'Invalid vacancy status.' };
+    data.status = input.status;
+  }
+  if (input.numPositions !== undefined) {
+    const n = parseInt(input.numPositions, 10);
+    if (!Number.isInteger(n) || n < 1 || n > 500) return { error: 'Number of positions must be between 1 and 500.' };
+    data.numPositions = n;
+  }
+  for (const key of ['openingDate', 'deadline']) {
+    if (input[key] === undefined || input[key] === null || input[key] === '') continue;
+    const d = parseDate(input[key]);
+    if (!d) return { error: `"${key}" is not a valid date.` };
+    data[key] = d;
+  }
+  for (const key of ['schoolId', 'departmentId', 'positionId']) {
+    if (input[key] !== undefined) data[key] = input[key] ? String(input[key]) : null;
+  }
+  for (const key of ['bannerUrl', 'posterUrl', 'imageUrl']) {
+    if (input[key] === undefined) continue;
+    if (!validMediaUrl(input[key])) return { error: `"${key}" must be an uploaded poster or an https image URL.` };
+    data[key] = input[key] || null;
+  }
+
+  if (!partial) {
+    const missing = need(data.position && data.type && data.qualification && data.experience && data.description && data.deadline,
+      'Position, vacancy type, qualification, experience, description, and deadline are required.');
+    if (missing) return { error: missing };
+  }
+  if (data.openingDate && data.deadline && data.deadline < data.openingDate) {
+    return { error: 'The deadline must be on or after the opening date.' };
+  }
+  return { data };
+}
 
 /**
  * Generate unique Vacancy Reference Number (e.g. VAC-2026-001)
@@ -9,14 +84,13 @@ async function generateVacancyNumber() {
   const currentYear = new Date().getFullYear();
   const prefix = `VAC-${currentYear}-`;
   
-  const count = await prisma.job.count({
-    where: {
-      vacancyNumber: { startsWith: prefix }
-    }
+  const last = await prisma.job.findFirst({
+    where: { vacancyNumber: { startsWith: prefix } },
+    orderBy: { vacancyNumber: 'desc' },
+    select: { vacancyNumber: true }
   });
-
-  const nextNum = (count + 1).toString().padStart(3, '0');
-  return `${prefix}${nextNum}`;
+  const lastSeq = last ? parseInt(last.vacancyNumber.slice(prefix.length), 10) || 0 : 0;
+  return `${prefix}${String(lastSeq + 1).padStart(3, '0')}`;
 }
 
 /**
@@ -56,31 +130,40 @@ async function getPublicVacancies(req, res) {
 
   const where = {
     status: 'PUBLISHED',
-    deadline: { gte: startOfToday }
+    deadline: { gte: startOfToday },
+    openingDate: { lte: new Date() },
+    AND: []
   };
 
-  if (targetCategory && (targetCategory === 'TEACHING' || targetCategory === 'NON_TEACHING' || targetCategory === 'CUSTOM')) {
+  if (targetCategory && (targetCategory === 'TEACHING' || targetCategory === 'NON_TEACHING')) {
     where.type = targetCategory;
   }
 
-  if (school) {
-    where.OR = [
-      { department: { contains: school } },
-      { school: { name: { contains: school } } }
-    ];
+  const schoolTerm = searchTerm(school);
+  if (schoolTerm) {
+    where.AND.push({
+      OR: [
+        { department: { contains: schoolTerm, mode: 'insensitive' } },
+        { school: { name: { contains: schoolTerm, mode: 'insensitive' } } }
+      ]
+    });
   }
 
-  if (department) {
-    where.department = { contains: department };
+  const deptTerm = searchTerm(department);
+  if (deptTerm) {
+    where.AND.push({ department: { contains: deptTerm, mode: 'insensitive' } });
   }
 
-  if (search) {
-    where.OR = [
-      { position: { contains: search } },
-      { department: { contains: search } },
-      { skills: { contains: search } },
-      { description: { contains: search } }
-    ];
+  const term = searchTerm(search);
+  if (term) {
+    where.AND.push({
+      OR: [
+        { position: { contains: term, mode: 'insensitive' } },
+        { department: { contains: term, mode: 'insensitive' } },
+        { skills: { contains: term, mode: 'insensitive' } },
+        { description: { contains: term, mode: 'insensitive' } }
+      ]
+    });
   }
 
   try {
@@ -95,7 +178,7 @@ async function getPublicVacancies(req, res) {
     });
 
     const formattedJobs = jobs.map((j) => ({
-      ...j,
+      ...stripInternal(j),
       isApplicationOpen: true
     }));
 
@@ -122,15 +205,15 @@ async function getPublicVacancyById(req, res) {
       }
     });
 
-    // Do not expose unpublished (draft/archived) vacancies on the public endpoint.
-    if (!job || job.status === 'DRAFT' || job.status === 'ARCHIVED') {
+    // Only published or closed vacancies are visible publicly.
+    if (!job || !['PUBLISHED', 'CLOSED'].includes(job.status)) {
       return res.status(404).json({ error: 'Vacancy opening not found.' });
     }
 
     const isOpen = isVacancyOpen(job);
 
     return res.json({
-      ...job,
+      ...stripInternal(job),
       isApplicationOpen: isOpen
     });
   } catch (error) {
@@ -148,23 +231,25 @@ async function getAllJobs(req, res) {
 
   const where = {};
 
-  if (type && (type === 'TEACHING' || type === 'NON_TEACHING' || type === 'CUSTOM')) {
+  if (type && (type === 'TEACHING' || type === 'NON_TEACHING')) {
     where.type = type;
   }
 
-  if (status) {
+  if (JOB_STATUSES.includes(status)) {
     where.status = status;
   }
 
-  if (department) {
-    where.department = { contains: department };
+  const deptTerm = searchTerm(department);
+  if (deptTerm) {
+    where.department = { contains: deptTerm, mode: 'insensitive' };
   }
 
-  if (search) {
+  const term = searchTerm(search);
+  if (term) {
     where.OR = [
-      { vacancyNumber: { contains: search } },
-      { position: { contains: search } },
-      { department: { contains: search } }
+      { vacancyNumber: { contains: term, mode: 'insensitive' } },
+      { position: { contains: term, mode: 'insensitive' } },
+      { department: { contains: term, mode: 'insensitive' } }
     ];
   }
 
@@ -261,82 +346,67 @@ async function getJobById(req, res) {
  * Create a new Vacancy (Admin only).
  */
 async function createJob(req, res) {
-  const {
-    vacancyNumber,
-    position,
-    type,
-    schoolId,
-    departmentId,
-    positionId,
-    department,
-    employmentType,
-    numPositions,
-    qualification,
-    experience,
-    skills,
-    description,
-    salaryScale,
-    location,
-    openingDate,
-    deadline,
-    requiredDocuments,
-    eligibilityCriteria,
-    customCategory,
-    customLabel,
-    status
-  } = req.body;
-
-  if (!position || !type || !qualification || !experience || !description || !deadline) {
-    return res.status(400).json({ error: 'Position, vacancy type, qualification, experience, description, and deadline are required.' });
-  }
-
-  if (type !== 'TEACHING' && type !== 'NON_TEACHING' && type !== 'CUSTOM') {
-    return res.status(400).json({ error: 'Vacancy type must be TEACHING, NON_TEACHING, or CUSTOM.' });
-  }
-
-  if (type === 'CUSTOM' && !customCategory && !customLabel) {
-    return res.status(400).json({ error: 'Category / Label is required for Customized Vacancies (e.g. Visiting Faculty, Project Fellow, Internship).' });
-  }
+  const parsed = normaliseJobInput(req.body || {}, { partial: false });
+  if (parsed.error) return res.status(400).json({ error: parsed.error });
+  const input = parsed.data;
 
   try {
-    const finalVacancyNum = vacancyNumber || (await generateVacancyNumber());
-
     // Resolve text department string if school/department IDs are provided
-    let deptName = department || '';
-    if (!deptName && schoolId) {
-      const sch = await prisma.school.findUnique({ where: { id: schoolId } });
-      if (sch) deptName = sch.name;
+    let deptName = input.department || '';
+    if (input.schoolId) {
+      const school = await prisma.school.findUnique({ where: { id: input.schoolId } });
+      if (!school) return res.status(400).json({ error: 'Selected school/faculty does not exist.' });
+      if (!deptName) deptName = school.name;
     }
 
-    const newJob = await prisma.job.create({
-      data: {
-        vacancyNumber: finalVacancyNum,
-        position,
-        type,
-        schoolId: schoolId || null,
-        departmentId: departmentId || null,
-        positionId: positionId || null,
-        department: deptName || 'DYPIU Campus',
-        employmentType: employmentType || 'Full Time',
-        numPositions: numPositions ? parseInt(numPositions) : 1,
-        qualification,
-        experience,
-        skills: skills || '',
-        description,
-        salaryScale: salaryScale || '',
-        location: location || 'Pune',
-        openingDate: openingDate ? new Date(openingDate) : new Date(),
-        deadline: new Date(deadline),
-        requiredDocuments: requiredDocuments || 'CV/Resume, Educational Certificates',
-        eligibilityCriteria: eligibilityCriteria || '',
-        bannerUrl: req.body.bannerUrl || null,
-        posterUrl: req.body.posterUrl || null,
-        imageUrl: req.body.imageUrl || null,
-        customCategory: customCategory?.trim() || customLabel?.trim() || null,
-        customLabel: customLabel?.trim() || customCategory?.trim() || null,
-        status: status || 'DRAFT',
-        createdBy: req.user ? req.user.id : null
+    const requestedNumber = cleanString(req.body.vacancyNumber, 40);
+    let newJob = null;
+
+    for (let attempt = 0; attempt < 5 && !newJob; attempt += 1) {
+      try {
+        newJob = await prisma.job.create({
+          data: {
+            vacancyNumber: requestedNumber || (await generateVacancyNumber()),
+            position: input.position,
+            type: input.type,
+            schoolId: input.schoolId || null,
+            departmentId: input.departmentId || null,
+            positionId: input.positionId || null,
+            department: deptName || 'DYPIU Campus',
+            employmentType: input.employmentType || 'Full Time',
+            numPositions: input.numPositions || 1,
+            qualification: input.qualification,
+            experience: input.experience,
+            skills: input.skills || '',
+            description: input.description,
+            salaryScale: input.salaryScale || '',
+            location: input.location || 'Pune',
+            openingDate: input.openingDate || new Date(),
+            deadline: input.deadline,
+            requiredDocuments: input.requiredDocuments || 'CV/Resume, Educational Certificates',
+            eligibilityCriteria: input.eligibilityCriteria || '',
+            bannerUrl: input.bannerUrl || null,
+            posterUrl: input.posterUrl || null,
+            imageUrl: input.imageUrl || null,
+            status: input.status || 'DRAFT',
+            createdBy: req.user.id
+          }
+        });
+      } catch (err) {
+        if (err.code === 'P2002' && !requestedNumber) continue; // generated number collided: retry
+        if (err.code === 'P2002') return res.status(409).json({ error: 'A vacancy with this reference number already exists.' });
+        throw err;
       }
+    }
+    if (!newJob) return res.status(503).json({ error: 'Could not allocate a vacancy number. Please try again.' });
+
+    await logAuditAction({
+      action: 'VACANCY_CREATED',
+      userId: req.user.id,
+      targetType: 'Job',
+      targetId: newJob.id,
+      details: { vacancyNumber: newJob.vacancyNumber, status: newJob.status },
+      req
     });
 
     // If directly published on creation, trigger interest notification matching
@@ -362,7 +432,6 @@ async function createJob(req, res) {
  */
 async function updateJob(req, res) {
   const { id } = req.params;
-  const data = req.body;
 
   try {
     const existing = await prisma.job.findUnique({ where: { id } });
@@ -370,32 +439,29 @@ async function updateJob(req, res) {
       return res.status(404).json({ error: 'Vacancy opening not found.' });
     }
 
-    // Whitelist updatable fields
-    const editable = [
-      'position', 'type', 'schoolId', 'departmentId', 'positionId', 'department',
-      'employmentType', 'numPositions', 'qualification', 'experience', 'skills',
-      'description', 'salaryScale', 'location', 'openingDate', 'deadline',
-      'requiredDocuments', 'eligibilityCriteria', 'bannerUrl', 'posterUrl', 'imageUrl', 'status'
-    ];
+    const parsed = normaliseJobInput(req.body || {}, { partial: true });
+    if (parsed.error) return res.status(400).json({ error: parsed.error });
+    const updateData = parsed.data;
 
-    const updateData = {};
-    for (const key of editable) {
-      if (data[key] !== undefined) updateData[key] = data[key];
-    }
-
-    if (updateData.numPositions !== undefined) updateData.numPositions = parseInt(updateData.numPositions) || 1;
-    if (updateData.deadline) updateData.deadline = new Date(updateData.deadline);
-    if (updateData.openingDate) updateData.openingDate = new Date(updateData.openingDate);
-    if (updateData.type && !['TEACHING', 'NON_TEACHING', 'CUSTOM'].includes(updateData.type)) {
-      return res.status(400).json({ error: 'Vacancy type must be TEACHING, NON_TEACHING, or CUSTOM.' });
-    }
-    if (updateData.status && !['DRAFT', 'PUBLISHED', 'CLOSED', 'ARCHIVED'].includes(updateData.status)) {
-      return res.status(400).json({ error: 'Invalid vacancy status.' });
+    const opening = updateData.openingDate || existing.openingDate;
+    const deadline = updateData.deadline || existing.deadline;
+    if (deadline && opening && deadline < opening) {
+      return res.status(400).json({ error: 'The deadline must be on or after the opening date.' });
     }
 
     const updatedJob = await prisma.job.update({
       where: { id },
       data: updateData
+    });
+
+    await logAuditAction({
+      action: 'VACANCY_UPDATED',
+      userId: req.user.id,
+      targetType: 'Job',
+      targetId: id,
+      oldValue: { status: existing.status, deadline: existing.deadline },
+      details: { fields: Object.keys(updateData) },
+      req
     });
 
     if (existing.status !== 'PUBLISHED' && updatedJob.status === 'PUBLISHED') {
@@ -419,7 +485,7 @@ async function updateJobStatus(req, res) {
   const { id } = req.params;
   const { status } = req.body;
 
-  if (!status || !['DRAFT', 'PUBLISHED', 'CLOSED', 'ARCHIVED'].includes(status)) {
+  if (!JOB_STATUSES.includes(status)) {
     return res.status(400).json({ error: 'Valid status (DRAFT, PUBLISHED, CLOSED, ARCHIVED) is required.' });
   }
 
@@ -429,9 +495,24 @@ async function updateJobStatus(req, res) {
       return res.status(404).json({ error: 'Vacancy opening not found.' });
     }
 
+    // A vacancy cannot be published after its deadline without extending it first.
+    if (status === 'PUBLISHED' && existing.deadline && new Date(existing.deadline) < new Date()) {
+      return res.status(400).json({ error: 'The deadline has passed. Extend the deadline before publishing this vacancy.' });
+    }
+
     const updatedJob = await prisma.job.update({
       where: { id },
       data: { status }
+    });
+
+    await logAuditAction({
+      action: 'VACANCY_STATUS_CHANGED',
+      userId: req.user.id,
+      targetType: 'Job',
+      targetId: id,
+      oldValue: { status: existing.status },
+      details: { status },
+      req
     });
 
     if (existing.status !== 'PUBLISHED' && status === 'PUBLISHED') {
@@ -505,9 +586,9 @@ async function uploadSchoolPoster(req, res) {
     // Save new poster file
     const saved = await storageService.savePosterFile(req.file, school.id);
 
-    // If there was an existing local poster file, clean it up
-    if (school.posterUrl && school.posterUrl.startsWith('/uploads/')) {
-      const oldKey = school.posterUrl.replace('/uploads/', '');
+    // Clean up the previous poster if it is one of our own files
+    const oldKey = storageService.posterKeyFromUrl(school.posterUrl);
+    if (oldKey) {
       storageService.deleteFile(oldKey).catch((e) => console.warn('Could not delete old poster file:', e.message));
     }
 
@@ -529,7 +610,7 @@ async function uploadSchoolPoster(req, res) {
     });
   } catch (error) {
     console.error('Upload poster error:', error);
-    return res.status(500).json({ error: error.message || 'Failed to upload recruitment poster.' });
+    return res.status(500).json({ error: 'Failed to upload recruitment poster.' });
   }
 }
 
@@ -542,9 +623,9 @@ async function deleteSchoolPoster(req, res) {
       return res.status(404).json({ error: 'School/Faculty not found.' });
     }
 
-    // Clean up local file if stored locally
-    if (school.posterUrl && school.posterUrl.startsWith('/uploads/')) {
-      const oldKey = school.posterUrl.replace('/uploads/', '');
+    // Clean up local file if it is one of our own poster files
+    const oldKey = storageService.posterKeyFromUrl(school.posterUrl);
+    if (oldKey) {
       await storageService.deleteFile(oldKey).catch((e) => console.warn('Could not delete old poster file:', e.message));
     }
 
@@ -571,7 +652,19 @@ async function deleteSchoolPoster(req, res) {
 
 async function updateSchool(req, res) {
   const { id } = req.params;
-  const { name, code, type, description, bannerUrl, posterUrl } = req.body;
+  const { name, code, type, description, bannerUrl, posterUrl } = req.body || {};
+
+  if (type !== undefined && !['TEACHING', 'NON_TEACHING'].includes(type)) {
+    return res.status(400).json({ error: 'Type must be TEACHING or NON_TEACHING.' });
+  }
+  if ((name !== undefined && (typeof name !== 'string' || !name.trim())) ||
+      (code !== undefined && code !== null && typeof code !== 'string') ||
+      (description !== undefined && description !== null && typeof description !== 'string')) {
+    return res.status(400).json({ error: 'Invalid school details.' });
+  }
+  if ((bannerUrl !== undefined && !validMediaUrl(bannerUrl)) || (posterUrl !== undefined && !validMediaUrl(posterUrl))) {
+    return res.status(400).json({ error: 'Poster/banner must be an uploaded poster or an https image URL.' });
+  }
 
   try {
     const school = await prisma.school.findUnique({ where: { id } });
@@ -582,10 +675,10 @@ async function updateSchool(req, res) {
     const updated = await prisma.school.update({
       where: { id },
       data: {
-        ...(name && { name }),
-        ...(code !== undefined && { code }),
+        ...(name && { name: cleanString(name, 200) }),
+        ...(code !== undefined && { code: code === null ? null : cleanString(code, 50) }),
         ...(type && { type }),
-        ...(description !== undefined && { description }),
+        ...(description !== undefined && { description: description === null ? null : cleanString(description, 4000) }),
         ...(bannerUrl !== undefined && { bannerUrl }),
         ...(posterUrl !== undefined && { posterUrl })
       }

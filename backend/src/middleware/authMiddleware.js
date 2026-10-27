@@ -1,54 +1,82 @@
 const jwt = require('jsonwebtoken');
 const prisma = require('../services/prisma');
+const { JWT_SECRET, JWT_ALGORITHM, ADMIN_ROLES } = require('../config');
 
-const JWT_SECRET = process.env.JWT_SECRET;
+function extractBearer(req) {
+  const header = req.headers['authorization'];
+  if (!header || typeof header !== 'string') return null;
+  const [scheme, token] = header.split(' ');
+  if (!/^Bearer$/i.test(scheme) || !token) return null;
+  return token;
+}
+
+function verifyAccessToken(token) {
+  const decoded = jwt.verify(token, JWT_SECRET, { algorithms: [JWT_ALGORITHM] });
+  // Allow legacy tokens issued before the typ claim was added (backward compat).
+  if (decoded.typ && decoded.typ !== 'access') {
+    throw new jwt.JsonWebTokenError('Wrong token type');
+  }
+  return decoded;
+}
+
+async function loadUser(userId) {
+  return prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      email: true,
+      role: true,
+      status: true,
+      applicant: { select: { id: true, name: true } },
+      admin: { select: { id: true, name: true } }
+    }
+  });
+}
+
+function toRequestUser(user) {
+  return {
+    id: user.id,
+    email: user.email,
+    role: user.role,
+    name: user.admin?.name || user.applicant?.name || null,
+    applicantId: user.applicant ? user.applicant.id : null,
+    adminId: user.admin ? user.admin.id : null
+  };
+}
 
 /**
- * Primary Authentication Middleware.
- * Validates Authorization Header: Bearer <TOKEN>
+ * Primary authentication middleware. Validates `Authorization: Bearer <token>`
+ * and re-checks the account state on every request so that disabling a user
+ * takes effect immediately.
  */
 async function authenticate(req, res, next) {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
-
+  const token = extractBearer(req);
   if (!token) {
     return res.status(401).json({ error: 'Access token required. Please log in.' });
   }
 
   try {
-    const decoded = jwt.verify(token, JWT_SECRET);
-    
-    // Fetch active user with associated profile
-    const user = await prisma.user.findUnique({
-      where: { id: decoded.id },
-      include: {
-        applicant: true,
-        admin: true
-      }
-    });
+    const decoded = verifyAccessToken(token);
+    const user = await loadUser(decoded.id);
 
     if (!user) {
       return res.status(401).json({ error: 'User account no longer exists.' });
     }
-
-    if (user.status === 'INACTIVE' || user.status === 'SUSPENDED') {
-      return res.status(403).json({ error: 'Account disabled. Please contact system administrator.' });
+    if (user.status !== 'ACTIVE') {
+      return res.status(403).json({ error: 'Account disabled. Please contact the system administrator.' });
     }
 
-    req.user = {
-      id: user.id,
-      email: user.email,
-      role: user.role,
-      applicantId: user.applicant ? user.applicant.id : null,
-      adminId: user.admin ? user.admin.id : null
-    };
-
-    next();
+    req.user = toRequestUser(user);
+    return next();
   } catch (error) {
     if (error.name === 'TokenExpiredError') {
       return res.status(401).json({ error: 'Session expired. Please log in again.' });
     }
-    return res.status(403).json({ error: 'Invalid access token.' });
+    if (error.name === 'JsonWebTokenError' || error.name === 'NotBeforeError') {
+      return res.status(401).json({ error: 'Invalid access token.' });
+    }
+    console.error('[Auth] Unexpected authentication failure:', error.message);
+    return res.status(500).json({ error: 'Authentication could not be verified.' });
   }
 }
 
@@ -57,41 +85,25 @@ async function authenticate(req, res, next) {
  * Attaches req.user if token is valid; continues without error if missing.
  */
 async function optionalAuthenticate(req, res, next) {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
-
-  if (!token) {
-    return next();
-  }
+  const token = extractBearer(req);
+  if (!token) return next();
 
   try {
-    const decoded = jwt.verify(token, JWT_SECRET);
-    const user = await prisma.user.findUnique({
-      where: { id: decoded.id },
-      include: {
-        applicant: true,
-        admin: true
-      }
-    });
+    const decoded = verifyAccessToken(token);
+    const user = await loadUser(decoded.id);
 
     if (user && user.status === 'ACTIVE') {
-      req.user = {
-        id: user.id,
-        email: user.email,
-        role: user.role,
-        applicantId: user.applicant ? user.applicant.id : null,
-        adminId: user.admin ? user.admin.id : null
-      };
+      req.user = toRequestUser(user);
     }
-  } catch (error) {
+  } catch {
     // Ignore invalid tokens for optional authentication
   }
-  next();
+  return next();
 }
 
 /**
- * Role-Based Access Control (RBAC) Middleware.
- * Example: authorize('SUPER_ADMIN', 'HR_ADMIN')
+ * Role-Based Access Control. Usage: authorize('SUPER_ADMIN', 'HR_ADMIN').
+ * The legacy `ADMIN` role is treated as a super administrator.
  */
 function authorize(...allowedRoles) {
   return (req, res, next) => {
@@ -99,46 +111,23 @@ function authorize(...allowedRoles) {
       return res.status(401).json({ error: 'Authentication required.' });
     }
 
-    // Convert legacy ADMIN role compatibility
-    const userRole = req.user.role;
-    const isAllowed = allowedRoles.includes(userRole) || 
-      (userRole === 'ADMIN' && (allowedRoles.includes('SUPER_ADMIN') || allowedRoles.includes('HR_ADMIN')));
+    const role = req.user.role;
+    const allowed =
+      allowedRoles.includes(role) ||
+      (role === 'ADMIN' && (allowedRoles.includes('SUPER_ADMIN') || allowedRoles.includes('HR_ADMIN')));
 
-    if (!isAllowed) {
-      return res.status(403).json({ 
-        error: `Access forbidden. Required role: [${allowedRoles.join(', ')}].` 
-      });
+    if (!allowed) {
+      return res.status(403).json({ error: 'You do not have permission to perform this action.' });
     }
-
-    next();
+    return next();
   };
 }
 
-/**
- * Alias helper for requireRole
- */
 const requireRole = authorize;
-
-/**
- * Helper middleware for Admin roles (SUPER_ADMIN, HR_ADMIN, HR_USER, ADMIN)
- */
-function requireAdmin(req, res, next) {
-  return authorize('SUPER_ADMIN', 'HR_ADMIN', 'HR_USER', 'ADMIN')(req, res, next);
-}
-
-/**
- * Helper middleware for Applicant role
- */
-function requireApplicant(req, res, next) {
-  return authorize('APPLICANT')(req, res, next);
-}
-
-/**
- * Helper middleware for Committee Member role
- */
-function requireCommitteeMember(req, res, next) {
-  return authorize('COMMITTEE_MEMBER', 'SUPER_ADMIN', 'HR_ADMIN', 'ADMIN')(req, res, next);
-}
+const requireAdmin = authorize('SUPER_ADMIN', 'HR_ADMIN', 'HR_USER', 'ADMIN');
+const requireApplicant = authorize('APPLICANT');
+const requireCommitteeMember = authorize('COMMITTEE_MEMBER', 'SUPER_ADMIN', 'HR_ADMIN', 'ADMIN');
+const requireSuperAdmin = authorize('SUPER_ADMIN', 'ADMIN');
 
 module.exports = {
   authenticate,
@@ -149,5 +138,6 @@ module.exports = {
   requireRole,
   requireAdmin,
   requireApplicant,
-  requireCommitteeMember
+  requireCommitteeMember,
+  requireSuperAdmin
 };

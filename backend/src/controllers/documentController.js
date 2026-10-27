@@ -4,6 +4,22 @@ const archiver = require('archiver');
 const prisma = require('../services/prisma');
 const storageService = require('../services/storageService');
 const { logAuditAction } = require('../services/auditService');
+const { isAdminRole } = require('../utils/access');
+const { cleanString, parseDate, safeFilename } = require('../utils/validate');
+
+const MAX_DOC_ITEMS = 30;
+const MAX_VERSIONS_PER_ITEM = 5;
+
+/** Resolve the requesting applicant's id (null for non-applicants). */
+function applicantIdOf(req) {
+  return req.user?.role === 'APPLICANT' ? req.user.applicantId : null;
+}
+
+/** Applicants may only touch their own request; HR/admin roles may touch any. */
+function canAccessRequest(req, request) {
+  if (isAdminRole(req.user.role)) return true;
+  return req.user.role === 'APPLICANT' && request.candidateId === req.user.applicantId;
+}
 const {
   sendDocumentRequestEmail,
   sendDocumentVerificationUpdateEmail
@@ -71,10 +87,24 @@ async function createDocumentRequest(req, res) {
     message
   } = req.body;
 
-  if (!candidateId || !Array.isArray(documents) || documents.length === 0 || !deadline) {
+  const deadlineDate = parseDate(deadline);
+  if (!candidateId || !Array.isArray(documents) || documents.length === 0 || !deadlineDate) {
     return res.status(400).json({
-      error: 'Candidate, deadline date, and at least one requested document are required.'
+      error: 'Candidate, a valid deadline date, and at least one requested document are required.'
     });
+  }
+  if (documents.length > MAX_DOC_ITEMS) {
+    return res.status(400).json({ error: `At most ${MAX_DOC_ITEMS} documents can be requested at once.` });
+  }
+  const cleanDocs = documents
+    .map((doc) => ({
+      name: cleanString(typeof doc === 'string' ? doc : doc?.name || doc?.documentName, 200),
+      type: cleanString(typeof doc === 'string' ? 'CUSTOM' : doc?.type || doc?.documentType || 'CUSTOM', 50),
+      isMandatory: typeof doc === 'object' && doc?.isMandatory !== undefined ? Boolean(doc.isMandatory) : true
+    }))
+    .filter((doc) => doc.name);
+  if (cleanDocs.length === 0) {
+    return res.status(400).json({ error: 'Each requested document needs a name.' });
   }
 
   try {
@@ -93,6 +123,9 @@ async function createDocumentRequest(req, res) {
         where: { id: applicationId },
         include: { job: true }
       });
+      if (!application || application.applicantId !== candidateId) {
+        return res.status(400).json({ error: 'The application does not belong to this candidate.' });
+      }
     } else {
       application = await prisma.application.findFirst({
         where: { applicantId: candidateId },
@@ -108,28 +141,22 @@ async function createDocumentRequest(req, res) {
           candidateId,
           applicationId: application ? application.id : null,
           requestedById: req.user.id,
-          deadline: new Date(deadline),
+          deadline: deadlineDate,
           priority: priority === 'URGENT' ? 'URGENT' : 'NORMAL',
-          message: message || null,
+          message: cleanString(message, 2000) || null,
           status: 'PENDING'
         }
       });
 
-      for (const doc of documents) {
-        const docName = typeof doc === 'string' ? doc : (doc.name || doc.documentName);
-        const docType = typeof doc === 'string' ? 'CUSTOM' : (doc.type || doc.documentType || 'CUSTOM');
-        const isMandatory = doc.isMandatory !== undefined ? Boolean(doc.isMandatory) : true;
-
-        await tx.documentRequestItem.create({
-          data: {
-            documentRequestId: created.id,
-            documentName: docName,
-            documentType: docType,
-            isMandatory,
-            status: 'PENDING'
-          }
-        });
-      }
+      await tx.documentRequestItem.createMany({
+        data: cleanDocs.map((doc) => ({
+          documentRequestId: created.id,
+          documentName: doc.name,
+          documentType: doc.type,
+          isMandatory: doc.isMandatory,
+          status: 'PENDING'
+        }))
+      });
 
       return created;
     });
@@ -144,8 +171,8 @@ async function createDocumentRequest(req, res) {
         candidateName: contact.name,
         applicationNumber: application?.applicationNumber,
         jobTitle: application?.job?.position || 'Faculty Position',
-        requiredDocuments: documents,
-        deadline,
+        requiredDocuments: cleanDocs,
+        deadline: deadlineDate,
         priority,
         message,
         loginUrl
@@ -159,7 +186,7 @@ async function createDocumentRequest(req, res) {
       await prisma.notification.create({
         data: {
           userId: applicant.userId,
-          content: `Document Upload Required: HR has requested original documents for your application. Please upload them before ${new Date(deadline).toLocaleDateString('en-IN')}.`
+          content: `Document Upload Required: HR has requested original documents for your application. Please upload them before ${deadlineDate.toLocaleDateString('en-IN')}.`
         }
       }).catch(() => {});
     }
@@ -169,7 +196,7 @@ async function createDocumentRequest(req, res) {
       userId: req.user.id,
       targetType: 'DocumentRequest',
       targetId: request.id,
-      details: { candidateId, itemCount: documents.length, priority, deadline },
+      details: { candidateId, itemCount: cleanDocs.length, priority, deadline: deadlineDate },
       req
     });
 
@@ -304,7 +331,7 @@ async function getDocumentRequestById(req, res) {
       }
     });
 
-    if (!request) {
+    if (!request || !canAccessRequest(req, request)) {
       return res.status(404).json({ error: 'Document request not found.' });
     }
 
@@ -326,28 +353,29 @@ async function uploadCandidateDocumentItem(req, res) {
 
   try {
     const request = await prisma.documentRequest.findUnique({
-      where: { id: requestId },
-      include: { candidate: true }
+      where: { id: requestId }
     });
 
-    if (!request) {
+    if (!request || request.candidateId !== applicantIdOf(req)) {
       return res.status(404).json({ error: 'Document request not found.' });
     }
-
-    // Verify ownership if APPLICANT
-    if (req.user.role === 'APPLICANT') {
-      const applicant = await prisma.applicant.findUnique({ where: { userId: req.user.id } });
-      if (!applicant || applicant.id !== request.candidateId) {
-        return res.status(403).json({ error: 'Access denied. You can only upload to your own document requests.' });
-      }
+    if (['SUBMITTED', 'VERIFIED'].includes(request.status)) {
+      return res.status(409).json({ error: 'This request has already been submitted. Contact HR to reopen it.' });
     }
 
     const item = await prisma.documentRequestItem.findFirst({
-      where: { id: itemId, documentRequestId: requestId }
+      where: { id: itemId, documentRequestId: requestId },
+      include: { _count: { select: { documents: true } } }
     });
 
     if (!item) {
       return res.status(404).json({ error: 'Document item not found in this request.' });
+    }
+    if (item.status === 'VERIFIED') {
+      return res.status(409).json({ error: 'This document has already been verified.' });
+    }
+    if (item._count.documents >= MAX_VERSIONS_PER_ITEM) {
+      return res.status(400).json({ error: 'Maximum number of uploads reached for this document.' });
     }
 
     // Save file to storage
@@ -360,7 +388,7 @@ async function uploadCandidateDocumentItem(req, res) {
           documentRequestItemId: itemId,
           candidateId: request.candidateId,
           filePath: saved.fileKey,
-          fileName: req.file.originalname,
+          fileName: safeFilename(req.file.originalname),
           fileType: req.file.mimetype,
           fileSize: req.file.size,
           verificationStatus: 'UNDER_REVIEW'
@@ -388,7 +416,7 @@ async function uploadCandidateDocumentItem(req, res) {
     });
   } catch (error) {
     console.error('Candidate document upload error:', error);
-    return res.status(500).json({ error: error.message || 'Failed to upload document.' });
+    return res.status(500).json({ error: 'Failed to upload document.' });
   }
 }
 
@@ -409,8 +437,11 @@ async function submitAllDocuments(req, res) {
       }
     });
 
-    if (!request) {
+    if (!request || request.candidateId !== applicantIdOf(req)) {
       return res.status(404).json({ error: 'Document request not found.' });
+    }
+    if (['SUBMITTED', 'VERIFIED'].includes(request.status)) {
+      return res.status(409).json({ error: 'These documents have already been submitted.' });
     }
 
     // Check mandatory documents
@@ -457,13 +488,13 @@ async function verifyCandidateDocumentItem(req, res) {
     return res.status(400).json({ error: 'Status must be either VERIFIED or REJECTED.' });
   }
 
-  if (status === 'REJECTED' && !rejectionReason) {
+  if (status === 'REJECTED' && !cleanString(rejectionReason, 1000)) {
     return res.status(400).json({ error: 'Rejection reason is mandatory when rejecting a document.' });
   }
 
   try {
-    const item = await prisma.documentRequestItem.findUnique({
-      where: { id: itemId },
+    const item = await prisma.documentRequestItem.findFirst({
+      where: { id: itemId, documentRequestId: requestId },
       include: {
         documents: { orderBy: { uploadDate: 'desc' }, take: 1 },
         documentRequest: {
@@ -480,6 +511,9 @@ async function verifyCandidateDocumentItem(req, res) {
     }
 
     const latestDoc = item.documents[0];
+    if (!latestDoc) {
+      return res.status(400).json({ error: 'The candidate has not uploaded a file for this item yet.' });
+    }
 
     await prisma.$transaction(async (tx) => {
       if (latestDoc) {
@@ -489,7 +523,7 @@ async function verifyCandidateDocumentItem(req, res) {
             verificationStatus: status,
             verifiedById: req.user.id,
             verifiedAt: new Date(),
-            rejectionReason: status === 'REJECTED' ? rejectionReason : null
+            rejectionReason: status === 'REJECTED' ? cleanString(rejectionReason, 1000) : null
           }
         });
       }
@@ -552,7 +586,7 @@ async function approveAllDocuments(req, res) {
         candidate: { include: { user: true } },
         application: true,
         items: {
-          include: { documents: true }
+          include: { documents: { orderBy: { uploadDate: 'desc' } } }
         }
       }
     });
@@ -561,9 +595,17 @@ async function approveAllDocuments(req, res) {
       return res.status(404).json({ error: 'Document request not found.' });
     }
 
+    const missing = request.items.filter((item) => item.isMandatory && item.documents.length === 0);
+    if (missing.length > 0) {
+      return res.status(400).json({
+        error: `Mandatory documents have not been uploaded: ${missing.map((m) => m.documentName).join(', ')}`
+      });
+    }
+
     await prisma.$transaction(async (tx) => {
       // Mark all items as VERIFIED
       for (const item of request.items) {
+        if (item.documents.length === 0) continue; // optional item with no upload
         await tx.documentRequestItem.update({
           where: { id: item.id },
           data: { status: 'VERIFIED' }
@@ -621,22 +663,28 @@ async function downloadDocumentFile(req, res) {
       where: { id: docId }
     });
 
-    if (!doc) {
+    // Applicants may only open their own files; HR roles may open any.
+    const allowed = doc && (isAdminRole(req.user.role) || (req.user.role === 'APPLICANT' && doc.candidateId === req.user.applicantId));
+    if (!allowed) {
       return res.status(404).json({ error: 'Document not found.' });
     }
 
-    const filePath = storageService.getFileLocation(doc.filePath);
-    if (!fs.existsSync(filePath)) {
+    if (!storageService.fileExists(doc.filePath)) {
       return res.status(404).json({ error: 'File not found on storage server.' });
     }
+    const filePath = storageService.getFileLocation(doc.filePath);
+    const fileName = safeFilename(doc.fileName);
 
-    if (inline === 'true') {
-      res.setHeader('Content-Type', doc.fileType || 'application/pdf');
-      res.setHeader('Content-Disposition', `inline; filename="${doc.fileName}"`);
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Content-Security-Policy', "default-src 'none'; sandbox");
+
+    if (inline === 'true' && ['application/pdf', 'image/jpeg', 'image/png'].includes(doc.fileType)) {
+      res.setHeader('Content-Type', doc.fileType);
+      res.setHeader('Content-Disposition', `inline; filename="${fileName}"`);
       return fs.createReadStream(filePath).pipe(res);
     }
 
-    return res.download(filePath, doc.fileName);
+    return res.download(filePath, fileName);
   } catch (error) {
     return res.status(500).json({ error: 'Failed to download file.' });
   }
@@ -654,7 +702,7 @@ async function downloadAllDocumentsZip(req, res) {
       include: {
         candidate: true,
         items: {
-          include: { documents: true }
+          include: { documents: { orderBy: { uploadDate: 'desc' } } }
         }
       }
     });
@@ -673,7 +721,7 @@ async function downloadAllDocumentsZip(req, res) {
 
     archive.on('error', (err) => {
       console.error('Archive error:', err);
-      if (!res.headersSent) res.status(500).send({ error: err.message });
+      if (!res.headersSent) res.status(500).send({ error: 'Failed to generate ZIP archive.' });
     });
 
     archive.pipe(res);
@@ -681,8 +729,8 @@ async function downloadAllDocumentsZip(req, res) {
     for (const item of request.items) {
       const latestDoc = item.documents[0];
       if (latestDoc) {
-        const filePath = storageService.getFileLocation(latestDoc.filePath);
-        if (fs.existsSync(filePath)) {
+        if (storageService.fileExists(latestDoc.filePath)) {
+          const filePath = storageService.getFileLocation(latestDoc.filePath);
           const ext = path.extname(latestDoc.fileName) || '.pdf';
           const cleanItemName = item.documentName.replace(/[^a-zA-Z0-9_-]/g, '_');
           archive.file(filePath, { name: `${cleanItemName}${ext}` });

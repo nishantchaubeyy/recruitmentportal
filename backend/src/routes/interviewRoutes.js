@@ -2,18 +2,18 @@ const express = require('express');
 const router = express.Router();
 const interviewController = require('../controllers/interviewController');
 const evaluationController = require('../controllers/evaluationController');
-const { authenticate, requireAdmin, requireCommitteeMember } = require('../middleware/authMiddleware');
+const { authenticate, requireAdmin, requireCommitteeMember, requireApplicant, authorize } = require('../middleware/authMiddleware');
 
 // Candidate Portal View (My Interviews)
-router.get('/my', authenticate, interviewController.getMyInterviews);
+router.get('/my', authenticate, requireApplicant, interviewController.getMyInterviews);
 
 // Interview Management Endpoints
 router.get('/calendar', authenticate, interviewController.getInterviewCalendar);
-router.get('/', authenticate, interviewController.getAllInterviews);
+router.get('/', authenticate, requireAdmin, interviewController.getAllInterviews);
 router.post('/', authenticate, requireAdmin, interviewController.createInterview);
 router.post('/panel-schedule', authenticate, requireAdmin, interviewController.scheduleInterviewWithPanel);
 
-router.get('/:id', authenticate, interviewController.getInterviewById);
+router.get('/:id', authenticate, authorize('COMMITTEE_MEMBER', 'SUPER_ADMIN', 'HR_ADMIN', 'HR_USER', 'ADMIN'), interviewController.getInterviewById);
 router.put('/:id', authenticate, requireAdmin, interviewController.updateInterview);
 router.delete('/:id', authenticate, requireAdmin, interviewController.deleteInterview);
 
