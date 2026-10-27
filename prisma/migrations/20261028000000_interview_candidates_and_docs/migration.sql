@@ -1,3 +1,22 @@
+-- AlterTable: Add all missing Interview columns to production database
+ALTER TABLE "Interview" 
+  ADD COLUMN IF NOT EXISTS "title" TEXT,
+  ADD COLUMN IF NOT EXISTS "startTime" TEXT,
+  ADD COLUMN IF NOT EXISTS "endTime" TEXT,
+  ADD COLUMN IF NOT EXISTS "zoomLink" TEXT,
+  ADD COLUMN IF NOT EXISTS "zoomMeetingId" TEXT,
+  ADD COLUMN IF NOT EXISTS "zoomPassword" TEXT,
+  ADD COLUMN IF NOT EXISTS "interviewerName" TEXT,
+  ADD COLUMN IF NOT EXISTS "interviewType" TEXT DEFAULT 'Technical',
+  ADD COLUMN IF NOT EXISTS "notes" TEXT,
+  ADD COLUMN IF NOT EXISTS "cancellationReason" TEXT,
+  ADD COLUMN IF NOT EXISTS "emailSent" BOOLEAN NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS "emailSentAt" TIMESTAMP(3),
+  ADD COLUMN IF NOT EXISTS "emailStatus" TEXT NOT NULL DEFAULT 'PENDING';
+
+ALTER TABLE "Interview" ALTER COLUMN "applicationId" DROP NOT NULL;
+ALTER TABLE "Interview" ALTER COLUMN "candidateId" DROP NOT NULL;
+
 -- CreateTable: InterviewCandidate
 CREATE TABLE IF NOT EXISTS "InterviewCandidate" (
     "id" TEXT NOT NULL,

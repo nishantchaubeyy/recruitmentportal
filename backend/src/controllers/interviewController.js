@@ -328,11 +328,46 @@ async function createInterview(req, res) {
   }
 }
 
+let interviewColumnsEnsured = false;
+async function ensureInterviewColumns() {
+  if (interviewColumnsEnsured) return;
+  try {
+    await prisma.$executeRawUnsafe(`
+      DO $$
+      BEGIN
+        BEGIN
+          ALTER TABLE "Interview" ADD COLUMN IF NOT EXISTS "title" TEXT;
+          ALTER TABLE "Interview" ADD COLUMN IF NOT EXISTS "startTime" TEXT;
+          ALTER TABLE "Interview" ADD COLUMN IF NOT EXISTS "endTime" TEXT;
+          ALTER TABLE "Interview" ADD COLUMN IF NOT EXISTS "zoomLink" TEXT;
+          ALTER TABLE "Interview" ADD COLUMN IF NOT EXISTS "zoomMeetingId" TEXT;
+          ALTER TABLE "Interview" ADD COLUMN IF NOT EXISTS "zoomPassword" TEXT;
+          ALTER TABLE "Interview" ADD COLUMN IF NOT EXISTS "interviewerName" TEXT;
+          ALTER TABLE "Interview" ADD COLUMN IF NOT EXISTS "interviewType" TEXT DEFAULT 'Technical';
+          ALTER TABLE "Interview" ADD COLUMN IF NOT EXISTS "notes" TEXT;
+          ALTER TABLE "Interview" ADD COLUMN IF NOT EXISTS "cancellationReason" TEXT;
+          ALTER TABLE "Interview" ADD COLUMN IF NOT EXISTS "emailSent" BOOLEAN NOT NULL DEFAULT false;
+          ALTER TABLE "Interview" ADD COLUMN IF NOT EXISTS "emailSentAt" TIMESTAMP(3);
+          ALTER TABLE "Interview" ADD COLUMN IF NOT EXISTS "emailStatus" TEXT NOT NULL DEFAULT 'PENDING';
+          ALTER TABLE "Interview" ALTER COLUMN "applicationId" DROP NOT NULL;
+          ALTER TABLE "Interview" ALTER COLUMN "candidateId" DROP NOT NULL;
+        EXCEPTION WHEN others THEN
+        END;
+      END $$;
+    `);
+    interviewColumnsEnsured = true;
+  } catch (err) {
+    // Non-postgres DB or already configured
+  }
+}
+
 /**
  * List all scheduled interviews with candidate details & Zoom link status.
  */
 async function getAllInterviews(req, res) {
   try {
+    await ensureInterviewColumns();
+
     const { status, interviewType, search } = req.query;
 
     const where = {};
