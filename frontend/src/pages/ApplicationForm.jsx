@@ -173,7 +173,7 @@ function ApplicationForm() {
   // STEP 1: Post & Personal Info
   const [selectedFaculty, setSelectedFaculty] = useState(urlFaculty || 'School of Computer Science Engineering & Applications');
   const [postAppliedFor, setPostAppliedFor] = useState('');
-  const [title, setTitle] = useState('Select');
+  const [title, setTitle] = useState('Dr.');
   const [firstName, setFirstName] = useState(user?.name?.split(' ')[0] || '');
   const [middleName, setMiddleName] = useState('');
   const [lastName, setLastName] = useState(user?.name?.split(' ').slice(1).join(' ') || '');
@@ -219,7 +219,7 @@ function ApplicationForm() {
   ]);
 
   // STEP 5: Ph.D. & Research Information
-  const [phdStatus, setPhdStatus] = useState('Select');
+  const [phdStatus, setPhdStatus] = useState('');
   const [phdUniversity, setPhdUniversity] = useState('');
   const [phdYear, setPhdYear] = useState('');
   const [scopusCount, setScopusCount] = useState('0');
@@ -231,6 +231,26 @@ function ApplicationForm() {
   const [setExam, setSetExam] = useState({ cleared: 'No', year: '' });
   const [slet, setSlet] = useState({ cleared: 'No', year: '' });
   const [gate, setGate] = useState({ cleared: 'No', year: '' });
+
+  // Publications table (PhD)
+  const [publications, setPublications] = useState([
+    { type: 'Journal Articles (Scopus)', count: '' },
+    { type: 'Conference Papers', count: '' },
+    { type: 'Book Chapters', count: '' },
+    { type: 'Patents', count: '' }
+  ]);
+
+  const handlePubChange = (idx, field, value) => {
+    setPublications(prev => prev.map((p, i) => i === idx ? { ...p, [field]: value } : p));
+  };
+
+  const handleAddPubRow = () => {
+    setPublications(prev => [...prev, { type: '', count: '' }]);
+  };
+
+  const handleRemovePubRow = (idx) => {
+    setPublications(prev => prev.filter((_, i) => i !== idx));
+  };
 
   // STEP 6: Documents
   const [resumeFile, setResumeFile] = useState(null);
@@ -624,10 +644,25 @@ function ApplicationForm() {
       }
     }
 
+    if (currentStep === 5) {
+      // If a PhD status is selected (not empty / Not Applicable), all PhD fields are mandatory
+      const phdActive = phdStatus && phdStatus !== 'Not Applicable';
+      if (phdActive) {
+        if (!phdUniversity.trim()) {
+          setError('Ph.D. University / Institute is required when Ph.D. Status is selected.');
+          return;
+        }
+        if (!phdYear.trim()) {
+          setError('Year of Ph.D. Award / Enrollment is required when Ph.D. Status is selected.');
+          return;
+        }
+      }
+    }
+
     if (currentStep === 6) {
       const hasResume = Boolean(resumeFile) || (Array.isArray(uploadedDocsList) && uploadedDocsList.some(d => d.documentType === 'resume'));
       if (!hasResume) {
-        setError('Uploading your Resume / CV (PDF format, max 5MB) is mandatory before proceeding.');
+        setError('Uploading your Resume / CV (PDF / Word, max 5MB) is mandatory before proceeding.');
         return;
       }
     }
@@ -1137,7 +1172,8 @@ function ApplicationForm() {
             <div className="app-form-grid-4col" style={{ display: 'grid', gridTemplateColumns: '100px 1fr 1fr 1fr', gap: '14px', marginBottom: '20px' }}>
               <div className="form-group">
                 <label style={{ fontWeight: 700, fontSize: '0.85rem' }}>Title <span className="required">*</span></label>
-                <select value={title} onChange={(e) => setTitle(e.target.value)}>
+                <select value={title} onChange={(e) => setTitle(e.target.value)} required>
+                  <option value="" disabled>-- Select Title --</option>
                   <option value="Dr.">Dr.</option>
                   <option value="Prof.">Prof.</option>
                   <option value="Mr.">Mr.</option>
@@ -1670,11 +1706,12 @@ function ApplicationForm() {
               STEP 5 — Research & Professional Information
             </h3>
 
+            {/* PhD Status Row */}
             <div className="app-form-grid-3col" style={{ display: 'grid', gridTemplateColumns: '1fr 2fr 1fr', gap: '15px', marginBottom: '18px' }}>
               <div className="form-group">
                 <label style={{ fontWeight: 700, fontSize: '0.85rem' }}>Ph.D. Status</label>
                 <select value={phdStatus} onChange={(e) => setPhdStatus(e.target.value)}>
-                  <option value="Select">Select</option>
+                  <option value="">-- Select --</option>
                   <option value="Awarded">Awarded</option>
                   <option value="Thesis Submitted">Thesis Submitted</option>
                   <option value="Pursuing">Pursuing</option>
@@ -1683,31 +1720,110 @@ function ApplicationForm() {
               </div>
 
               <div className="form-group">
-                <label style={{ fontWeight: 700, fontSize: '0.85rem' }}>Ph.D. University / Institute</label>
-                <input type="text" placeholder="University" value={phdUniversity} onChange={(e) => setPhdUniversity(e.target.value)} />
+                <label style={{ fontWeight: 700, fontSize: '0.85rem' }}>
+                  Ph.D. University / Institute
+                  {phdStatus && phdStatus !== 'Not Applicable' && <span style={{ color: '#DC2626', marginLeft: 4 }}>*</span>}
+                </label>
+                <input
+                  type="text"
+                  placeholder="University / Institute"
+                  value={phdUniversity}
+                  onChange={(e) => setPhdUniversity(e.target.value)}
+                  required={!!(phdStatus && phdStatus !== 'Not Applicable')}
+                />
               </div>
 
               <div className="form-group">
-                <label style={{ fontWeight: 700, fontSize: '0.85rem' }}>Year of Award</label>
-                <input type="text" placeholder="Year" value={phdYear} onChange={(e) => setPhdYear(e.target.value)} />
+                <label style={{ fontWeight: 700, fontSize: '0.85rem' }}>
+                  Year of Award / Enrollment
+                  {phdStatus && phdStatus !== 'Not Applicable' && <span style={{ color: '#DC2626', marginLeft: 4 }}>*</span>}
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. 2022"
+                  value={phdYear}
+                  onChange={(e) => setPhdYear(e.target.value)}
+                  required={!!(phdStatus && phdStatus !== 'Not Applicable')}
+                />
               </div>
             </div>
 
+            {/* Scopus / WoS row */}
             <div className="app-form-grid-3col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '15px', marginBottom: '18px' }}>
               <div className="form-group">
                 <label style={{ fontWeight: 700, fontSize: '0.85rem' }}>Scopus Publications Count</label>
-                <input type="number" value={scopusCount} onChange={(e) => setScopusCount(e.target.value)} />
+                <input type="number" min="0" value={scopusCount} onChange={(e) => setScopusCount(e.target.value)} />
               </div>
-
               <div className="form-group">
                 <label style={{ fontWeight: 700, fontSize: '0.85rem' }}>Scopus Author ID</label>
                 <input type="text" placeholder="Scopus ID" value={scopusId} onChange={(e) => setScopusId(e.target.value)} />
               </div>
-
               <div className="form-group">
                 <label style={{ fontWeight: 700, fontSize: '0.85rem' }}>Web of Science (WoS) Count</label>
-                <input type="number" value={wosCount} onChange={(e) => setWosCount(e.target.value)} />
+                <input type="number" min="0" value={wosCount} onChange={(e) => setWosCount(e.target.value)} />
               </div>
+            </div>
+
+            {/* Publications Table */}
+            <div style={{ marginBottom: '18px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                <label style={{ fontWeight: 800, fontSize: '0.88rem', color: '#721b28' }}>
+                  📚 Publications / Research Details
+                  {phdStatus && phdStatus !== 'Not Applicable' && <span style={{ color: '#DC2626', marginLeft: 4 }}>*</span>}
+                </label>
+                <button
+                  type="button"
+                  onClick={handleAddPubRow}
+                  style={{ backgroundColor: '#721b28', color: '#fff', border: 'none', padding: '5px 14px', borderRadius: '6px', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer' }}
+                >
+                  + Add Row
+                </button>
+              </div>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+                <thead>
+                  <tr style={{ backgroundColor: '#fdf3e7', borderBottom: '2px solid #d9a43c' }}>
+                    <th style={{ padding: '8px 12px', textAlign: 'left', fontWeight: 800, color: '#721b28', width: '60%' }}>Type</th>
+                    <th style={{ padding: '8px 12px', textAlign: 'left', fontWeight: 800, color: '#721b28', width: '25%' }}>Count</th>
+                    <th style={{ padding: '8px 4px', width: '15%' }}></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {publications.map((pub, idx) => (
+                    <tr key={idx} style={{ borderBottom: '1px solid #e2e8f0', backgroundColor: idx % 2 === 0 ? '#fff' : '#fafafa' }}>
+                      <td style={{ padding: '6px 8px' }}>
+                        <input
+                          type="text"
+                          value={pub.type}
+                          onChange={(e) => handlePubChange(idx, 'type', e.target.value)}
+                          placeholder="e.g. Journal Articles (Scopus)"
+                          style={{ width: '100%', padding: '6px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.83rem' }}
+                        />
+                      </td>
+                      <td style={{ padding: '6px 8px' }}>
+                        <input
+                          type="number"
+                          min="0"
+                          value={pub.count}
+                          onChange={(e) => handlePubChange(idx, 'count', e.target.value)}
+                          placeholder="0"
+                          style={{ width: '80px', padding: '6px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.83rem' }}
+                        />
+                      </td>
+                      <td style={{ padding: '6px 4px', textAlign: 'center' }}>
+                        {publications.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => handleRemovePubRow(idx)}
+                            style={{ background: 'none', border: '1px solid #fca5a5', color: '#dc2626', borderRadius: '5px', padding: '3px 8px', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 700 }}
+                          >
+                            ✕
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
         )}
@@ -1716,10 +1832,11 @@ function ApplicationForm() {
         {currentStep === 6 && (
           <div>
             <h3 className="app-step-title" style={{ margin: '0 0 18px 0', color: '#721b28', fontSize: '1.15rem', fontWeight: 800, borderBottom: '2px solid #d9a43c', paddingBottom: '10px' }}>
-              STEP 6 — Document Uploads (PDF format, max 5MB)
+              STEP 6 — Document Uploads (PDF / Word, max 5MB)
             </h3>
 
             <div className="app-form-grid-2col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+              {/* Resume Upload */}
               <div style={{
                 border: (resumeFile || uploadedDocsList.some(d => d.documentType === 'resume')) ? '2px solid #16A34A' : '2px dashed #721B28',
                 borderRadius: '12px',
@@ -1731,17 +1848,17 @@ function ApplicationForm() {
                   {(resumeFile || uploadedDocsList.some(d => d.documentType === 'resume')) ? '✅' : '📄'}
                 </div>
                 <div style={{ fontWeight: 700, color: '#0F172A', fontSize: '0.92rem' }}>
-                  {resumeFile ? `Selected: ${resumeFile.name}` : (uploadedDocsList.find(d => d.documentType === 'resume')?.originalName || 'Upload Resume / CV (PDF)')}
+                  {resumeFile ? `Selected: ${resumeFile.name}` : (uploadedDocsList.find(d => d.documentType === 'resume')?.originalName || 'Upload Resume / CV')}
                   <span style={{ color: '#DC2626', fontWeight: 800, marginLeft: '6px' }}>* Mandatory</span>
                 </div>
                 <div style={{ fontSize: '0.75rem', color: '#64748B', marginTop: '4px' }}>
                   {(resumeFile || uploadedDocsList.some(d => d.documentType === 'resume'))
                     ? 'Resume successfully uploaded to your dossier.'
-                    : 'Required for panel screening and evaluation (PDF only, max 5MB)'}
+                    : 'Accepted formats: PDF, DOC, DOCX (max 5MB)'}
                 </div>
                 <input
                   type="file"
-                  accept=".pdf"
+                  accept=".pdf,.doc,.docx,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                   required
                   style={{ marginTop: '10px' }}
                   onChange={(e) => {
@@ -1754,6 +1871,7 @@ function ApplicationForm() {
                 />
               </div>
 
+              {/* Certificates Upload */}
               <div style={{ border: '2px dashed #cbd5e1', borderRadius: '12px', padding: '20px', textAlign: 'center', backgroundColor: '#f8fafc' }}>
                 <div style={{ fontSize: '1.8rem', marginBottom: '6px' }}>📜</div>
                 <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.92rem' }}>

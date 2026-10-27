@@ -860,37 +860,22 @@ function AdminInterviews() {
                 </div>
               </div>
 
-              {/* Interviewer & Type */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                    Interviewer / Committee Name
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Prof. R. Sharma & HR Panel"
-                    value={formData.interviewerName}
-                    onChange={(e) => setFormData(prev => ({ ...prev, interviewerName: e.target.value }))}
-                    style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.88rem' }}
-                  />
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                    Interview Type / Round
-                  </label>
-                  <select
-                    value={formData.interviewType}
-                    onChange={(e) => setFormData(prev => ({ ...prev, interviewType: e.target.value }))}
-                    style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.88rem' }}
-                  >
-                    <option value="Technical">Technical Round</option>
-                    <option value="HR">HR Round</option>
-                    <option value="Managerial">Managerial Round</option>
-                    <option value="Final">Final Round</option>
-                    <option value="Presentation">Presentation / Demo Lecture</option>
-                  </select>
-                </div>
+              {/* Interview Type */}
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
+                  Interview Type / Round
+                </label>
+                <select
+                  value={formData.interviewType}
+                  onChange={(e) => setFormData(prev => ({ ...prev, interviewType: e.target.value }))}
+                  style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.88rem' }}
+                >
+                  <option value="Technical">Technical Round</option>
+                  <option value="HR">HR Round</option>
+                  <option value="Managerial">Managerial Round</option>
+                  <option value="Final">Final Round</option>
+                  <option value="Presentation">Presentation / Demo Lecture</option>
+                </select>
               </div>
 
               {/* Panelists Section (A, B, C) */}
@@ -942,7 +927,7 @@ function AdminInterviews() {
                   if (!activePanel) {
                     return (
                       <div style={{ fontSize: '0.8rem', color: '#64748B', padding: '8px 0' }}>
-                        No interview panels configured. You can set them up in <a href="/admin/interview-panels" style={{ color: '#2563EB', fontWeight: 600 }}>Interview Panels</a>.
+                        No interview panels configured. Set them up in <strong>Interview Panels</strong> from the sidebar.
                       </div>
                     );
                   }
