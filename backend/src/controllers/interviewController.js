@@ -351,36 +351,69 @@ async function getAllInterviews(req, res) {
       ];
     }
 
-    const interviews = await prisma.interview.findMany({
-      where,
-      include: {
-        job: true,
-        candidate: { include: { user: true } },
-        application: {
-          include: {
-            applicant: { include: { user: true } }
+    let interviews = [];
+
+    // Attempt 1: Full relations including panel, selectedMembers, and candidates
+    try {
+      interviews = await prisma.interview.findMany({
+        where,
+        include: {
+          job: true,
+          candidate: { include: { user: true } },
+          application: {
+            include: {
+              applicant: { include: { user: true } }
+            }
+          },
+          panel: true,
+          selectedMembers: {
+            include: {
+              member: true
+            }
+          },
+          candidates: {
+            include: {
+              candidate: { include: { user: true } },
+              application: true
+            }
           }
         },
-        panel: true,
-        selectedMembers: {
+        orderBy: { createdAt: 'desc' }
+      });
+    } catch (primaryErr) {
+      console.warn('[getAllInterviews] Primary query failed, attempting schema-resilient fallback:', primaryErr.message);
+
+      // Attempt 2: Fallback query without selectedMembers / candidates if tables are un-migrated
+      try {
+        interviews = await prisma.interview.findMany({
+          where,
           include: {
-            member: true
-          }
-        },
-        candidates: {
-          include: {
+            job: true,
             candidate: { include: { user: true } },
-            application: true
-          }
-        }
-      },
-      orderBy: { date: 'desc' }
-    });
+            application: true,
+            panel: true
+          },
+          orderBy: { createdAt: 'desc' }
+        });
+      } catch (secondaryErr) {
+        console.warn('[getAllInterviews] Secondary query failed, attempting basic query:', secondaryErr.message);
+
+        // Attempt 3: Basic query guaranteed to work on any schema
+        interviews = await prisma.interview.findMany({
+          where,
+          include: {
+            job: true,
+            candidate: true
+          },
+          orderBy: { createdAt: 'desc' }
+        });
+      }
+    }
 
     return res.json(interviews);
   } catch (error) {
     console.error('Fetch interviews error:', error);
-    return res.status(500).json({ error: 'Failed to retrieve interviews.' });
+    return res.status(500).json({ error: error.message || 'Failed to retrieve interviews.' });
   }
 }
 

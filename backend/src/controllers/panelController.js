@@ -1,12 +1,59 @@
 const prisma = require('../services/prisma');
 const { logAuditAction } = require('../services/auditService');
 
+async function ensureDefaultPanels() {
+  try {
+    const testPanel = await prisma.interviewPanel.findFirst({
+      where: { code: 'TEST' }
+    });
+    if (!testPanel) {
+      const created = await prisma.interviewPanel.create({
+        data: {
+          name: 'Test Panel',
+          code: 'TEST',
+          description: 'Test panel for email verification and end-to-end testing'
+        }
+      });
+      await prisma.panelMember.create({
+        data: {
+          panelId: created.id,
+          name: 'Nishant Chaubey (Admin)',
+          email: 'nishantchaubey8004@gmail.com',
+          phone: '8004424241',
+          designation: 'Portal Administrator',
+          isActive: true
+        }
+      });
+    } else {
+      const member = await prisma.panelMember.findFirst({
+        where: { panelId: testPanel.id, email: 'nishantchaubey8004@gmail.com' }
+      });
+      if (!member) {
+        await prisma.panelMember.create({
+          data: {
+            panelId: testPanel.id,
+            name: 'Nishant Chaubey (Admin)',
+            email: 'nishantchaubey8004@gmail.com',
+            phone: '8004424241',
+            designation: 'Portal Administrator',
+            isActive: true
+          }
+        });
+      }
+    }
+  } catch (err) {
+    console.warn('[ensureDefaultPanels] Non-blocking notice:', err.message);
+  }
+}
+
 /**
  * GET /api/admin/panels
  * List all interview panels with member counts and panel members
  */
 async function getAllPanels(req, res) {
   try {
+    await ensureDefaultPanels();
+
     const panels = await prisma.interviewPanel.findMany({
       include: {
         members: {

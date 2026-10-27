@@ -458,6 +458,14 @@ async function main() {
         { name: 'Dr. Suresh Kulkarni', email: 'suresh.kulkarni@dypiu.ac.in', phone: '9822011227', designation: 'Professor & Director, Research' },
         { name: 'Ms. Sneha Patil', email: 'sneha.patil@dypiu.ac.in', phone: '9822011228', designation: 'Deputy Registrar, Administration' }
       ]
+    },
+    {
+      code: 'TEST',
+      name: 'Test Panel',
+      description: 'Test panel for email verification and end-to-end testing',
+      members: [
+        { name: 'Nishant Chaubey (Admin)', email: 'nishantchaubey8004@gmail.com', phone: '8004424241', designation: 'Portal Administrator' }
+      ]
     }
   ];
 

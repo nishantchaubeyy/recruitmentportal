@@ -73,10 +73,15 @@ function AdminInterviews() {
     try {
       setLoading(true);
       setError('');
+      let interviewFetchError = null;
+
       const [interviewsRes, appsRes, jobsRes, panelsRes] = await Promise.all([
-        apiRequest('/interviews'),
-        apiRequest('/applications?limit=200'),
-        apiRequest('/admin/vacancies'),
+        apiRequest('/interviews').catch((err) => {
+          interviewFetchError = err.message || 'Failed to retrieve interviews.';
+          return [];
+        }),
+        apiRequest('/applications?limit=200').catch(() => []),
+        apiRequest('/admin/vacancies').catch(() => []),
         apiRequest('/admin/panels').catch(() => [])
       ]);
 
@@ -87,6 +92,10 @@ function AdminInterviews() {
       setPanels(panelsList);
       if (panelsList.length > 0) {
         setActivePanelTab(panelsList[0].id);
+      }
+
+      if (interviewFetchError) {
+        setError(interviewFetchError);
       }
     } catch (err) {
       setError(err.message || 'Failed to load interview records.');
