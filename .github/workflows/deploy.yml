@@ -30,9 +30,11 @@ jobs:
       - name: Verify backend
         run: |
           curl --fail --silent --show-error \
+            --retry 15 --retry-delay 2 --retry-connrefused \
             http://127.0.0.1:5000/api/health
 
       - name: Verify public deployment
         run: |
           curl --fail --silent --show-error \
+            --retry 15 --retry-delay 2 --retry-connrefused \
             https://intranet.dypiu.ac.in/recruitment/api/health

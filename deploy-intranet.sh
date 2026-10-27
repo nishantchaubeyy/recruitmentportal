@@ -88,6 +88,15 @@ if command -v pm2 &> /dev/null; then
     pm2 reload ecosystem.config.js --env production || pm2 start ecosystem.config.js --env production
     pm2 save || true
     echo -e "${GREEN}✓ PM2 service dypiu-recruitment-backend reloaded.${NC}"
+
+    echo "Waiting for backend service to become healthy on port 5000..."
+    for i in {1..20}; do
+        if curl -s http://127.0.0.1:5000/api/health | grep -q '"status":"ok"'; then
+            echo -e "${GREEN}✓ Backend is healthy and listening on port 5000.${NC}"
+            break
+        fi
+        sleep 1
+    done
 else
     echo -e "${YELLOW}⚠️ PM2 not found in PATH. Please reload backend manually.${NC}"
 fi
