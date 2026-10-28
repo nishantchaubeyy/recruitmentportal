@@ -123,9 +123,7 @@ function generateApplicationPdf(app) {
         .text('Think  |  Thrive  |  Transform', textX, y + 50, { width: textW, lineBreak: false });
       y += logoHeight + 6;
 
-      doc.rect(PAGE.left, y, PAGE.width, 2.5).fill(COLORS.maroon);
-      y += 2.5;
-      doc.rect(PAGE.left, y, PAGE.width, 22).fill(COLORS.navy);
+      doc.rect(PAGE.left, y, PAGE.width, 24).fill(COLORS.maroon);
       doc.fillColor('#ffffff').font('Helvetica-Bold').fontSize(11)
         .text('OFFICIAL APPLICATION DOSSIER', PAGE.left, y + 6.5, { align: 'center', width: PAGE.width, characterSpacing: 1, lineBreak: false });
       y += 32;
