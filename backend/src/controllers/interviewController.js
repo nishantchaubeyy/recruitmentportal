@@ -1233,7 +1233,7 @@ async function scheduleInterviewWithPanel(req, res) {
       message: 'Interview scheduled successfully.',
       interview,
       zoomCreated: Boolean(zoomResult.success),
-      zoomWarning: zoomResult.success ? null : (effectiveJoinUrl ? 'Using manual Zoom link.' : 'Interview saved. Zoom link will be shared by HR.')
+      zoomWarning: zoomResult.success ? null : (effectiveJoinUrl ? 'Using manual meeting link.' : 'Interview saved. Meeting link will be shared by HR.')
     });
   } catch (error) {
     console.error('Schedule interview with panel error:', error);

@@ -6,7 +6,7 @@ import { statusLabel, statusBadgeClass, APPLICATION_STATUS } from '../utils/stat
 /**
  * Calculates countdown string from now until interview date/time.
  */
-function getCountdown(dateStr, timeStr) {
+function getCountdown(dateStr) {
   if (!dateStr) return null;
   const target = new Date(dateStr);
   const now = new Date();
@@ -16,7 +16,7 @@ function getCountdown(dateStr, timeStr) {
     return { text: 'Completed', isPast: true, urgent: false };
   }
   if (diffMs < 0) {
-    return { text: 'Happening Now / In Progress', isPast: false, urgent: true };
+    return { text: 'Happening Now', isPast: false, urgent: true };
   }
 
   const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
@@ -29,7 +29,7 @@ function getCountdown(dateStr, timeStr) {
   if (hours > 0) {
     return { text: `${hours}h ${minutes}m remaining`, isPast: false, urgent: hours < 2 };
   }
-  return { text: `${minutes}m remaining!`, isPast: false, urgent: true };
+  return { text: `${minutes}m remaining`, isPast: false, urgent: true };
 }
 
 function ApplicantDashboard() {
@@ -81,385 +81,605 @@ function ApplicantDashboard() {
   const upcomingInterviews = interviews.filter(i => i.status !== 'CANCELLED');
 
   return (
-    <div className="container" style={{ maxWidth: '980px', padding: '30px 24px' }}>
-      <div style={{ marginBottom: '24px' }}>
-        <h2 style={{ color: '#8B1235', margin: 0, fontSize: '1.75rem', fontWeight: 800, letterSpacing: '-0.3px', fontFamily: "'Playfair Display', Georgia, serif" }}>
-          Applicant Portal Dashboard
-        </h2>
-        <p style={{ color: '#64748b', margin: '4px 0 0 0', fontSize: '0.92rem' }}>
-          Manage your job applications, join scheduled interviews, and upload original documents requested by HR.
-        </p>
-      </div>
+    <>
+      <style>{`
+        .ad-page {
+          max-width: 860px;
+          margin: 0 auto;
+          padding: 32px 20px 48px;
+          color: #1f2937;
+          font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+          line-height: 1.5;
+        }
 
-      {error && (
-        <div style={{ padding: '12px 16px', backgroundColor: '#fee2e2', border: '1px solid #fca5a5', color: '#991b1b', borderRadius: '10px', marginBottom: '20px', fontSize: '0.88rem' }}>
-          {error}
+        .ad-header {
+          margin-bottom: 24px;
+        }
+
+        .ad-title {
+          font-size: 24px;
+          font-weight: 700;
+          color: #111827;
+          margin: 0 0 6px 0;
+          letter-spacing: -0.02em;
+        }
+
+        .ad-subtitle {
+          font-size: 14px;
+          color: #4b5563;
+          margin: 0;
+        }
+
+        /* ===== ALERT / ACTION CARD ===== */
+        .ad-alert-card {
+          background: #fffbeb;
+          border: 1px solid #fde68a;
+          border-radius: 8px;
+          padding: 20px 22px;
+          margin-bottom: 30px;
+        }
+
+        .ad-alert-tag {
+          display: inline-block;
+          font-size: 11px;
+          font-weight: 600;
+          letter-spacing: 0.04em;
+          text-transform: uppercase;
+          color: #92400e;
+          background: #fef3c7;
+          border: 1px solid #fde68a;
+          padding: 3px 8px;
+          border-radius: 4px;
+          margin-bottom: 10px;
+        }
+
+        .ad-alert-card h2 {
+          font-size: 16px;
+          font-weight: 600;
+          color: #1f2937;
+          margin: 0 0 6px 0;
+        }
+
+        .ad-alert-card p {
+          font-size: 13.5px;
+          color: #4b5563;
+          margin: 0 0 16px 0;
+          max-width: 580px;
+        }
+
+        .ad-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          font-family: inherit;
+          font-size: 13.5px;
+          font-weight: 500;
+          padding: 8px 16px;
+          border-radius: 6px;
+          border: 1px solid transparent;
+          cursor: pointer;
+          text-decoration: none;
+          transition: background 0.15s, border-color 0.15s;
+        }
+
+        .ad-btn-dark {
+          background: #1f2937;
+          color: #ffffff;
+          border-color: #1f2937;
+        }
+
+        .ad-btn-dark:hover {
+          background: #111827;
+          color: #ffffff;
+        }
+
+        .ad-btn-outline {
+          background: #ffffff;
+          color: #1f2937;
+          border-color: #e5e7eb;
+        }
+
+        .ad-btn-outline:hover {
+          background: #f3f4f6;
+        }
+
+        .ad-btn-sm {
+          font-size: 12.5px;
+          padding: 5px 12px;
+        }
+
+        /* ===== SECTION ===== */
+        .ad-section {
+          margin-bottom: 32px;
+        }
+
+        .ad-section-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-bottom: 14px;
+        }
+
+        .ad-section-title-wrap {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .ad-section-header h3 {
+          font-size: 15px;
+          font-weight: 600;
+          color: #1f2937;
+          margin: 0;
+        }
+
+        .ad-count {
+          font-size: 13px;
+          font-weight: 500;
+          color: #9ca3af;
+        }
+
+        /* ===== INTERVIEW CARD ===== */
+        .ad-interview-card {
+          background: #ffffff;
+          border: 1px solid #e5e7eb;
+          border-radius: 8px;
+          padding: 18px 20px;
+          margin-bottom: 14px;
+        }
+
+        .ad-interview-meta {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          gap: 8px;
+          margin-bottom: 10px;
+        }
+
+        .ad-chip {
+          display: inline-flex;
+          align-items: center;
+          font-size: 11.5px;
+          font-weight: 500;
+          padding: 3px 9px;
+          border-radius: 4px;
+          border: 1px solid #e5e7eb;
+          background: #f3f4f6;
+          color: #4b5563;
+        }
+
+        .ad-chip-time {
+          background: #fffbeb;
+          border-color: #fde68a;
+          color: #92400e;
+        }
+
+        .ad-chip-urgent {
+          background: #fef2f2;
+          border-color: #fecaca;
+          color: #991b1b;
+        }
+
+        .ad-link-status {
+          margin-left: auto;
+          font-size: 12.5px;
+          color: #9ca3af;
+        }
+
+        .ad-interview-card h4 {
+          font-size: 15px;
+          font-weight: 600;
+          color: #1f2937;
+          margin: 0 0 3px 0;
+        }
+
+        .ad-interview-card .ad-role {
+          font-size: 13px;
+          color: #4b5563;
+          margin: 0 0 14px 0;
+        }
+
+        .ad-detail-row {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 18px;
+          padding: 12px 14px;
+          background: #f9fafb;
+          border-radius: 6px;
+          border: 1px solid #e5e7eb;
+        }
+
+        .ad-detail-item {
+          font-size: 13px;
+          color: #4b5563;
+        }
+
+        .ad-detail-item strong {
+          color: #1f2937;
+          font-weight: 600;
+        }
+
+        /* ===== NOTIFICATIONS ===== */
+        .ad-notif-card {
+          background: #ffffff;
+          border: 1px solid #e5e7eb;
+          border-radius: 8px;
+          overflow: hidden;
+        }
+
+        .ad-notif-title {
+          font-size: 14px;
+          font-weight: 600;
+          color: #1f2937;
+          padding: 14px 18px;
+          border-bottom: 1px solid #e5e7eb;
+          background: #f9fafb;
+        }
+
+        .ad-notif-item {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 16px;
+          padding: 14px 18px;
+          border-bottom: 1px solid #f3f4f6;
+        }
+
+        .ad-notif-item:last-child {
+          border-bottom: none;
+        }
+
+        .ad-notif-item p {
+          font-size: 13.5px;
+          color: #4b5563;
+          margin: 0;
+          flex: 1;
+        }
+
+        .ad-notif-item p span {
+          font-weight: 600;
+          color: #1f2937;
+        }
+
+        /* ===== APPLICATIONS LIST ===== */
+        .ad-app-card {
+          background: #ffffff;
+          border: 1px solid #e5e7eb;
+          border-radius: 8px;
+          padding: 18px 20px;
+          margin-bottom: 12px;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          flex-wrap: wrap;
+          gap: 16px;
+          transition: border-color 0.15s ease;
+        }
+
+        .ad-app-card:hover {
+          border-color: #d1d5db;
+        }
+
+        .ad-app-info {
+          flex: 1;
+          min-width: 250px;
+        }
+
+        .ad-app-topline {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin-bottom: 4px;
+        }
+
+        .ad-app-num {
+          font-size: 12px;
+          font-weight: 700;
+          color: #6b7280;
+        }
+
+        .ad-app-pos {
+          font-size: 15px;
+          font-weight: 600;
+          color: #111827;
+          margin: 0 0 2px 0;
+        }
+
+        .ad-app-dept {
+          font-size: 13px;
+          color: #4b5563;
+        }
+
+        .ad-app-date {
+          font-size: 12px;
+          color: #9ca3af;
+          margin-top: 6px;
+        }
+
+        .ad-progress-wrap {
+          margin-top: 10px;
+          max-width: 280px;
+        }
+
+        .ad-progress-labels {
+          display: flex;
+          justify-content: space-between;
+          font-size: 11.5px;
+          font-weight: 600;
+          color: #6b7280;
+          margin-bottom: 4px;
+        }
+
+        .ad-progress-bar {
+          height: 5px;
+          background: #e5e7eb;
+          border-radius: 3px;
+          overflow: hidden;
+        }
+
+        .ad-progress-fill {
+          height: 100%;
+          background: #1f2937;
+          border-radius: 3px;
+        }
+      `}</style>
+
+      <div className="ad-page">
+
+        {/* HEADER */}
+        <div className="ad-header">
+          <h1 className="ad-title">Applicant Portal Dashboard</h1>
+          <p className="ad-subtitle">
+            Manage your job applications, join scheduled interviews, and upload original documents requested by HR.
+          </p>
         </div>
-      )}
 
-      {/* ============================================================== */}
-      {/* FEATURE 2: DOCUMENT UPLOAD REQUIRED NOTIFICATION BANNER */}
-      {/* ============================================================== */}
-      {pendingDocRequests.length > 0 && (
-        <div style={{
-          backgroundColor: '#FFF1F2',
-          border: '1.5px solid #F43F5E',
-          borderRadius: '12px',
-          padding: '20px 24px',
-          marginBottom: '26px',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: '16px',
-          boxShadow: '0 4px 15px rgba(244, 63, 94, 0.08)'
-        }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-              <span style={{ backgroundColor: '#E11D48', color: '#ffffff', fontSize: '0.72rem', fontWeight: 800, padding: '3px 8px', borderRadius: '4px', textTransform: 'uppercase' }}>
-                Action Required
-              </span>
-              <span style={{ color: '#9F1239', fontSize: '0.85rem', fontWeight: 700 }}>
-                Original Documents Requested by HR
-              </span>
-            </div>
-            <h3 style={{ margin: '0 0 4px 0', color: '#881337', fontSize: '1.12rem', fontWeight: 800 }}>
-              Please Upload Your Original Verification Documents
-            </h3>
-            <p style={{ margin: 0, color: '#4C0519', fontSize: '0.85rem' }}>
-              HR has reviewed your application and requested you to upload original marksheets & certificates through the portal before the deadline.
+        {error && (
+          <div style={{ padding: '12px 16px', background: '#fef2f2', border: '1px solid #fecaca', color: '#991b1b', borderRadius: '8px', marginBottom: '24px', fontSize: '13.5px' }}>
+            {error}
+          </div>
+        )}
+
+        {/* ============================================================== */}
+        {/* DOCUMENT REQUEST ALERT CARD - Soft amber, only when requested */}
+        {/* ============================================================== */}
+        {pendingDocRequests.length > 0 && (
+          <div className="ad-alert-card">
+            <span className="ad-alert-tag">Action required</span>
+            <h2>Upload original verification documents</h2>
+            <p>
+              HR has reviewed your application and requested original marksheets and certificates
+              through the portal before the deadline.
             </p>
+            <Link to="/applicant/documents" className="ad-btn ad-btn-dark">
+              Upload documents &rarr;
+            </Link>
           </div>
+        )}
 
-          <Link
-            to="/applicant/documents"
-            style={{
-              backgroundColor: '#8B1235',
-              color: '#FCD34D',
-              padding: '11px 22px',
-              borderRadius: '8px',
-              fontWeight: 800,
-              fontSize: '0.86rem',
-              textDecoration: 'none',
-              boxShadow: '0 2px 8px rgba(139, 18, 53, 0.25)',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px'
-            }}
-          >
-            <span>Upload Documents Now &rarr;</span>
-          </Link>
-        </div>
-      )}
+        {/* ============================================================== */}
+        {/* MY SCHEDULED INTERVIEWS */}
+        {/* ============================================================== */}
+        {upcomingInterviews.length > 0 && (
+          <div className="ad-section">
+            <div className="ad-section-header">
+              <div className="ad-section-title-wrap">
+                <h3>My scheduled interviews</h3>
+                <span className="ad-count">({upcomingInterviews.length})</span>
+              </div>
+            </div>
 
-      {/* ============================================================== */}
-      {/* FEATURE 1: CANDIDATE "MY INTERVIEWS" SECTION WITH MEETING LINK */}
-      {/* ============================================================== */}
-      {upcomingInterviews.length > 0 && (
-        <div style={{ marginBottom: '32px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
-            <h3 style={{ margin: 0, color: '#0F172A', fontSize: '1.25rem', fontWeight: 800 }}>
-              🎥 My Scheduled Interviews ({upcomingInterviews.length})
-            </h3>
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            {upcomingInterviews.map((inv) => {
-              const countdown = getCountdown(inv.date, inv.startTime);
-              const formattedDate = new Date(inv.date).toLocaleDateString('en-IN', {
+            {upcomingInterviews.map((interview) => {
+              const countdown = getCountdown(interview.scheduledAt);
+              const meetingUrl = interview.meetingLink || interview.zoomJoinUrl;
+              const formattedDate = new Date(interview.scheduledAt).toLocaleDateString('en-IN', {
                 weekday: 'long',
                 day: 'numeric',
                 month: 'long',
                 year: 'numeric'
               });
-              const timeDisplay = inv.startTime && inv.endTime ? `${inv.startTime} to ${inv.endTime} (IST)` : (inv.startTime || inv.time);
-              const meetingUrl = inv.meetingLink || inv.zoomLink;
+              const formattedTime = new Date(interview.scheduledAt).toLocaleTimeString('en-IN', {
+                hour: '2-digit',
+                minute: '2-digit'
+              });
+              const position = interview.application?.job?.position || interview.application?.personalInfo?.postAppliedFor || 'Faculty Position';
+              const schoolOrDept = interview.application?.job?.department || interview.application?.job?.school?.name || interview.application?.personalInfo?.faculty || 'D Y Patil International University';
+              const panelistName = interview.panel?.name || interview.panelist?.name || 'Recruitment Cell Panel';
 
               return (
-                <div
-                  key={inv.id}
-                  style={{
-                    backgroundColor: '#ffffff',
-                    border: '1.5px solid #BAE6FD',
-                    borderRadius: '14px',
-                    padding: '22px 26px',
-                    boxShadow: '0 4px 15px rgba(2, 132, 199, 0.06)'
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px', marginBottom: '12px' }}>
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                        <span style={{ backgroundColor: '#2D8CFF', color: '#ffffff', fontSize: '0.72rem', fontWeight: 800, padding: '2px 8px', borderRadius: '4px' }}>
-                          INTERVIEW
-                        </span>
-                        <span style={{ fontSize: '0.74rem', fontWeight: 700, backgroundColor: '#EFF6FF', color: '#1D4ED8', padding: '2px 8px', borderRadius: '4px' }}>
-                          {inv.round || inv.interviewType || 'Round 1'}
-                        </span>
-                        {countdown && (
-                          <span style={{
-                            fontSize: '0.74rem',
-                            fontWeight: 800,
-                            padding: '2px 8px',
-                            borderRadius: '4px',
-                            backgroundColor: countdown.urgent ? '#FEE2E2' : '#FEF3C7',
-                            color: countdown.urgent ? '#DC2626' : '#92400E'
-                          }}>
-                            ⏳ {countdown.text}
-                          </span>
-                        )}
-                      </div>
-
-                      <h4 style={{ margin: '0 0 2px 0', fontSize: '1.18rem', fontWeight: 800, color: '#0F172A' }}>
-                        {inv.title || `${inv.job?.position || 'Faculty Position'} Interview`}
-                      </h4>
-                      <div style={{ fontSize: '0.86rem', color: '#475569', fontWeight: 600 }}>
-                        {inv.job?.position} · {inv.job?.department || 'DYPIU Pune'}
-                      </div>
-                    </div>
-
-                    {/* Join Meeting Action Button */}
-                    {meetingUrl ? (
-                      <a
-                        href={meetingUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        style={{
-                          backgroundColor: '#2D8CFF',
-                          color: '#ffffff',
-                          textDecoration: 'none',
-                          padding: '12px 24px',
-                          borderRadius: '8px',
-                          fontWeight: 800,
-                          fontSize: '0.88rem',
-                          boxShadow: '0 4px 12px rgba(45, 140, 255, 0.35)',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '8px',
-                          transition: 'all 0.2s ease'
-                        }}
-                      >
-                        <span>🎥 Join Meeting</span>
-                      </a>
-                    ) : (
-                      <span style={{ fontSize: '0.82rem', color: '#64748B' }}>Link pending</span>
+                <div key={interview.id} className="ad-interview-card">
+                  <div className="ad-interview-meta">
+                    <span className="ad-chip">Interview</span>
+                    <span className="ad-chip">{interview.panel?.name || interview.round || 'Selection Panel'}</span>
+                    {countdown && (
+                      <span className={`ad-chip ${countdown.urgent ? 'ad-chip-urgent' : 'ad-chip-time'}`}>
+                        {countdown.text}
+                      </span>
                     )}
+                    <span className="ad-link-status">
+                      {meetingUrl ? (
+                        <a
+                          href={meetingUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{ color: '#2563eb', fontWeight: 600, textDecoration: 'none' }}
+                        >
+                          Join Meeting &rarr;
+                        </a>
+                      ) : (
+                        'Link pending'
+                      )}
+                    </span>
                   </div>
 
-                  {/* Meeting Details Table */}
-                  <div style={{ backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '8px', padding: '12px 16px', display: 'flex', flexWrap: 'wrap', gap: '20px', fontSize: '0.84rem' }}>
-                    <div>
-                      <span style={{ color: '#64748B', fontWeight: 600 }}>Date:</span>{' '}
-                      <strong style={{ color: '#0F172A' }}>{formattedDate}</strong>
+                  <h4>Interview &mdash; {interview.panel?.name || 'Interview Panel'} &mdash; {position}</h4>
+                  <p className="ad-role">{position} &middot; {schoolOrDept}</p>
+
+                  <div className="ad-detail-row">
+                    <div className="ad-detail-item">
+                      Date: <strong>{formattedDate}</strong>
                     </div>
-                    <div>
-                      <span style={{ color: '#64748B', fontWeight: 600 }}>Time:</span>{' '}
-                      <strong style={{ color: '#721B28' }}>{timeDisplay}</strong>
+                    <div className="ad-detail-item">
+                      Time: <strong>{formattedTime}</strong>
                     </div>
-                    {inv.zoomMeetingId && (
-                      <div>
-                        <span style={{ color: '#64748B', fontWeight: 600 }}>Meeting ID:</span>{' '}
-                        <code style={{ backgroundColor: '#ffffff', padding: '2px 6px', borderRadius: '4px', border: '1px solid #CBD5E1', color: '#0F172A' }}>{inv.zoomMeetingId}</code>
-                      </div>
-                    )}
-                    {inv.zoomPassword && (
-                      <div>
-                        <span style={{ color: '#64748B', fontWeight: 600 }}>Passcode:</span>{' '}
-                        <code style={{ backgroundColor: '#ffffff', padding: '2px 6px', borderRadius: '4px', border: '1px solid #CBD5E1', color: '#0F172A' }}>{inv.zoomPassword}</code>
-                      </div>
-                    )}
-                    {inv.interviewerName && (
-                      <div>
-                        <span style={{ color: '#64748B', fontWeight: 600 }}>Panel:</span>{' '}
-                        <strong style={{ color: '#0F172A' }}>{inv.interviewerName}</strong>
+                    <div className="ad-detail-item">
+                      Panel: <strong>{panelistName}</strong>
+                    </div>
+                    {meetingUrl && (
+                      <div className="ad-detail-item">
+                        Meeting Link: <strong><a href={meetingUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#2563eb', textDecoration: 'underline' }}>Open Meeting Room</a></strong>
                       </div>
                     )}
                   </div>
-
-                  {inv.notes && (
-                    <div style={{ marginTop: '10px', fontSize: '0.8rem', color: '#475569', backgroundColor: '#FFFBEB', padding: '8px 12px', borderRadius: '6px', borderLeft: '3px solid #F59E0B' }}>
-                      <strong>Instructions:</strong> {inv.notes}
-                    </div>
-                  )}
                 </div>
               );
             })}
           </div>
-        </div>
-      )}
-
-      {/* Notifications Box */}
-      {notifications.length > 0 && notifications.some(n => !n.isRead) && (
-        <div style={{ border: '1px solid #fecaca', padding: '18px', backgroundColor: '#fef2f2', borderRadius: '12px', marginBottom: '28px' }}>
-          <h3 style={{ marginTop: 0, color: '#8B1235', fontSize: '0.98rem', fontWeight: 800, borderBottom: '1px solid #fecaca', paddingBottom: '8px' }}>
-            Notifications & Status Updates
-          </h3>
-          <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-            {notifications.filter(n => !n.isRead).map(notif => (
-              <li key={notif.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid #f1f5f9', fontSize: '0.85rem' }}>
-                <span>{notif.content}</span>
-                <button 
-                  onClick={() => handleMarkAsRead(notif.id)}
-                  style={{ backgroundColor: '#8B1235', color: '#FCD34D', border: 'none', padding: '4px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 700 }}
-                >
-                  Dismiss
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {/* Applications Section */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-        <h3 style={{ margin: 0, color: '#0F172A', fontSize: '1.25rem', fontWeight: 800 }}>
-          My Applications
-        </h3>
-        {/* Only show Documents link when HR has requested documents */}
-        {docRequests.length > 0 && (
-          <Link
-            to="/applicant/documents"
-            style={{ fontSize: '0.84rem', color: '#8B1235', fontWeight: 700, textDecoration: 'none' }}
-          >
-            View My Documents &rarr;
-          </Link>
         )}
-      </div>
 
-      {loading ? (
-        <div style={{ textAlign: 'center', padding: '40px 0', color: '#64748b' }}>
-          <div className="spinner" style={{ margin: '0 auto 12px auto' }}></div>
-          <p style={{ fontWeight: 600 }}>Loading your applications...</p>
-        </div>
-      ) : applications.length === 0 ? (
-        <div style={{ border: '1.5px dashed #cbd5e1', borderRadius: '14px', padding: '40px 24px', textAlign: 'center', backgroundColor: '#f8fafc' }}>
-          <h3 style={{ margin: '0 0 8px 0', color: '#8B1235', fontSize: '1.15rem', fontWeight: 800 }}>No applications found</h3>
-          <p style={{ color: '#64748b', fontSize: '0.9rem', marginBottom: '20px' }}>You have not started any job applications yet.</p>
-          <Link to="/teaching" style={{ backgroundColor: '#8B1235', color: '#FCD34D', padding: '12px 24px', borderRadius: '8px', textDecoration: 'none', fontWeight: 800, fontSize: '0.88rem', display: 'inline-block' }}>
-            Browse Teaching & Non-Teaching Openings
-          </Link>
-        </div>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-          {applications.map((app) => {
-            const isDraft = app.status === APPLICATION_STATUS.DRAFT;
-            const currentStep = app.currentStep || 1;
-            const completionPct = app.completionPercentage || Math.round((currentStep / 7) * 100);
-
-            return (
-              <div
-                key={app.id}
-                style={{
-                  backgroundColor: '#ffffff',
-                  border: isDraft ? '1.5px solid #8B1235' : '1px solid #e2e8f0',
-                  borderRadius: '14px',
-                  padding: '22px 26px',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  flexWrap: 'wrap',
-                  gap: '16px'
-                }}
-              >
-                <div style={{ flex: 1, minWidth: '260px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
-                    <span style={{ fontSize: '0.8rem', fontWeight: 800, color: isDraft ? '#8B1235' : '#0f172a' }}>
-                      {isDraft ? 'INCOMPLETE DRAFT' : (app.applicationNumber || 'DYPIU-2026')}
-                    </span>
-                    <span className={`status-badge ${getStatusBadgeClass(app.status)}`}>
-                      {statusLabel(app.status)}
-                    </span>
-                  </div>
-
-                  <h3 style={{ margin: '0 0 4px 0', color: '#0f172a', fontSize: '1.12rem', fontWeight: 800 }}>
-                    {app.job?.position || app.personalInfo?.postAppliedFor || 'Faculty Position'}
-                  </h3>
-
-                  <div style={{ fontSize: '0.86rem', color: '#475569', fontWeight: 600 }}>
-                    {app.job?.department || app.job?.school?.name || app.personalInfo?.faculty || 'DYPIU Department'}
-                  </div>
-
-                  <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '8px' }}>
-                    Last Updated: {new Date(app.updatedAt || app.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
-                  </div>
-
-                  {/* Progress Bar for Draft Applications */}
-                  {isDraft && (
-                    <div style={{ marginTop: '12px', maxWidth: '320px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.76rem', fontWeight: 700, color: '#8B1235', marginBottom: '4px' }}>
-                        <span>Progress: Step {currentStep} of 7</span>
-                        <span>{completionPct}%</span>
-                      </div>
-                      <div style={{ height: '6px', backgroundColor: '#f1f5f9', borderRadius: '3px', overflow: 'hidden' }}>
-                        <div style={{ width: `${completionPct}%`, height: '100%', backgroundColor: '#8B1235', transition: 'width 0.3s ease' }} />
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                  {isDraft ? (
+        {/* ============================================================== */}
+        {/* NOTIFICATIONS & STATUS UPDATES */}
+        {/* ============================================================== */}
+        {notifications.length > 0 && (
+          <div className="ad-section">
+            <div className="ad-notif-card">
+              <div className="ad-notif-title">Notifications &amp; status updates</div>
+              {notifications.slice(0, 5).map((n) => (
+                <div key={n.id} className="ad-notif-item">
+                  <p>
+                    <span>{n.title}:</span> {n.message}
+                  </p>
+                  {!n.isRead && (
                     <button
-                      onClick={() => navigate(`/apply?jobId=${app.jobId}&draftId=${app.id}&step=${currentStep}`)}
-                      style={{
-                        backgroundColor: '#8B1235',
-                        color: '#FCD34D',
-                        border: 'none',
-                        padding: '11px 22px',
-                        borderRadius: '8px',
-                        fontWeight: 800,
-                        fontSize: '0.86rem',
-                        cursor: 'pointer',
-                        boxShadow: '0 2px 8px rgba(139, 18, 53, 0.25)',
-                        transition: 'all 0.2s ease'
-                      }}
+                      type="button"
+                      className="ad-btn ad-btn-outline ad-btn-sm"
+                      onClick={() => handleMarkAsRead(n.id)}
                     >
-                      Continue Application &rarr;
+                      Dismiss
                     </button>
-                  ) : (
-                    <>
-                      <button
-                        onClick={() => navigate(`/applicant/applications/${app.id}`)}
-                        style={{
-                          backgroundColor: '#ffffff',
-                          border: '1.5px solid #cbd5e1',
-                          color: '#8B1235',
-                          padding: '9px 18px',
-                          borderRadius: '8px',
-                          fontWeight: 700,
-                          fontSize: '0.84rem',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        View Application
-                      </button>
-                      {/* Only show Upload Documents button if HR has requested documents */}
-                      {docRequests.length > 0 && (
-                        <button
-                          onClick={() => navigate('/applicant/documents')}
-                          style={{
-                            backgroundColor: '#8B1235',
-                            color: '#FCD34D',
-                            border: 'none',
-                            padding: '9px 18px',
-                            borderRadius: '8px',
-                            fontWeight: 700,
-                            fontSize: '0.84rem',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          Upload Documents
-                        </button>
-                      )}
-                    </>
                   )}
                 </div>
-              </div>
-            );
-          })}
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ============================================================== */}
+        {/* MY APPLICATIONS */}
+        {/* ============================================================== */}
+        <div className="ad-section">
+          <div className="ad-section-header">
+            <div className="ad-section-title-wrap">
+              <h3>My Applications</h3>
+              <span className="ad-count">({applications.length})</span>
+            </div>
+            {/* Documents link is only visible when HR has requested documents */}
+            {docRequests.length > 0 && (
+              <Link
+                to="/applicant/documents"
+                style={{ fontSize: '13px', color: '#1f2937', fontWeight: 600, textDecoration: 'none' }}
+              >
+                View My Documents &rarr;
+              </Link>
+            )}
+          </div>
+
+          {loading ? (
+            <div style={{ textAlign: 'center', padding: '36px 0', color: '#6b7280' }}>
+              <div className="spinner" style={{ margin: '0 auto 10px auto' }}></div>
+              <p style={{ fontSize: '13.5px', margin: 0 }}>Loading your applications...</p>
+            </div>
+          ) : applications.length === 0 ? (
+            <div style={{ border: '1.5px dashed #e5e7eb', borderRadius: '8px', padding: '36px 20px', textAlign: 'center', background: '#f9fafb' }}>
+              <h4 style={{ margin: '0 0 6px 0', fontSize: '15px', fontWeight: 600, color: '#111827' }}>No applications found</h4>
+              <p style={{ color: '#6b7280', fontSize: '13.5px', marginBottom: '18px' }}>You have not started any job applications yet.</p>
+              <Link to="/teaching" className="ad-btn ad-btn-dark">
+                Browse Faculty Openings
+              </Link>
+            </div>
+          ) : (
+            <div>
+              {applications.map((app) => {
+                const isDraft = app.status === APPLICATION_STATUS.DRAFT;
+                const currentStep = app.currentStep || 1;
+                const completionPct = app.completionPercentage || Math.round((currentStep / 7) * 100);
+
+                return (
+                  <div key={app.id} className="ad-app-card">
+                    <div className="ad-app-info">
+                      <div className="ad-app-topline">
+                        <span className="ad-app-num">
+                          {isDraft ? 'INCOMPLETE DRAFT' : (app.applicationNumber || 'APP-2026')}
+                        </span>
+                        <span className={`status-badge ${getStatusBadgeClass(app.status)}`} style={{ fontSize: '11px', padding: '2px 8px' }}>
+                          {statusLabel(app.status)}
+                        </span>
+                      </div>
+
+                      <h4 className="ad-app-pos">
+                        {app.job?.position || app.personalInfo?.postAppliedFor || 'Faculty Position'}
+                      </h4>
+
+                      <div className="ad-app-dept">
+                        {app.job?.department || app.job?.school?.name || app.personalInfo?.faculty || 'D Y Patil International University'}
+                      </div>
+
+                      <div className="ad-app-date">
+                        Submitted/Updated: {new Date(app.updatedAt || app.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      </div>
+
+                      {isDraft && (
+                        <div className="ad-progress-wrap">
+                          <div className="ad-progress-labels">
+                            <span>Step {currentStep} of 7</span>
+                            <span>{completionPct}%</span>
+                          </div>
+                          <div className="ad-progress-bar">
+                            <div className="ad-progress-fill" style={{ width: `${completionPct}%` }} />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                      {isDraft ? (
+                        <button
+                          type="button"
+                          className="ad-btn ad-btn-dark ad-btn-sm"
+                          onClick={() => navigate(`/apply?jobId=${app.jobId}&draftId=${app.id}&step=${currentStep}`)}
+                        >
+                          Continue Application &rarr;
+                        </button>
+                      ) : (
+                        <>
+                          <button
+                            type="button"
+                            className="ad-btn ad-btn-outline ad-btn-sm"
+                            onClick={() => navigate(`/applicant/applications/${app.id}`)}
+                          >
+                            View Application
+                          </button>
+                          {docRequests.length > 0 && (
+                            <button
+                              type="button"
+                              className="ad-btn ad-btn-dark ad-btn-sm"
+                              onClick={() => navigate('/applicant/documents')}
+                            >
+                              Upload Documents
+                            </button>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
-      )}
-    </div>
+
+      </div>
+    </>
   );
 }
 

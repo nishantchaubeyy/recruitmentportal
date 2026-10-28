@@ -331,53 +331,72 @@ function buildApplicationFormDossierHtml(app, options = {}) {
 <body style="margin: 0; padding: 0; background-color: #f8fafc; font-family: Arial, Helvetica, sans-serif; color: #1e293b; line-height: 1.5;">
   <div style="max-width: 680px; margin: 20px auto; padding: 30px; background-color: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px;">
     
-    <!-- TOP SUCCESS ACKNOWLEDGEMENT BANNER -->
-    <div style="background-color: #721b28; color: #ffffff; padding: 20px 24px; border-radius: 6px; margin-bottom: 24px; border-left: 5px solid #d9a43c;">
-      <h3 style="margin: 0; font-size: 16px; letter-spacing: 0.5px; text-transform: uppercase;">
-        ${options.isInterest ? 'Application & Interest Registered' : 'Application Received'}
-      </h3>
-      <p style="margin: 8px 0 0 0; font-size: 14px; line-height: 1.6;">
-        Dear <strong>${applicantName}</strong>,<br /><br />
-        Thank you for applying at <strong>D Y Patil International University</strong>.<br />
-        ${options.isInterest 
-          ? `We have received your application for the post of <strong>${postName}</strong> (Registration / Ref No: <strong>${appNumber}</strong>). Applications for this position are currently closed, but we have securely recorded your credentials and qualifications in our database. We will reach out to you as soon as the vacancy is officially opened.`
-          : `We have received your application for the post of <strong>${postName}</strong> (Application No: <strong>${appNumber}</strong>). Our team will review your application and reach out to you soon.`
-        }
-      </p>
-      <div style="margin-top: 14px; padding: 8px 12px; background-color: rgba(255,255,255,0.12); border-radius: 4px; font-size: 12px;">
-        📎 <strong>Official Application Dossier Attached</strong> — A PDF copy of your submitted application has been attached to this email for your records.
+    <!-- CALM CORPORATE APPLICATION CONFIRMATION & CREDENTIALS CARD -->
+    <div style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; margin-bottom: 28px; box-shadow: 0 1px 4px rgba(0,0,0,0.05);">
+      <!-- Charcoal Header -->
+      <div style="background: #1f2937; color: #ffffff; padding: 26px 30px;">
+        <div style="font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #9ca3af; margin-bottom: 8px;">
+          ${options.isInterest ? 'Application & Interest Registered' : 'Application Received'}
+        </div>
+        <h1 style="margin: 0 0 12px 0; font-size: 18px; font-weight: 600; line-height: 1.35; color: #ffffff;">
+          Dear ${applicantName},
+        </h1>
+        <p style="margin: 0; font-size: 14px; line-height: 1.6; color: #d1d5db;">
+          Thank you for applying at <strong style="color: #ffffff; font-weight: 600;">D Y Patil International University</strong>.<br />
+          ${options.isInterest 
+            ? `We have received your application for the post of <strong style="color: #ffffff; font-weight: 600;">${postName}</strong> (Registration / Ref No: <strong style="color: #ffffff; font-weight: 600;">${appNumber}</strong>). Applications for this position are currently closed, but we have securely recorded your credentials and qualifications in our database. We will reach out to you as soon as the vacancy is officially opened.`
+            : `We have received your application for the post of <strong style="color: #ffffff; font-weight: 600;">${postName}</strong> (Application No: <strong style="color: #ffffff; font-weight: 600;">${appNumber}</strong>). Our team will review your application and reach out to you soon.`
+          }
+        </p>
+        <div style="margin-top: 16px; padding: 10px 14px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); border-radius: 6px; font-size: 12.5px; color: #d1d5db;">
+          📎 <strong>Official Application Dossier Attached</strong> &mdash; A PDF copy of your submitted application has been attached to this email for your records.
+        </div>
       </div>
-    </div>
 
-    ${options.generatedPassword ? `
-    <!-- CONDITIONAL LOGIN CREDENTIALS SECTION -->
-    <div style="background-color: #fef2f2; border: 1.5px solid #fecaca; border-radius: 6px; padding: 20px; margin-bottom: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
-      <h4 style="margin: 0 0 10px 0; color: #721b28; font-size: 15px; font-weight: bold;">
-        🔐 Your Recruitment Portal Login Credentials
-      </h4>
-      <p style="margin: 0 0 14px 0; font-size: 13.5px; color: #0f172a; line-height: 1.6;">
-        An account has been created for you to track your application status. You can login using this email and the following auto-generated password:
-      </p>
-      <div style="background: #ffffff; border: 1px solid #fecaca; border-radius: 6px; padding: 12px 16px; margin-bottom: 14px;">
-        <table style="width: 100%; border-collapse: collapse; font-size: 13.5px;">
-          <tr>
-            <td style="padding: 6px 0; width: 150px; color: #64748b; font-weight: 600;">Login Email:</td>
-            <td style="padding: 6px 0; font-weight: 700; color: #0f172a;">${candidateEmail}</td>
-          </tr>
-          <tr>
-            <td style="padding: 6px 0; color: #64748b; font-weight: 600;">Auto-Generated Password:</td>
-            <td style="padding: 6px 0; font-family: 'Courier New', monospace; font-size: 16px; font-weight: 800; color: #721b28; letter-spacing: 1px;">${options.generatedPassword}</td>
-          </tr>
-        </table>
+      <!-- Credentials / Portal Access Body -->
+      <div style="padding: 24px 30px;">
+        ${options.generatedPassword ? `
+        <h2 style="margin: 0 0 8px 0; font-size: 15px; font-weight: 600; color: #1f2937;">
+          Your recruitment portal login
+        </h2>
+        <p style="margin: 0 0 18px 0; font-size: 13.5px; line-height: 1.6; color: #6b7280;">
+          An account has been created for you to track your application status. You can log in using this email and the auto-generated password below:
+        </p>
+        <div style="border: 1px solid #e5e7eb; border-radius: 6px; overflow: hidden; margin-bottom: 20px;">
+          <table style="width: 100%; border-collapse: collapse; font-size: 13.5px;">
+            <tr style="border-bottom: 1px solid #e5e7eb;">
+              <td style="padding: 11px 16px; width: 140px; color: #6b7280; font-weight: 500; background: #fafafa;">Login email</td>
+              <td style="padding: 11px 16px; font-weight: 500; color: #1f2937;">
+                <a href="mailto:${candidateEmail}" style="color: #1f2937; text-decoration: underline;">${candidateEmail}</a>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding: 11px 16px; color: #6b7280; font-weight: 500; background: #fafafa;">Password</td>
+              <td style="padding: 11px 16px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 14.5px; font-weight: 600; color: #1f2937; letter-spacing: 0.04em;">${options.generatedPassword}</td>
+            </tr>
+          </table>
+        </div>
+        ` : `
+        <h2 style="margin: 0 0 8px 0; font-size: 15px; font-weight: 600; color: #1f2937;">
+          Application status tracking
+        </h2>
+        <p style="margin: 0 0 18px 0; font-size: 13.5px; line-height: 1.6; color: #6b7280;">
+          You can log in to the recruitment portal to track review progress, interview schedules, and any document verification requests.
+        </p>
+        `}
       </div>
-      <div>
-        <a href="${options.loginUrl || 'https://intranet.dypiu.ac.in/recruitment/login'}" 
-           style="background-color: #721b28; color: #ffffff; padding: 9px 20px; text-decoration: none; border-radius: 4px; font-size: 13px; font-weight: bold; display: inline-block;">
-          Login to Track Application &rarr;
+
+      <!-- Action Button & Fineprint Footer -->
+      <div style="padding: 18px 30px 24px; border-top: 1px solid #e5e7eb; background: #fafafa;">
+        <a href="${options.loginUrl || process.env.APP_URL || 'http://localhost:5173/login'}" 
+           style="display: inline-block; background: #1f2937; color: #ffffff !important; text-decoration: none; font-size: 13.5px; font-weight: 500; padding: 10px 18px; border-radius: 6px;">
+          Open recruitment portal &rarr;
         </a>
+        <p style="margin: 14px 0 0 0; font-size: 12px; color: #9ca3af; line-height: 1.5;">
+          For security, please change your password after your first login. If you did not submit this application, you can ignore this email.
+        </p>
       </div>
     </div>
-    ` : ''}
 
     <!-- OFFICIAL APPLICATION FORM HEADER -->
     <div style="border-bottom: 2px solid #0f2b5c; padding-bottom: 14px; margin-bottom: 20px;">
@@ -857,12 +876,12 @@ async function sendInterviewScheduledEmail({
             </tr>` : ''}
             ${zoomMeetingId ? `
             <tr style="border-bottom: 1px solid #fee2e2;">
-              <td style="color: #64748b; font-weight: 600;">Zoom Meeting ID:</td>
+              <td style="color: #64748b; font-weight: 600;">Meeting ID:</td>
               <td style="color: #0f172a; font-family: monospace; font-size: 15px; font-weight: 700;">${zoomMeetingId}</td>
             </tr>` : ''}
             ${zoomPassword ? `
             <tr style="border-bottom: 1px solid #fee2e2;">
-              <td style="color: #64748b; font-weight: 600;">Zoom Passcode:</td>
+              <td style="color: #64748b; font-weight: 600;">Meeting Passcode:</td>
               <td style="color: #0f172a; font-family: monospace; font-size: 15px; font-weight: 700;">${zoomPassword}</td>
             </tr>` : ''}
           </table>
@@ -870,8 +889,8 @@ async function sendInterviewScheduledEmail({
           <!-- Clickable Zoom Button -->
           ${zoomLink ? `
           <div style="text-align: center; margin-top: 22px;">
-            <a href="${zoomLink}" target="_blank" style="display: inline-block; background-color: #2D8CFF; color: #ffffff; text-decoration: none; padding: 13px 28px; border-radius: 8px; font-weight: 800; font-size: 15px; box-shadow: 0 4px 12px rgba(45, 140, 255, 0.35);">
-              🎥 Click to Join Meeting
+            <a href="${zoomLink}" target="_blank" style="display: inline-block; background-color: #1f2937; color: #ffffff; text-decoration: none; padding: 13px 28px; border-radius: 8px; font-weight: 800; font-size: 15px; box-shadow: 0 4px 12px rgba(45, 140, 255, 0.35);">
+              Join Online Meeting &rarr;
             </a>
             <div style="font-size: 12px; color: #64748b; margin-top: 8px; word-break: break-all;">
               Direct URL: <a href="${zoomLink}" style="color: #2D8CFF;">${zoomLink}</a>

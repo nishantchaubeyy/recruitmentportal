@@ -69,7 +69,7 @@ async function createZoomMeeting({ topic, startTime, durationMinutes = 30, agend
     return {
       success: false,
       configured: false,
-      error: 'Interview saved but Zoom link could not be generated. Configure ZOOM_* env vars.'
+      error: 'Interview saved but online meeting link could not be generated. Configure ZOOM_* env vars.'
     };
   }
 
@@ -108,7 +108,7 @@ async function createZoomMeeting({ topic, startTime, durationMinutes = 30, agend
       return {
         success: false,
         configured: true,
-        error: `Interview saved but Zoom meeting creation failed (${response.status}). Configure ZOOM_* env vars or check credentials.`
+        error: `Interview saved but online meeting creation failed (${response.status}). Configure ZOOM_* env vars or check credentials.`
       };
     }
 
@@ -126,7 +126,7 @@ async function createZoomMeeting({ topic, startTime, durationMinutes = 30, agend
     return {
       success: false,
       configured: true,
-      error: `Interview saved but Zoom link could not be generated: ${err.message}`
+      error: `Interview saved but online meeting link could not be generated: ${err.message}`
     };
   }
 }

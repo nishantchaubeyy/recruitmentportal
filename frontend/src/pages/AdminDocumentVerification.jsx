@@ -229,7 +229,7 @@ function AdminDocumentVerification() {
     }
   }
 
-  // Add Custom Document to Checklist
+  // Add Custom Document to Mandatory List
   const handleAddCustomDoc = () => {
     const trimmed = customDocInput.trim();
     if (trimmed && !checkedDocs.includes(trimmed)) {
@@ -238,12 +238,19 @@ function AdminDocumentVerification() {
     }
   };
 
-  const toggleDocCheck = (docName) => {
-    setCheckedDocs(prev =>
-      prev.includes(docName)
-        ? prev.filter(d => d !== docName)
-        : [...prev, docName]
-    );
+  const handleRemoveDoc = (docName) => {
+    setCheckedDocs(prev => prev.filter(d => d !== docName));
+  };
+
+  const handleResetStandardDocs = () => {
+    setCheckedDocs([
+      'Original Resume / CV',
+      '10th Marksheet & Certificate',
+      '12th Marksheet & Certificate',
+      'Graduation Degree & Marksheet',
+      'PAN Card',
+      'Aadhar Card'
+    ]);
   };
 
   // Submit New Document Request
@@ -895,92 +902,96 @@ function AdminDocumentVerification() {
                 </div>
               </div>
 
-              {/* Document Checklist */}
+              {/* Mandatory Documents List (No Tick Boxes) */}
               <div style={{ marginBottom: '18px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                  <label style={{ fontSize: '0.84rem', fontWeight: 700, color: '#0F172A' }}>
-                    Document Checklist ({checkedDocs.length} selected) *
-                  </label>
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <button
-                      type="button"
-                      onClick={() => setCheckedDocs([...STANDARD_DOCUMENTS])}
-                      style={{ border: 'none', background: 'none', color: '#2563EB', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer' }}
-                    >
-                      Select All Standard
-                    </button>
-                    <span style={{ color: '#CBD5E1' }}>|</span>
-                    <button
-                      type="button"
-                      onClick={() => setCheckedDocs([])}
-                      style={{ border: 'none', background: 'none', color: '#64748B', fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer' }}
-                    >
-                      Clear
-                    </button>
+                  <div>
+                    <label style={{ fontSize: '0.84rem', fontWeight: 700, color: '#0F172A' }}>
+                      Required Verification Documents ({checkedDocs.length}) *
+                    </label>
+                    <p style={{ margin: '2px 0 0 0', fontSize: '0.74rem', color: '#64748B' }}>
+                      All listed documents are mandatory for the candidate to upload.
+                    </p>
                   </div>
+                  <button
+                    type="button"
+                    onClick={handleResetStandardDocs}
+                    style={{ border: 'none', background: 'none', color: '#721B28', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer' }}
+                  >
+                    Reset to Default Standard
+                  </button>
                 </div>
 
-                <div style={{ maxHeight: '220px', overflowY: 'auto', border: '1.5px solid #CBD5E1', borderRadius: '8px', padding: '10px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                  {STANDARD_DOCUMENTS.map((doc) => {
-                    const isChecked = checkedDocs.includes(doc);
-                    return (
-                      <label
+                <div style={{ maxHeight: '220px', overflowY: 'auto', border: '1.5px solid #CBD5E1', borderRadius: '8px', padding: '10px', display: 'flex', flexDirection: 'column', gap: '6px', backgroundColor: '#FAFAFA' }}>
+                  {checkedDocs.length === 0 ? (
+                    <div style={{ padding: '16px', textAlign: 'center', color: '#94A3B8', fontSize: '0.82rem' }}>
+                      No documents in list. Use the box below to add mandatory documents.
+                    </div>
+                  ) : (
+                    checkedDocs.map((doc, idx) => (
+                      <div
                         key={doc}
                         style={{
                           display: 'flex',
                           alignItems: 'center',
-                          gap: '8px',
-                          fontSize: '0.82rem',
-                          color: '#334155',
-                          cursor: 'pointer',
-                          padding: '4px 6px',
-                          borderRadius: '4px',
-                          backgroundColor: isChecked ? '#EFF6FF' : 'transparent'
+                          justifyContent: 'space-between',
+                          padding: '8px 12px',
+                          borderRadius: '6px',
+                          backgroundColor: '#FFFFFF',
+                          border: '1px solid #E2E8F0',
+                          gap: '10px'
                         }}
                       >
-                        <input
-                          type="checkbox"
-                          checked={isChecked}
-                          onChange={() => toggleDocCheck(doc)}
-                          style={{ width: '15px', height: '15px', accentColor: '#721B28' }}
-                        />
-                        <span>{doc}</span>
-                      </label>
-                    );
-                  })}
-                  {/* Also show any custom docs added */}
-                  {checkedDocs.filter(d => !STANDARD_DOCUMENTS.includes(d)).map(doc => (
-                    <label
-                      key={doc}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        fontSize: '0.82rem',
-                        color: '#721B28',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        padding: '4px 6px',
-                        borderRadius: '4px',
-                        backgroundColor: '#FDF2F8'
-                      }}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={true}
-                        onChange={() => toggleDocCheck(doc)}
-                        style={{ width: '15px', height: '15px', accentColor: '#721B28' }}
-                      />
-                      <span>⭐ {doc} (Custom)</span>
-                    </label>
-                  ))}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#64748B', width: '20px' }}>{idx + 1}.</span>
+                          <span style={{ fontSize: '0.84rem', fontWeight: 600, color: '#0F172A' }}>{doc}</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{
+                            fontSize: '0.68rem',
+                            fontWeight: 800,
+                            letterSpacing: '0.04em',
+                            padding: '3px 8px',
+                            borderRadius: '4px',
+                            backgroundColor: '#FEF2F2',
+                            color: '#991B1B',
+                            border: '1px solid #FECACA',
+                            textTransform: 'uppercase'
+                          }}>
+                            Mandatory
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveDoc(doc)}
+                            title="Remove this document from request"
+                            style={{
+                              border: 'none',
+                              background: '#F1F5F9',
+                              color: '#64748B',
+                              width: '22px',
+                              height: '22px',
+                              borderRadius: '50%',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: '0.9rem',
+                              lineHeight: 1
+                            }}
+                          >
+                            &times;
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
 
                 {/* Add Custom Document */}
                 <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
                   <input
                     type="text"
-                    placeholder="Type custom document name (e.g. NOC Certificate)..."
+                    placeholder="Add document requirement (e.g. NOC Certificate)..."
                     value={customDocInput}
                     onChange={(e) => setCustomDocInput(e.target.value)}
                     onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddCustomDoc(); } }}
@@ -991,7 +1002,7 @@ function AdminDocumentVerification() {
                     onClick={handleAddCustomDoc}
                     style={{ backgroundColor: '#F1F5F9', border: '1px solid #CBD5E1', color: '#0F172A', padding: '8px 14px', borderRadius: '6px', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer' }}
                   >
-                    + Add Custom
+                    + Add Mandatory Doc
                   </button>
                 </div>
               </div>
