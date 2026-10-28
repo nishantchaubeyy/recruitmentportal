@@ -583,8 +583,17 @@ async function withdrawApplication(req, res) {
  */
 async function getMyApplications(req, res) {
   try {
+    let applicantId = req.user?.applicantId;
+    if (!applicantId) {
+      const applicant = await prisma.applicant.findFirst({ where: { userId: req.user.id } });
+      applicantId = applicant?.id;
+    }
+    if (!applicantId) {
+      return res.json([]);
+    }
+
     const applications = await prisma.application.findMany({
-      where: { applicantId: req.user.applicantId },
+      where: { applicantId },
       include: {
         job: true,
         documents: { select: ownDocumentSelect }
