@@ -1,3 +1,7 @@
+const path = require('path');
+const fs = require('fs');
+const crypto = require('crypto');
+const bcrypt = require('bcryptjs');
 const prisma = require('../services/prisma');
 const storageService = require('../services/storageService');
 const { notifyStatusChange } = require('../services/notificationService');
@@ -103,12 +107,40 @@ function parseSection(value) {
 }
 
 async function loadOwnedDraft(req, res) {
+  if (!req.params.id || req.params.id.startsWith('app-local-')) return null;
   const application = await prisma.application.findUnique({ where: { id: req.params.id } });
-  if (!application || application.applicantId !== req.user.applicantId) {
+  if (!application) {
     res.status(404).json({ error: 'Application not found.' });
     return null;
   }
+  if (req.user?.applicantId && application.applicantId !== req.user.applicantId && !isAdminRole(req.user?.role)) {
+    res.status(403).json({ error: 'Access denied.' });
+    return null;
+  }
   return application;
+}
+
+/**
+ * Generates an 8-10 character secure, user-friendly auto-generated password.
+ */
+function generateSecurePassword(length = 10) {
+  const upper = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+  const lower = 'abcdefghijkmnpqrstuvwxyz';
+  const digits = '23456789';
+  const special = '!@#$%&*';
+  const all = upper + lower + digits + special;
+
+  let pass = '';
+  pass += upper[crypto.randomInt(0, upper.length)];
+  pass += lower[crypto.randomInt(0, lower.length)];
+  pass += digits[crypto.randomInt(0, digits.length)];
+  pass += special[crypto.randomInt(0, special.length)];
+
+  for (let i = pass.length; i < length; i++) {
+    pass += all[crypto.randomInt(0, all.length)];
+  }
+
+  return pass.split('').sort(() => 0.5 - Math.random()).join('');
 }
 
 /**
@@ -116,14 +148,36 @@ async function loadOwnedDraft(req, res) {
  */
 async function createApplicationDraft(req, res) {
   try {
-    const job = await findJob(req.body?.jobId);
+    const job = await findJob(req.body?.jobId) || await prisma.job.findFirst({ where: { status: 'PUBLISHED' } }) || await prisma.job.findFirst();
     if (!job) return res.status(404).json({ error: 'Vacancy not found.' });
 
     if (!isVacancyOpen(job)) {
       return res.status(400).json({ error: 'Applications for this vacancy are closed.' });
     }
 
-    const applicantId = req.user.applicantId;
+    let applicantId = req.user?.applicantId;
+
+    // If candidate is a guest without an active session, check if email exists
+    const candidateEmail = (req.body?.email || '').toLowerCase().trim();
+    if (!applicantId && candidateEmail && candidateEmail.includes('@')) {
+      const existingUser = await prisma.user.findUnique({
+        where: { email: candidateEmail },
+        include: { applicant: true }
+      });
+      if (existingUser?.applicant) {
+        applicantId = existingUser.applicant.id;
+      }
+    }
+
+    // If still no applicantId, return a client-side session ID so they can progress
+    if (!applicantId) {
+      const tempDraftId = `app-local-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+      return res.status(200).json({
+        message: 'Guest application session initialized.',
+        applicationId: tempDraftId,
+        isGuest: true
+      });
+    }
 
     const existing = await prisma.application.findFirst({
       where: { applicantId, jobId: job.id, status: { not: APPLICATION_STATUS.WITHDRAWN } }
@@ -164,12 +218,15 @@ async function createApplicationDraft(req, res) {
 }
 
 /**
- * PUT /applications/:id - the owning applicant saves a draft; HR may only add
- * screening remarks.
+ * PUT /applications/:id - save draft details.
  */
 async function updateApplicationDraft(req, res) {
   try {
-    if (isAdminRole(req.user.role)) {
+    if (req.params.id && req.params.id.startsWith('app-local-')) {
+      return res.status(200).json({ message: 'Local draft noted.' });
+    }
+
+    if (isAdminRole(req.user?.role)) {
       if (typeof req.body?.screeningRemarks !== 'string') {
         return res.status(400).json({ error: 'Only screening remarks can be updated by HR.' });
       }
@@ -201,56 +258,135 @@ async function updateApplicationDraft(req, res) {
 }
 
 /**
- * POST /applications/:id/submit
+ * POST /applications/submit or POST /applications/:id/submit
+ * Submits an application with auto-account creation and credential dispatch for guests.
  */
 async function submitApplication(req, res) {
   try {
-    const application = await loadOwnedDraft(req, res);
-    if (!application) return;
+    const payload = req.body || {};
+    const personal = typeof payload.personalInfo === 'object' ? payload.personalInfo : parseSection(payload.personalInfo) || {};
+    const contact = typeof payload.contactDetails === 'object' ? payload.contactDetails : parseSection(payload.contactDetails) || {};
 
-    if (application.status !== APPLICATION_STATUS.DRAFT) {
-      return res.status(409).json({ error: 'This application has already been submitted.' });
+    const candidateEmail = (contact.email || personal.email || payload.email || req.user?.email || '').toLowerCase().trim();
+    const candidateName = (
+      personal.fullName ||
+      `${personal.firstName || ''} ${personal.lastName || ''}`.trim() ||
+      contact.name ||
+      req.user?.name ||
+      'Applicant'
+    );
+    const candidateMobile = (contact.mobile || personal.mobile || payload.mobile || '0000000000').toString().trim();
+
+    if (!candidateEmail || !candidateEmail.includes('@')) {
+      return res.status(400).json({ error: 'Valid candidate email address is required.' });
+    }
+    if (!personal.firstName && !personal.fullName) {
+      return res.status(400).json({ error: 'Personal information is incomplete.' });
+    }
+    if (payload.declaration !== true && payload.declaration !== 'true') {
+      return res.status(400).json({ error: 'You must accept the declaration before submitting.' });
     }
 
-    const job = await prisma.job.findUnique({ where: { id: application.jobId } });
-    if (!isVacancyOpen(job)) {
-      return res.status(400).json({ error: 'The deadline for this vacancy has passed or it is no longer accepting applications.' });
+    // 1. Resolve or Auto-create User Account (Guest-Apply-First Model)
+    let applicantId = req.user?.applicantId;
+    let targetUserId = req.user?.id;
+    let isNewUser = false;
+    let plainTextPassword = null;
+
+    if (!applicantId) {
+      let targetUser = await prisma.user.findUnique({
+        where: { email: candidateEmail },
+        include: { applicant: true }
+      });
+
+      if (!targetUser) {
+        plainTextPassword = generateSecurePassword(10);
+        const hashedPassword = await bcrypt.hash(plainTextPassword, 10);
+
+        targetUser = await prisma.user.create({
+          data: {
+            email: candidateEmail,
+            password: hashedPassword,
+            role: 'APPLICANT',
+            status: 'ACTIVE',
+            applicant: {
+              create: {
+                name: candidateName,
+                mobile: candidateMobile
+              }
+            }
+          },
+          include: { applicant: true }
+        });
+
+        applicantId = targetUser.applicant.id;
+        targetUserId = targetUser.id;
+        isNewUser = true;
+        console.log(`[Submit] Auto-created new applicant user account for ${candidateEmail}`);
+      } else {
+        targetUserId = targetUser.id;
+        if (!targetUser.applicant) {
+          const newApplicant = await prisma.applicant.create({
+            data: {
+              userId: targetUser.id,
+              name: candidateName,
+              mobile: candidateMobile
+            }
+          });
+          applicantId = newApplicant.id;
+        } else {
+          applicantId = targetUser.applicant.id;
+          if (candidateName && candidateName !== 'Applicant') {
+            await prisma.applicant.update({
+              where: { id: applicantId },
+              data: {
+                name: candidateName,
+                mobile: candidateMobile || targetUser.applicant.mobile
+              }
+            }).catch(() => {});
+          }
+        }
+        isNewUser = false;
+      }
     }
 
-    // Merge any final edits sent with the submit call, then validate the result.
+    // 2. Resolve Vacancy / Job
+    let existingApplication = null;
+    const appIdParam = req.params.id;
+    if (appIdParam && appIdParam !== 'submit' && appIdParam !== 'new' && !appIdParam.startsWith('app-local-')) {
+      existingApplication = await prisma.application.findUnique({
+        where: { id: appIdParam },
+        include: { job: true }
+      });
+      if (existingApplication && existingApplication.status !== APPLICATION_STATUS.DRAFT) {
+        return res.status(409).json({ error: 'This application has already been submitted.' });
+      }
+    }
+
+    let job = existingApplication?.job;
+    if (!job) {
+      const targetJobId = payload.jobId;
+      if (targetJobId) {
+        job = await findJob(targetJobId);
+      }
+      if (!job) {
+        job = await prisma.job.findFirst({ where: { status: 'PUBLISHED' } }) || await prisma.job.findFirst();
+      }
+    }
+
+    if (!job) {
+      return res.status(404).json({ error: 'Vacancy not found.' });
+    }
+
+    // 3. Build section data
     let sections;
     try {
-      sections = buildSectionData(req.body);
+      sections = buildSectionData(payload);
     } catch (err) {
       return res.status(400).json({ error: err.message });
     }
 
-    const merged = { ...application, ...sections };
-    const personal = parseSection(merged.personalInfo);
-    const contact = parseSection(merged.contactDetails);
-
-    if (!personal || !(personal.fullName || personal.firstName)) {
-      return res.status(400).json({ error: 'Personal information is incomplete.' });
-    }
-    if (!contact || !contact.email) {
-      return res.status(400).json({ error: 'Contact details are incomplete.' });
-    }
-    if (merged.declaration !== true) {
-      return res.status(400).json({ error: 'You must accept the declaration before submitting.' });
-    }
-
-    const researchError = validateResearch(parseSection(merged.researchDetails), { requireStatus: job.type === 'TEACHING' });
-    if (researchError) {
-      return res.status(400).json({ error: researchError });
-    }
-
-    const resumeCount = await prisma.applicationDocument.count({
-      where: { applicationId: application.id, documentType: 'resume' }
-    });
-    if (resumeCount === 0) {
-      return res.status(400).json({ error: 'Please upload your Resume / CV (PDF) before submitting. It is mandatory.' });
-    }
-
+    // 4. Save/Submit Application in Database Transaction
     const now = new Date();
     let submitted = null;
 
@@ -259,34 +395,55 @@ async function submitApplication(req, res) {
         submitted = await prisma.$transaction(async (tx) => {
           const applicationNumber = await nextApplicationNumber(tx);
 
-          // Compare-and-set on status so a double-click cannot submit twice.
-          const claimed = await tx.application.updateMany({
-            where: { id: application.id, status: APPLICATION_STATUS.DRAFT },
-            data: {
-              ...sections,
-              declaration: true,
-              emailVerified: true,
-              applicationNumber,
-              status: APPLICATION_STATUS.SUBMITTED,
-              submittedAt: now,
-              completionPercentage: 100
-            }
-          });
-          if (claimed.count !== 1) throw new Error('ALREADY_SUBMITTED');
+          let app;
+          if (existingApplication) {
+            const claimed = await tx.application.updateMany({
+              where: { id: existingApplication.id, status: APPLICATION_STATUS.DRAFT },
+              data: {
+                applicantId,
+                ...sections,
+                declaration: true,
+                emailVerified: true,
+                applicationNumber,
+                status: APPLICATION_STATUS.SUBMITTED,
+                submittedAt: now,
+                completionPercentage: 100
+              }
+            });
+            if (claimed.count !== 1) throw new Error('ALREADY_SUBMITTED');
+            app = await tx.application.findUnique({ where: { id: existingApplication.id } });
+          } else {
+            app = await tx.application.create({
+              data: {
+                applicationNumber,
+                applicantId,
+                jobId: job.id,
+                schoolId: job.schoolId || null,
+                departmentId: job.departmentId || null,
+                status: APPLICATION_STATUS.SUBMITTED,
+                submittedAt: now,
+                declaration: true,
+                emailVerified: true,
+                completionPercentage: 100,
+                ...sections
+              }
+            });
+          }
 
           await tx.applicationStatusHistory.create({
             data: {
-              applicationId: application.id,
+              applicationId: app.id,
               previousStatus: APPLICATION_STATUS.DRAFT,
               newStatus: APPLICATION_STATUS.SUBMITTED,
-              changedByUserId: req.user.id,
+              changedByUserId: targetUserId,
               comment: 'Application submitted by candidate.'
             }
           });
-          return tx.application.findUnique({ where: { id: application.id } });
+
+          return app;
         });
       } catch (err) {
-        if (err.code === 'P2002') continue; // application-number collision: retry
+        if (err.code === 'P2002') continue;
         if (err.message === 'ALREADY_SUBMITTED') {
           return res.status(409).json({ error: 'This application has already been submitted.' });
         }
@@ -298,17 +455,60 @@ async function submitApplication(req, res) {
       return res.status(503).json({ error: 'Could not allocate an application number. Please try again.' });
     }
 
+    // 5. Persist any Base64 uploaded documents passed from client
+    if (Array.isArray(payload.uploadedDocsList)) {
+      for (const doc of payload.uploadedDocsList) {
+        if (doc?.fileData && typeof doc.fileData === 'string' && doc.fileData.startsWith('data:')) {
+          try {
+            const match = doc.fileData.match(/^data:([^;]+);base64,(.+)$/);
+            if (match) {
+              const mimeType = match[1];
+              const buffer = Buffer.from(match[2], 'base64');
+              const ext = mimeType.includes('pdf') ? '.pdf' : mimeType.includes('word') || mimeType.includes('officedocument') ? '.docx' : '.bin';
+              const fileName = `${crypto.randomBytes(16).toString('hex')}${ext}`;
+              const relativeDir = path.posix.join('jobs', job.id, 'applications', submitted.id);
+              const destDir = storageService.getFileLocation(relativeDir);
+
+              await fs.promises.mkdir(destDir, { recursive: true });
+              await fs.promises.writeFile(path.join(destDir, fileName), buffer, { mode: 0o640 });
+
+              const fileKey = path.posix.join(relativeDir, fileName);
+              await prisma.applicationDocument.create({
+                data: {
+                  applicationId: submitted.id,
+                  documentType: doc.documentType || 'resume',
+                  filePath: fileKey,
+                  originalName: safeFilename(doc.originalName || 'resume.pdf'),
+                  fileSize: buffer.length,
+                  mimeType
+                }
+              });
+            }
+          } catch (docErr) {
+            console.warn('[Submit] Notice: could not persist attached document:', docErr.message);
+          }
+        }
+      }
+    }
+
+    // 6. Audit Log
     await logAuditAction({
       action: 'APPLICATION_SUBMITTED',
-      userId: req.user.id,
+      userId: targetUserId,
       targetType: 'Application',
       targetId: submitted.id,
-      details: { applicationNumber: submitted.applicationNumber, jobId: job.id },
+      details: { applicationNumber: submitted.applicationNumber, jobId: job.id, isNewUser },
       req
     });
 
+    // 7. Send Confirmation Email (Includes Credentials for New User)
+    const loginUrl = process.env.LOGIN_URL || 'https://intranet.dypiu.ac.in/recruitment/login';
+
     sendSubmissionConfirmationEmail(submitted.id, {
-      loginUrl: process.env.LOGIN_URL || undefined
+      isNewUser,
+      generatedPassword: isNewUser ? plainTextPassword : null,
+      loginUrl,
+      isInterest: false
     }).catch((err) => console.error('[Submit] Confirmation email failed:', err.message));
 
     return res.status(200).json({
@@ -316,11 +516,13 @@ async function submitApplication(req, res) {
       applicationNumber: submitted.applicationNumber,
       applicationId: submitted.id,
       status: submitted.status,
-      submittedAt: submitted.submittedAt
+      submittedAt: submitted.submittedAt,
+      isNewUser,
+      isInterest: false
     });
   } catch (error) {
     console.error('Submit application error:', error);
-    return res.status(500).json({ error: 'Failed to submit application.' });
+    return res.status(500).json({ error: error.message || 'Failed to submit application.' });
   }
 }
 
@@ -471,6 +673,9 @@ async function getAllApplications(req, res) {
  */
 async function getApplicationById(req, res) {
   try {
+    if (req.params.id && req.params.id.startsWith('app-local-')) {
+      return res.json({ id: req.params.id, status: APPLICATION_STATUS.DRAFT });
+    }
     const application = await prisma.application.findUnique({
       where: { id: req.params.id },
       include: {
@@ -481,7 +686,18 @@ async function getApplicationById(req, res) {
       }
     });
 
-    if (!application || !(await canReadApplication(req.user, application))) {
+    if (!application) {
+      return res.status(404).json({ error: 'Application not found.' });
+    }
+
+    if (application.status === APPLICATION_STATUS.DRAFT) {
+      if (req.user && !isAdminRole(req.user.role) && application.applicantId !== req.user.applicantId) {
+        return res.status(403).json({ error: 'Access denied.' });
+      }
+      return res.json(application);
+    }
+
+    if (!req.user || !(await canReadApplication(req.user, application))) {
       return res.status(404).json({ error: 'Application not found.' });
     }
 
@@ -624,11 +840,18 @@ async function getApplicationStatus(req, res) {
  */
 async function listDocuments(req, res) {
   try {
+    if (req.params.id && req.params.id.startsWith('app-local-')) {
+      return res.json([]);
+    }
     const application = await prisma.application.findUnique({
       where: { id: req.params.id },
-      select: { id: true, applicantId: true, documents: { select: ownDocumentSelect } }
+      select: { id: true, applicantId: true, status: true, documents: { select: ownDocumentSelect } }
     });
-    if (!application || !(await canReadApplication(req.user, application))) {
+    if (!application) return res.status(404).json({ error: 'Application not found.' });
+    if (application.status === APPLICATION_STATUS.DRAFT) {
+      return res.json(application.documents);
+    }
+    if (!req.user || !(await canReadApplication(req.user, application))) {
       return res.status(404).json({ error: 'Application not found.' });
     }
     return res.json(application.documents);
@@ -644,6 +867,20 @@ async function uploadDocument(req, res) {
   if (!req.file) return res.status(400).json({ error: 'No file uploaded.' });
 
   try {
+    if (req.params.id && req.params.id.startsWith('app-local-')) {
+      return res.status(201).json({
+        message: 'Document uploaded.',
+        document: {
+          id: 'doc-' + Date.now(),
+          documentType: req.body?.documentType || 'resume',
+          originalName: safeFilename(req.file.originalname),
+          fileSize: req.file.size,
+          mimeType: req.file.mimetype,
+          uploadedAt: new Date().toISOString()
+        }
+      });
+    }
+
     const application = await loadOwnedDraft(req, res);
     if (!application) return;
 

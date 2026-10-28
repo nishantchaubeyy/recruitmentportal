@@ -255,7 +255,6 @@ function ApplicationForm() {
   // STEP 6: Documents
   const [resumeFile, setResumeFile] = useState(null);
   const [photoFile, setPhotoFile] = useState(null);
-  const [certificatesFile, setCertificatesFile] = useState(null);
   const [idProofFile, setIdProofFile] = useState(null);
   const [uploadedDocsList, setUploadedDocsList] = useState([]);
 
@@ -812,9 +811,12 @@ function ApplicationForm() {
 
   // File Upload Handler for Step 6
   const handleFileUpload = async (file, docType) => {
-    if (!file) return;
-    if (file.type !== 'application/pdf') {
-      setError('Only PDF files are accepted.');
+    const isPdfOrWord = file.type === 'application/pdf' || 
+      file.type === 'application/msword' || 
+      file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+      /\.(pdf|doc|docx)$/i.test(file.name);
+    if (!isPdfOrWord) {
+      setError('Accepted formats: PDF, DOC, DOCX (max 5MB).');
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
@@ -933,7 +935,8 @@ function ApplicationForm() {
           records: experiences
         },
         declaration: true,
-        emailVerified: true
+        emailVerified: true,
+        uploadedDocsList
       };
 
       let submitRes;
@@ -1654,7 +1657,7 @@ function ApplicationForm() {
                       </div>
                     </div>
 
-                    <div className="app-exp-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '15px' }}>
+                    <div className="app-exp-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
                       <div className="form-group" style={{ marginBottom: 0 }}>
                         <label style={{ fontWeight: 700, fontSize: '0.82rem' }}>From Date</label>
                         <input type="date" value={exp.fromDate} onChange={(e) => handleExpChange(idx, 'fromDate', e.target.value)} />
@@ -1663,22 +1666,6 @@ function ApplicationForm() {
                       <div className="form-group" style={{ marginBottom: 0 }}>
                         <label style={{ fontWeight: 700, fontSize: '0.82rem' }}>To Date</label>
                         <input type="date" disabled={exp.isCurrent} value={exp.isCurrent ? '' : exp.toDate} onChange={(e) => handleExpChange(idx, 'toDate', e.target.value)} />
-                      </div>
-
-                      <div className="form-group" style={{ marginBottom: 0 }}>
-                        <label style={{ fontWeight: 700, fontSize: '0.82rem' }}>Gross Salary p.m.</label>
-                        <input type="text" placeholder="Salary" value={exp.salary} onChange={(e) => handleExpChange(idx, 'salary', e.target.value)} />
-                      </div>
-
-                      <div className="form-group" style={{ marginBottom: 0 }}>
-                        <label style={{ fontWeight: 700, fontSize: '0.82rem' }}>Notice Period</label>
-                        <select value={exp.noticePeriod} onChange={(e) => handleExpChange(idx, 'noticePeriod', e.target.value)}>
-                          <option value="Immediate">Immediate</option>
-                          <option value="15 Days">15 Days</option>
-                          <option value="30 Days">30 Days</option>
-                          <option value="60 Days">60 Days</option>
-                          <option value="90 Days">90 Days</option>
-                        </select>
                       </div>
                     </div>
                   </div>
@@ -1835,23 +1822,23 @@ function ApplicationForm() {
               STEP 6 — Document Uploads (PDF / Word, max 5MB)
             </h3>
 
-            <div className="app-form-grid-2col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+            <div style={{ maxWidth: '640px', margin: '0 auto' }}>
               {/* Resume Upload */}
               <div style={{
                 border: (resumeFile || uploadedDocsList.some(d => d.documentType === 'resume')) ? '2px solid #16A34A' : '2px dashed #721B28',
                 borderRadius: '12px',
-                padding: '20px',
+                padding: '24px 20px',
                 textAlign: 'center',
                 backgroundColor: (resumeFile || uploadedDocsList.some(d => d.documentType === 'resume')) ? '#F0FDF4' : '#FFF5F5'
               }}>
-                <div style={{ fontSize: '1.8rem', marginBottom: '6px' }}>
+                <div style={{ fontSize: '2rem', marginBottom: '8px' }}>
                   {(resumeFile || uploadedDocsList.some(d => d.documentType === 'resume')) ? '✅' : '📄'}
                 </div>
-                <div style={{ fontWeight: 700, color: '#0F172A', fontSize: '0.92rem' }}>
+                <div style={{ fontWeight: 700, color: '#0F172A', fontSize: '0.96rem' }}>
                   {resumeFile ? `Selected: ${resumeFile.name}` : (uploadedDocsList.find(d => d.documentType === 'resume')?.originalName || 'Upload Resume / CV')}
                   <span style={{ color: '#DC2626', fontWeight: 800, marginLeft: '6px' }}>* Mandatory</span>
                 </div>
-                <div style={{ fontSize: '0.75rem', color: '#64748B', marginTop: '4px' }}>
+                <div style={{ fontSize: '0.8rem', color: '#64748B', marginTop: '4px' }}>
                   {(resumeFile || uploadedDocsList.some(d => d.documentType === 'resume'))
                     ? 'Resume successfully uploaded to your dossier.'
                     : 'Accepted formats: PDF, DOC, DOCX (max 5MB)'}
@@ -1860,36 +1847,12 @@ function ApplicationForm() {
                   type="file"
                   accept=".pdf,.doc,.docx,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                   required
-                  style={{ marginTop: '10px' }}
+                  style={{ marginTop: '12px' }}
                   onChange={(e) => {
                     const f = e.target.files[0];
                     if (f) {
                       setResumeFile(f);
                       handleFileUpload(f, 'resume');
-                    }
-                  }}
-                />
-              </div>
-
-              {/* Certificates Upload */}
-              <div style={{ border: '2px dashed #cbd5e1', borderRadius: '12px', padding: '20px', textAlign: 'center', backgroundColor: '#f8fafc' }}>
-                <div style={{ fontSize: '1.8rem', marginBottom: '6px' }}>📜</div>
-                <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.92rem' }}>
-                  {certificatesFile ? `Selected: ${certificatesFile.name}` : 'Upload Certificates (PDF)'}
-                  <span style={{ color: '#64748B', fontSize: '0.78rem', fontWeight: 600, marginLeft: '6px' }}>(Optional)</span>
-                </div>
-                <div style={{ fontSize: '0.75rem', color: '#64748B', marginTop: '4px' }}>
-                  Educational degrees, experience letters, or certifications (PDF only, max 5MB)
-                </div>
-                <input
-                  type="file"
-                  accept=".pdf"
-                  style={{ marginTop: '10px' }}
-                  onChange={(e) => {
-                    const f = e.target.files[0];
-                    if (f) {
-                      setCertificatesFile(f);
-                      handleFileUpload(f, 'qualification');
                     }
                   }}
                 />
