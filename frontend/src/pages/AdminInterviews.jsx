@@ -191,7 +191,7 @@ function AdminInterviews() {
     }
 
     if (!formData.zoomLink) {
-      setError('Please provide the Zoom meeting link.');
+      setError('Please provide the meeting link.');
       return;
     }
 
@@ -207,7 +207,7 @@ function AdminInterviews() {
         })
       });
 
-      setSuccess(res.message || 'Interview scheduled & Zoom links emailed to selected candidate(s) and panelists.');
+      setSuccess(res.message || 'Interview scheduled & meeting links emailed to selected candidate(s) and panelists.');
       setShowScheduleModal(false);
       setFormData({
         title: '',
@@ -331,7 +331,7 @@ function AdminInterviews() {
             Interviews
           </h1>
           <p style={{ margin: '4px 0 0 0', color: '#64748B', fontSize: '0.92rem' }}>
-            Schedule interviews for single or multiple candidates with automated Zoom link delivery to both candidates and panelists.
+            Schedule interviews for single or multiple candidates with automated meeting link delivery to both candidates and panelists.
           </p>
         </div>
 
@@ -548,7 +548,7 @@ function AdminInterviews() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <span style={{ backgroundColor: '#2D8CFF', color: '#fff', fontSize: '0.74rem', fontWeight: 800, padding: '3px 8px', borderRadius: '4px' }}>
-                        ZOOM
+                        MEETING
                       </span>
                       <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#0F172A' }}>
                         Meeting Details:
@@ -595,7 +595,7 @@ function AdminInterviews() {
                         gap: '6px'
                       }}
                     >
-                      <span>Join Zoom Meeting</span>
+                      <span>Join Meeting</span>
                       <IconExternalLink size={13} color="#ffffff" />
                     </a>
                   )}
@@ -650,7 +650,7 @@ function AdminInterviews() {
                           {!isCancelled && (
                             <button
                               onClick={() => handleResendEmail(inv.id, ic.candidateId)}
-                              title="Resend Zoom invite email to this candidate"
+                              title="Resend meeting invite email to this candidate"
                               style={{
                                 backgroundColor: 'transparent',
                                 border: '1px solid #CBD5E1',
@@ -805,7 +805,7 @@ function AdminInterviews() {
               </div>
 
               <div style={{ marginBottom: '14px' }}>
-                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>Zoom Link *</label>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>Meeting Link *</label>
                 <input
                   type="url"
                   required

@@ -1,12 +1,30 @@
 import React, { useContext, useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
+import { apiRequest } from '../utils/api';
 
 function Header() {
   const { user, logout } = useContext(AuthContext);
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [hasDocRequests, setHasDocRequests] = useState(false);
+
+  useEffect(() => {
+    if (user && user.role === 'APPLICANT') {
+      apiRequest('/documents/my')
+        .then(data => {
+          if (Array.isArray(data) && data.length > 0) {
+            setHasDocRequests(true);
+          } else {
+            setHasDocRequests(false);
+          }
+        })
+        .catch(() => setHasDocRequests(false));
+    } else {
+      setHasDocRequests(false);
+    }
+  }, [user]);
 
   const handleLogout = () => {
     logout();
@@ -57,7 +75,7 @@ function Header() {
               >
                 Dashboard
               </Link>
-              {user.role === 'APPLICANT' && (
+              {user.role === 'APPLICANT' && hasDocRequests && (
                 <Link
                   to="/applicant/documents"
                   className={location.pathname.includes('/documents') ? 'active' : ''}

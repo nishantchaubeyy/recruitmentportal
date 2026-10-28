@@ -335,7 +335,7 @@ function AdminReviewApplication() {
                   gap: '4px'
                 }}
               >
-                <span>🎥 Schedule Interview (Panel & Zoom)</span>
+                <span>🎥 Schedule Interview (Panel & Meeting Link)</span>
               </button>
             </div>
           </div>

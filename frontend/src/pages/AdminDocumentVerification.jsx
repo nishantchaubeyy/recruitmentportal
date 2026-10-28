@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { apiRequest, API_URL } from '../utils/api';
 import {
   IconFolder,
@@ -7,6 +7,7 @@ import {
   IconExternalLink,
   IconCheckCircle
 } from '../components/icons/AdminIcons';
+import { APPROVED_UNIVERSITY_STRUCTURE } from '../constants/universityStructure';
 
 const STANDARD_DOCUMENTS = [
   'Original Resume / CV',
@@ -46,9 +47,124 @@ function AdminDocumentVerification() {
   const [rejectionReason, setRejectionReason] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  // New Request Form
+  // New Request Form – School/Department Filters
+  const [filterSchool, setFilterSchool] = useState('');
+  const [filterDepartment, setFilterDepartment] = useState('');
   const [selectedApplicantId, setSelectedApplicantId] = useState('');
   const [selectedApplicationId, setSelectedApplicationId] = useState('');
+
+  // Derive school list from APPROVED_UNIVERSITY_STRUCTURE and existing applications
+  const allSchools = useMemo(() => {
+    const schoolMap = new Map();
+    // 1. Add approved university structure schools
+    APPROVED_UNIVERSITY_STRUCTURE.forEach(fac => {
+      fac.schools.forEach(sch => {
+        schoolMap.set(sch.name.toLowerCase(), {
+          id: sch.id,
+          name: sch.name,
+          code: sch.code,
+          departments: sch.departments ? sch.departments.map(d => d.name) : []
+        });
+      });
+    });
+
+    // 2. Add schools from loaded applications/jobs
+    applications.forEach(app => {
+      const sName = app.job?.school?.name || app.job?.department;
+      if (sName) {
+        const cleanName = sName.replace(/^\[ARCHIVED\]\s*/i, '').trim();
+        const key = cleanName.toLowerCase();
+        if (!schoolMap.has(key)) {
+          schoolMap.set(key, {
+            id: app.job?.school?.id || app.job?.schoolId || key,
+            name: cleanName,
+            code: app.job?.school?.code || 'SCH',
+            departments: []
+          });
+        }
+        const dName = app.job?.departmentRef?.name || (app.job?.department !== sName ? app.job?.department : null);
+        if (dName) {
+          const entry = schoolMap.get(key);
+          if (entry && !entry.departments.includes(dName)) {
+            entry.departments.push(dName);
+          }
+        }
+      }
+    });
+
+    return Array.from(schoolMap.values()).sort((a, b) => a.name.localeCompare(b.name));
+  }, [applications]);
+
+  // Derive departments for selected school
+  const departmentsForSchool = useMemo(() => {
+    if (!filterSchool) return [];
+    const target = filterSchool.toLowerCase();
+    const sch = allSchools.find(s => s.name.toLowerCase() === target || s.name.toLowerCase().includes(target) || target.includes(s.name.toLowerCase()));
+    return sch ? sch.departments : [];
+  }, [filterSchool, allSchools]);
+
+  // Applications filtered by school/department – display only candidates shortlisted/selected for document verification
+  // Deduplicates candidates so no duplicate or irrelevant candidate appears
+  const filteredApplicationsForModal = useMemo(() => {
+    if (!filterSchool) return [];
+
+    const allowedStatuses = [
+      'SHORTLISTED',
+      'INTERVIEW_SCHEDULED',
+      'SELECTED',
+      'DOCUMENT_REQUESTED',
+      'DOCUMENT_VERIFIED'
+    ];
+
+    const seenCandidateIds = new Set();
+    const result = [];
+
+    const targetSchool = filterSchool.toLowerCase();
+    const targetDept = filterDepartment ? filterDepartment.toLowerCase() : '';
+
+    for (const app of applications) {
+      // Exclude irrelevant statuses (draft, rejected, withdrawn, closed)
+      if (!app || app.status === 'DRAFT' || app.status === 'REJECTED' || app.status === 'WITHDRAWN' || app.status === 'CLOSED') {
+        continue;
+      }
+
+      // Candidate must be shortlisted or selected for document verification
+      const isShortlistedOrSelected =
+        allowedStatuses.includes(app.status) ||
+        (app.screeningRemarks && /shortlist|document|verify|interview/i.test(app.screeningRemarks));
+
+      if (!isShortlistedOrSelected) {
+        continue;
+      }
+
+      // School filter match
+      const appSchoolName = (app.job?.school?.name || '').toLowerCase();
+      const appJobDept = (app.job?.department || '').toLowerCase();
+      const matchesSchool = appSchoolName.includes(targetSchool) || targetSchool.includes(appSchoolName) ||
+        appJobDept.includes(targetSchool) || targetSchool.includes(appJobDept);
+
+      if (!matchesSchool) continue;
+
+      // Department filter match
+      if (targetDept) {
+        const appDeptRef = (app.job?.departmentRef?.name || '').toLowerCase();
+        const matchesDept = appDeptRef.includes(targetDept) || targetDept.includes(appDeptRef) ||
+          appJobDept.includes(targetDept) || targetDept.includes(appJobDept);
+        if (!matchesDept) continue;
+      }
+
+      // Prevent duplicate candidates
+      const candidateId = app.applicantId || app.applicant?.id;
+      if (candidateId) {
+        if (seenCandidateIds.has(candidateId)) continue;
+        seenCandidateIds.add(candidateId);
+      }
+
+      result.push(app);
+    }
+
+    return result;
+  }, [applications, filterSchool, filterDepartment]);
   const [checkedDocs, setCheckedDocs] = useState([
     'Original Resume / CV',
     '10th Marksheet & Certificate',
@@ -176,6 +292,8 @@ function AdminDocumentVerification() {
       // Reset form
       setSelectedApplicantId('');
       setSelectedApplicationId('');
+      setFilterSchool('');
+      setFilterDepartment('');
       setMessage('');
       fetchInitialData();
     } catch (err) {
@@ -663,37 +781,88 @@ function AdminDocumentVerification() {
             </div>
 
             <form onSubmit={handleSendRequestSubmit}>
-              {/* Select Candidate */}
-              <div style={{ marginBottom: '16px' }}>
+              {/* ── Step 1: School Filter ── */}
+              <div style={{ marginBottom: '14px' }}>
                 <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                  Select Candidate / Application *
+                  Step 1: Filter by School *
                 </label>
                 <select
-                  required
-                  value={selectedApplicationId}
+                  value={filterSchool}
                   onChange={(e) => {
-                    const appId = e.target.value;
-                    setSelectedApplicationId(appId);
-                    const selected = applications.find(a => a.id === appId);
-                    if (selected) {
-                      setSelectedApplicantId(selected.applicantId || selected.applicant?.id || '');
-                    } else {
-                      setSelectedApplicantId('');
-                    }
+                    setFilterSchool(e.target.value);
+                    setFilterDepartment('');
+                    setSelectedApplicationId('');
+                    setSelectedApplicantId('');
                   }}
                   style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.88rem' }}
                 >
-                  <option value="">-- Choose Candidate --</option>
-                  {applications.length === 0 ? (
-                    <option value="" disabled>-- No Candidates / Submitted Applications Found --</option>
-                  ) : (
-                    applications.map(app => (
+                  <option value="">-- Select School --</option>
+                  {allSchools.map(sch => (
+                    <option key={sch.id} value={sch.name}>{sch.name} ({sch.code})</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* ── Step 2: Department Filter ── */}
+              {filterSchool && (
+                <div style={{ marginBottom: '14px' }}>
+                  <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
+                    Step 2: Filter by Department (Optional)
+                  </label>
+                  <select
+                    value={filterDepartment}
+                    onChange={(e) => {
+                      setFilterDepartment(e.target.value);
+                      setSelectedApplicationId('');
+                      setSelectedApplicantId('');
+                    }}
+                    style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.88rem' }}
+                  >
+                    <option value="">-- All Departments in this School --</option>
+                    {departmentsForSchool.map(dept => (
+                      <option key={dept} value={dept}>{dept}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* ── Step 3: Select Candidate ── */}
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
+                  Step 3: Select Candidate / Application *
+                </label>
+                {!filterSchool ? (
+                  <div style={{ padding: '10px 14px', backgroundColor: '#F8FAFC', border: '1px dashed #CBD5E1', borderRadius: '8px', fontSize: '0.84rem', color: '#64748B' }}>
+                    ← Please select a School first to see eligible candidates.
+                  </div>
+                ) : filteredApplicationsForModal.length === 0 ? (
+                  <div style={{ padding: '10px 14px', backgroundColor: '#FEF3C7', border: '1px solid #FDE68A', borderRadius: '8px', fontSize: '0.84rem', color: '#92400E' }}>
+                    No shortlisted candidates found for the selected school/department. Only candidates with status SHORTLISTED, INTERVIEW_SCHEDULED, UNDER_REVIEW, or SUBMITTED are shown.
+                  </div>
+                ) : (
+                  <select
+                    required
+                    value={selectedApplicationId}
+                    onChange={(e) => {
+                      const appId = e.target.value;
+                      setSelectedApplicationId(appId);
+                      const selected = applications.find(a => a.id === appId);
+                      if (selected) {
+                        setSelectedApplicantId(selected.applicantId || selected.applicant?.id || '');
+                      } else {
+                        setSelectedApplicantId('');
+                      }
+                    }}
+                    style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.88rem' }}
+                  >
+                    <option value="">-- Choose Candidate ({filteredApplicationsForModal.length} eligible) --</option>
+                    {filteredApplicationsForModal.map(app => (
                       <option key={app.id} value={app.id}>
                         {getCandidateDisplay(app)}
                       </option>
-                    ))
-                  )}
-                </select>
+                    ))}
+                  </select>
+                )}
               </div>
 
               {/* Deadline & Priority */}

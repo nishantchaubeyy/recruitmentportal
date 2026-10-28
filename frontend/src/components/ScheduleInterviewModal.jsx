@@ -187,7 +187,7 @@ function ScheduleInterviewModal({ application, isOpen, onClose, onSuccess }) {
         }}>
           <div>
             <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, letterSpacing: '-0.2px', color: '#FFFFFF' }}>
-              Schedule Interview with Panel & Zoom Invite
+              Schedule Interview with Panel & Meeting Invite
             </h3>
             <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: '#FCD34D', fontWeight: 600 }}>
               D Y Patil International University &bull; Recruitment Cell
@@ -436,20 +436,20 @@ function ScheduleInterviewModal({ application, isOpen, onClose, onSuccess }) {
             />
           </div>
 
-          {/* 5. ZOOM: AUTO OR PASTE FALLBACK */}
+          {/* 5. MEETING LINK: AUTO OR PASTE FALLBACK */}
           <div>
             <label style={labelStyle}>
-              5. Zoom Join Link (Optional Fallback / Manual Meeting)
+              5. Meeting Link (Optional Fallback / Online Meeting)
             </label>
             <input
               type="url"
-              placeholder="https://zoom.us/j/... (Leave blank for automated Zoom creation)"
+              placeholder="https://... (Leave blank for automated meeting creation)"
               style={inputStyle}
               value={zoomJoinUrl}
               onChange={e => setZoomJoinUrl(e.target.value)}
             />
             <span style={{ fontSize: '0.72rem', color: '#64748B', display: 'block', marginTop: '3px' }}>
-              If Server-to-Server Zoom OAuth is configured, a meeting will be auto-generated. If not, paste a link here or email will advise HR will coordinate.
+              If video conferencing integration is configured, a meeting will be auto-generated. If not, paste a meeting link here or email will advise HR will coordinate.
             </span>
           </div>
 
@@ -464,8 +464,8 @@ function ScheduleInterviewModal({ application, isOpen, onClose, onSuccess }) {
           }}>
             <strong style={{ color: '#721B28' }}>Automated Actions on Confirm:</strong>
             <ul style={{ margin: '6px 0 0 0', paddingLeft: '18px', display: 'flex', flexDirection: 'column', gap: '3px' }}>
-              <li>Creates scheduled <strong>Zoom Meeting</strong> room (if configured) or uses provided link.</li>
-              <li>Emails personalized invitations with Zoom link to <strong>candidate</strong> and <strong>each selected panelist</strong>.</li>
+              <li>Creates scheduled <strong>Online Meeting</strong> room (if configured) or uses provided link.</li>
+              <li>Emails personalized invitations with meeting link to <strong>candidate</strong> and <strong>each selected panelist</strong>.</li>
               <li>Updates application stage to <strong>Interview Scheduled</strong> in screening pipeline.</li>
             </ul>
           </div>

@@ -1,4 +1,7 @@
+const fs = require('fs');
+const path = require('path');
 const prisma = require('../services/prisma');
+const storageService = require('../services/storageService');
 const { logAuditAction } = require('../services/auditService');
 const { createZoomMeeting } = require('../services/zoomService');
 const {
@@ -50,6 +53,106 @@ function resolveCandidateContact(candidate, application) {
  * Schedule a new Zoom Interview (HR / Admin).
  * Supports selecting SINGLE or MULTIPLE candidates for the SAME Zoom meeting link.
  */
+
+/**
+ * Resolves candidate's Resume and CV files for panelist email attachments.
+ * If separate resume and CV are present, attaches both.
+ * If file not on disk or missing, gracefully falls back or omits.
+ */
+async function getCandidateResumeAndCvAttachments(applicationId, candidateId, candidateName = 'Candidate') {
+  const attachments = [];
+  const seenPaths = new Set();
+  const cleanName = String(candidateName || 'Candidate').replace(/[^a-zA-Z0-9_-]/g, '_');
+
+  try {
+    // 1. Search ApplicationDocument
+    if (applicationId) {
+      const appDocs = await prisma.applicationDocument.findMany({
+        where: { applicationId }
+      });
+
+      for (const doc of appDocs) {
+        const type = (doc.documentType || '').toLowerCase();
+        const origName = (doc.originalName || '').toLowerCase();
+        const isMatch = type === 'resume' || type.includes('cv') || origName.includes('resume') || origName.includes('cv');
+
+        if (isMatch && doc.filePath && storageService.fileExists(doc.filePath)) {
+          const absPath = storageService.getFileLocation(doc.filePath);
+          if (!seenPaths.has(absPath)) {
+            seenPaths.add(absPath);
+            const buf = fs.readFileSync(absPath);
+            attachments.push({
+              filename: `${cleanName}_${doc.originalName || 'Resume.pdf'}`,
+              content: buf,
+              contentType: doc.mimeType || 'application/pdf'
+            });
+          }
+        }
+      }
+    }
+
+    // 2. Search CandidateDocument
+    if (candidateId) {
+      const candDocs = await prisma.candidateDocument.findMany({
+        where: { candidateId },
+        include: { documentRequestItem: true }
+      });
+
+      for (const cDoc of candDocs) {
+        const itemType = (cDoc.documentRequestItem?.documentType || '').toLowerCase();
+        const itemName = (cDoc.documentRequestItem?.documentName || '').toLowerCase();
+        const fileName = (cDoc.fileName || '').toLowerCase();
+        const isMatch = itemType === 'resume' || itemType.includes('cv') ||
+          itemName.includes('resume') || itemName.includes('cv') ||
+          fileName.includes('resume') || fileName.includes('cv');
+
+        if (isMatch && cDoc.filePath && storageService.fileExists(cDoc.filePath)) {
+          const absPath = storageService.getFileLocation(cDoc.filePath);
+          if (!seenPaths.has(absPath)) {
+            seenPaths.add(absPath);
+            const buf = fs.readFileSync(absPath);
+            attachments.push({
+              filename: `${cleanName}_${cDoc.fileName || 'Resume_CV.pdf'}`,
+              content: buf,
+              contentType: cDoc.fileType || 'application/pdf'
+            });
+          }
+        }
+      }
+    }
+
+    // 3. Fallback: If no uploaded resume was found, generate applicant PDF dossier
+    if (attachments.length === 0 && applicationId) {
+      try {
+        const fullApp = await prisma.application.findUnique({
+          where: { id: applicationId },
+          include: {
+            job: { include: { school: true, departmentRef: true } },
+            applicant: { include: { user: true } }
+          }
+        });
+        if (fullApp) {
+          const { generateApplicationPdf } = require('../services/pdfService');
+          const pdfBuffer = await generateApplicationPdf(fullApp);
+          if (pdfBuffer && pdfBuffer.length > 0) {
+            attachments.push({
+              filename: `${cleanName}_Application_CV_Dossier.pdf`,
+              content: pdfBuffer,
+              contentType: 'application/pdf'
+            });
+          }
+        }
+      } catch (pdfErr) {
+        console.warn('[Attachments] Fallback dossier generation failed:', pdfErr.message);
+      }
+    }
+  } catch (err) {
+    console.error('[Attachments] Error retrieving resume/CV attachments:', err.message);
+  }
+
+  return attachments;
+}
+
 async function createInterview(req, res) {
   const {
     title,
@@ -172,7 +275,7 @@ async function createInterview(req, res) {
               previousStatus: app.status,
               newStatus: 'INTERVIEW_SCHEDULED',
               changedByUserId: req.user.id,
-              comment: `Interview scheduled on ${new Date(targetDate).toLocaleDateString('en-IN')} at ${targetStartTime} via Zoom.`
+              comment: `Interview scheduled on ${new Date(targetDate).toLocaleDateString('en-IN')} at ${targetStartTime} via meeting link.`
             }
           });
         }
@@ -266,6 +369,14 @@ async function createInterview(req, res) {
 
         const scheduledDateObj = new Date(targetDate);
 
+        // Fetch candidate resume & CV attachments
+        const allAttachments = [];
+        for (const cApp of candidateApplications) {
+          const cContact = resolveCandidateContact(cApp.applicant, cApp);
+          const atts = await getCandidateResumeAndCvAttachments(cApp.id, cApp.applicantId, cContact.name);
+          allAttachments.push(...atts);
+        }
+
         for (const panelist of panelists) {
           if (panelist.email) {
             const otherPanelists = panelists.filter(p => p.id !== panelist.id).map(p => p.name);
@@ -282,7 +393,8 @@ async function createInterview(req, res) {
               zoomMeetingId,
               zoomPassword,
               otherPanelists,
-              notes
+              notes,
+              attachments: allAttachments
             }).catch(err => console.error(`Failed to send interview email to panelist ${panelist.email}:`, err.message));
           }
         }
@@ -318,7 +430,7 @@ async function createInterview(req, res) {
     });
 
     return res.status(201).json({
-      message: `Interview scheduled successfully. Zoom meeting link sent to ${selectedCandidateIds.length} candidate(s).`,
+      message: `Interview scheduled successfully. Meeting link sent to ${selectedCandidateIds.length} candidate(s).`,
       interviewId: interview.id,
       emailsSentCount
     });
@@ -1083,6 +1195,13 @@ async function scheduleInterviewWithPanel(req, res) {
       }).catch(err => console.error('[Email Error] Candidate invite:', err));
     }
 
+    // Fetch candidate resume & CV attachments
+    const candidateAttachments = await getCandidateResumeAndCvAttachments(
+      application.id,
+      application.applicantId,
+      candidateName
+    );
+
     for (const member of selectedMembers) {
       if (member.email) {
         const otherPanelists = selectedMembers.filter(m => m.id !== member.id).map(m => m.name);
@@ -1099,7 +1218,8 @@ async function scheduleInterviewWithPanel(req, res) {
           zoomMeetingId: zoomResult.meetingId,
           zoomPassword: zoomResult.password,
           otherPanelists,
-          notes
+          notes,
+          attachments: candidateAttachments
         }).catch(err => console.error(`[Email Error] Panelist ${member.email}:`, err));
       }
     }

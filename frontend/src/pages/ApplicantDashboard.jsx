@@ -87,7 +87,7 @@ function ApplicantDashboard() {
           Applicant Portal Dashboard
         </h2>
         <p style={{ color: '#64748b', margin: '4px 0 0 0', fontSize: '0.92rem' }}>
-          Manage your job applications, join scheduled Zoom interviews, and upload original documents requested by HR.
+          Manage your job applications, join scheduled interviews, and upload original documents requested by HR.
         </p>
       </div>
 
@@ -153,7 +153,7 @@ function ApplicantDashboard() {
       )}
 
       {/* ============================================================== */}
-      {/* FEATURE 1: CANDIDATE "MY INTERVIEWS" SECTION WITH ZOOM LINK */}
+      {/* FEATURE 1: CANDIDATE "MY INTERVIEWS" SECTION WITH MEETING LINK */}
       {/* ============================================================== */}
       {upcomingInterviews.length > 0 && (
         <div style={{ marginBottom: '32px' }}>
@@ -173,7 +173,7 @@ function ApplicantDashboard() {
                 year: 'numeric'
               });
               const timeDisplay = inv.startTime && inv.endTime ? `${inv.startTime} to ${inv.endTime} (IST)` : (inv.startTime || inv.time);
-              const zoomUrl = inv.zoomLink || inv.meetingLink;
+              const meetingUrl = inv.meetingLink || inv.zoomLink;
 
               return (
                 <div
@@ -190,7 +190,7 @@ function ApplicantDashboard() {
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
                         <span style={{ backgroundColor: '#2D8CFF', color: '#ffffff', fontSize: '0.72rem', fontWeight: 800, padding: '2px 8px', borderRadius: '4px' }}>
-                          ZOOM INTERVIEW
+                          INTERVIEW
                         </span>
                         <span style={{ fontSize: '0.74rem', fontWeight: 700, backgroundColor: '#EFF6FF', color: '#1D4ED8', padding: '2px 8px', borderRadius: '4px' }}>
                           {inv.round || inv.interviewType || 'Round 1'}
@@ -218,9 +218,9 @@ function ApplicantDashboard() {
                     </div>
 
                     {/* Join Meeting Action Button */}
-                    {zoomUrl ? (
+                    {meetingUrl ? (
                       <a
-                        href={zoomUrl}
+                        href={meetingUrl}
                         target="_blank"
                         rel="noopener noreferrer"
                         style={{
@@ -238,7 +238,7 @@ function ApplicantDashboard() {
                           transition: 'all 0.2s ease'
                         }}
                       >
-                        <span>🎥 Join Zoom Meeting</span>
+                        <span>🎥 Join Meeting</span>
                       </a>
                     ) : (
                       <span style={{ fontSize: '0.82rem', color: '#64748B' }}>Link pending</span>
@@ -314,12 +314,15 @@ function ApplicantDashboard() {
         <h3 style={{ margin: 0, color: '#0F172A', fontSize: '1.25rem', fontWeight: 800 }}>
           My Applications
         </h3>
-        <Link
-          to="/applicant/documents"
-          style={{ fontSize: '0.84rem', color: '#8B1235', fontWeight: 700, textDecoration: 'none' }}
-        >
-          View My Documents &rarr;
-        </Link>
+        {/* Only show Documents link when HR has requested documents */}
+        {docRequests.length > 0 && (
+          <Link
+            to="/applicant/documents"
+            style={{ fontSize: '0.84rem', color: '#8B1235', fontWeight: 700, textDecoration: 'none' }}
+          >
+            View My Documents &rarr;
+          </Link>
+        )}
       </div>
 
       {loading ? (
@@ -430,21 +433,24 @@ function ApplicantDashboard() {
                       >
                         View Application
                       </button>
-                      <button
-                        onClick={() => navigate('/applicant/documents')}
-                        style={{
-                          backgroundColor: '#8B1235',
-                          color: '#FCD34D',
-                          border: 'none',
-                          padding: '9px 18px',
-                          borderRadius: '8px',
-                          fontWeight: 700,
-                          fontSize: '0.84rem',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        Upload Documents
-                      </button>
+                      {/* Only show Upload Documents button if HR has requested documents */}
+                      {docRequests.length > 0 && (
+                        <button
+                          onClick={() => navigate('/applicant/documents')}
+                          style={{
+                            backgroundColor: '#8B1235',
+                            color: '#FCD34D',
+                            border: 'none',
+                            padding: '9px 18px',
+                            borderRadius: '8px',
+                            fontWeight: 700,
+                            fontSize: '0.84rem',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Upload Documents
+                        </button>
+                      )}
                     </>
                   )}
                 </div>

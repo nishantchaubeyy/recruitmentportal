@@ -384,7 +384,7 @@ function AdminInterviewPanels() {
                 </div>
 
                 <div>
-                  <label style={labelStyle}>Email Address (for Zoom invites & assignments) *</label>
+                  <label style={labelStyle}>Email Address (for Meeting invites & assignments) *</label>
                   <input
                     type="email"
                     required

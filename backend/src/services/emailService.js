@@ -828,7 +828,7 @@ async function sendInterviewScheduledEmail({
         <!-- Meeting Card -->
         <div style="background: #fdfaf7; border: 1.5px solid #fed7aa; border-radius: 10px; padding: 20px; margin: 24px 0;">
           <div style="font-size: 12px; font-weight: 800; color: #9a3412; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 12px;">
-            ${interviewTitle || 'Zoom Interview Session Details'}
+            ${interviewTitle || 'Interview Session Details'}
           </div>
 
           <table width="100%" cellpadding="8" cellspacing="0" style="border-collapse: collapse; font-size: 14px;">
@@ -843,7 +843,7 @@ async function sendInterviewScheduledEmail({
             <tr style="border-bottom: 1px solid #fee2e2;">
               <td style="color: #64748b; font-weight: 600;">Platform:</td>
               <td style="color: #0f172a; font-weight: 700;">
-                <span style="background-color: #e0f2fe; color: #0369a1; padding: 3px 8px; border-radius: 4px; font-size: 12px; font-weight: 800;">ZOOM VIDEO CONFERENCE</span>
+                <span style="background-color: #e0f2fe; color: #0369a1; padding: 3px 8px; border-radius: 4px; font-size: 12px; font-weight: 800;">VIDEO CONFERENCE</span>
               </td>
             </tr>
             <tr style="border-bottom: 1px solid #fee2e2;">
@@ -871,7 +871,7 @@ async function sendInterviewScheduledEmail({
           ${zoomLink ? `
           <div style="text-align: center; margin-top: 22px;">
             <a href="${zoomLink}" target="_blank" style="display: inline-block; background-color: #2D8CFF; color: #ffffff; text-decoration: none; padding: 13px 28px; border-radius: 8px; font-weight: 800; font-size: 15px; box-shadow: 0 4px 12px rgba(45, 140, 255, 0.35);">
-              🎥 Click to Join Zoom Meeting
+              🎥 Click to Join Meeting
             </a>
             <div style="font-size: 12px; color: #64748b; margin-top: 8px; word-break: break-all;">
               Direct URL: <a href="${zoomLink}" style="color: #2D8CFF;">${zoomLink}</a>
@@ -914,7 +914,7 @@ async function sendInterviewScheduledEmail({
     to,
     subject,
     html,
-    text: `Dear ${candidateName}, Your interview for ${jobTitle} is scheduled on ${formattedDate} at ${timeDisplay} via Zoom. Link: ${zoomLink}`
+    text: `Dear ${candidateName}, Your interview for ${jobTitle} is scheduled on ${formattedDate} at ${timeDisplay}. Meeting Link: ${zoomLink}`
   });
 }
 
@@ -1243,7 +1243,7 @@ async function sendCandidateInterviewInvite({
             ${zoomJoinUrl ? `
             <tr style="border-bottom: 1px solid #fee2e2;">
               <td style="color: #64748b; font-weight: 600;">Platform:</td>
-              <td style="color: #0f172a; font-weight: 700;">Zoom Video Conference</td>
+              <td style="color: #0f172a; font-weight: 700;">Video Conference (Online Meeting)</td>
             </tr>
             <tr style="border-bottom: 1px solid #fee2e2;">
               <td style="color: #64748b; font-weight: 600;">Meeting ID:</td>
@@ -1264,7 +1264,7 @@ async function sendCandidateInterviewInvite({
           ${zoomJoinUrl ? `
           <div style="text-align: center; margin-top: 20px;">
             <a href="${zoomJoinUrl}" target="_blank" style="display: inline-block; background-color: #721b28; color: #ffffff; text-decoration: none; padding: 12px 28px; border-radius: 6px; font-weight: 700; font-size: 14px; letter-spacing: 0.3px;">
-              Join Zoom Meeting &rarr;
+              Join Meeting &rarr;
             </a>
           </div>
           ` : ''}
@@ -1292,12 +1292,13 @@ async function sendCandidateInterviewInvite({
     to,
     subject,
     html,
-    text: `Interview scheduled for ${position} on ${formattedDate} at ${formattedTime}. Panel: ${panelName}. Zoom Link: ${zoomJoinUrl || 'N/A'}`
+    text: `Interview scheduled for ${position} on ${formattedDate} at ${formattedTime}. Panel: ${panelName}. Meeting Link: ${zoomJoinUrl || 'N/A'}`
   });
 }
 
 /**
- * FEATURE 1: Email panelist when assigned to an interview
+ * FEATURE 1: Email panelist when assigned to an interview.
+ * Accepts optional attachments array (candidate resume/CV files).
  */
 async function sendPanelistInterviewInvite({
   to,
@@ -1312,7 +1313,8 @@ async function sendPanelistInterviewInvite({
   zoomMeetingId,
   zoomPassword,
   otherPanelists = [],
-  notes
+  notes,
+  attachments = []
 }) {
   const formattedDate = new Date(scheduledAt).toLocaleDateString('en-IN', {
     weekday: 'long',
@@ -1374,7 +1376,7 @@ async function sendPanelistInterviewInvite({
             ${meetingUrl ? `
             <tr style="border-bottom: 1px solid #fee2e2;">
               <td style="color: #64748b; font-weight: 600;">Platform:</td>
-              <td style="color: #0f172a; font-weight: 700;">Zoom Video Conference</td>
+              <td style="color: #0f172a; font-weight: 700;">Video Conference (Online Meeting)</td>
             </tr>
             <tr style="border-bottom: 1px solid #fee2e2;">
               <td style="color: #64748b; font-weight: 600;">Meeting ID:</td>
@@ -1390,7 +1392,7 @@ async function sendPanelistInterviewInvite({
           ${meetingUrl ? `
           <div style="text-align: center; margin-top: 20px;">
             <a href="${meetingUrl}" target="_blank" style="display: inline-block; background-color: #721b28; color: #ffffff; text-decoration: none; padding: 12px 28px; border-radius: 6px; font-weight: 700; font-size: 14px; letter-spacing: 0.3px;">
-              Start / Join Zoom Meeting &rarr;
+              Start / Join Meeting &rarr;
             </a>
           </div>
           ` : ''}
@@ -1416,7 +1418,8 @@ async function sendPanelistInterviewInvite({
     to,
     subject,
     html,
-    text: `Interview assignment for ${candidateName} applying for ${position} on ${formattedDate} at ${formattedTime}. Panel: ${panelName}. Zoom Link: ${meetingUrl || 'N/A'}`
+    text: `Interview assignment for ${candidateName} applying for ${position} on ${formattedDate} at ${formattedTime}. Panel: ${panelName}. Meeting Link: ${meetingUrl || 'N/A'}. Candidate resume/CV attached for your reference.`,
+    attachments: (attachments && attachments.length > 0) ? attachments : undefined
   });
 }
 

@@ -491,7 +491,7 @@ function AdminApplications() {
                               alignItems: 'center',
                               gap: '4px'
                             }}
-                            title="Schedule panel interview with Zoom invite"
+                            title="Schedule panel interview with Meeting invite"
                           >
                             <IconCalendar size={13} color="#FFFFFF" />
                             {app.status === 'INTERVIEW_SCHEDULED' ? 'Reschedule' : 'Schedule Interview'}

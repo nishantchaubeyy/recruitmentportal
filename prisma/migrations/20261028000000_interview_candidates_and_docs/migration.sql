@@ -1,3 +1,4 @@
+
 -- AlterTable: Add all missing Interview columns to production database
 ALTER TABLE "Interview" 
   ADD COLUMN IF NOT EXISTS "title" TEXT,
