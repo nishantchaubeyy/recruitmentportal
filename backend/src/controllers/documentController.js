@@ -11,15 +11,20 @@ const MAX_DOC_ITEMS = 30;
 const MAX_VERSIONS_PER_ITEM = 5;
 
 /** Resolve the requesting applicant's id (null for non-applicants). */
-function applicantIdOf(req) {
-  return req.user?.role === 'APPLICANT' ? req.user.applicantId : null;
+async function applicantIdOf(req) {
+  if (req.user?.role !== 'APPLICANT') return null;
+  if (req.user?.applicantId) return req.user.applicantId;
+  const applicant = await prisma.applicant.findFirst({ where: { userId: req.user.id } });
+  return applicant ? applicant.id : null;
 }
 
-/** Applicants may only touch their own request; HR/admin roles may touch any. */
-function canAccessRequest(req, request) {
+async function canAccessRequest(req, request) {
   if (isAdminRole(req.user.role)) return true;
-  return req.user.role === 'APPLICANT' && request.candidateId === req.user.applicantId;
+  if (req.user.role !== 'APPLICANT') return false;
+  const appCandidateId = await applicantIdOf(req);
+  return request.candidateId === appCandidateId;
 }
+
 const {
   sendDocumentRequestEmail,
   sendDocumentVerificationUpdateEmail
@@ -331,7 +336,8 @@ async function getDocumentRequestById(req, res) {
       }
     });
 
-    if (!request || !canAccessRequest(req, request)) {
+    const hasAccess = await canAccessRequest(req, request);
+    if (!request || !hasAccess) {
       return res.status(404).json({ error: 'Document request not found.' });
     }
 
@@ -356,7 +362,8 @@ async function uploadCandidateDocumentItem(req, res) {
       where: { id: requestId }
     });
 
-    if (!request || request.candidateId !== applicantIdOf(req)) {
+    const userAppId = await applicantIdOf(req);
+    if (!request || request.candidateId !== userAppId) {
       return res.status(404).json({ error: 'Document request not found.' });
     }
     if (['SUBMITTED', 'VERIFIED'].includes(request.status)) {
@@ -437,7 +444,8 @@ async function submitAllDocuments(req, res) {
       }
     });
 
-    if (!request || request.candidateId !== applicantIdOf(req)) {
+    const userAppId = await applicantIdOf(req);
+    if (!request || request.candidateId !== userAppId) {
       return res.status(404).json({ error: 'Document request not found.' });
     }
     if (['SUBMITTED', 'VERIFIED'].includes(request.status)) {
@@ -664,7 +672,8 @@ async function downloadDocumentFile(req, res) {
     });
 
     // Applicants may only open their own files; HR roles may open any.
-    const allowed = doc && (isAdminRole(req.user.role) || (req.user.role === 'APPLICANT' && doc.candidateId === req.user.applicantId));
+    const userAppId = await applicantIdOf(req);
+    const allowed = doc && (isAdminRole(req.user.role) || (req.user.role === 'APPLICANT' && doc.candidateId === userAppId));
     if (!allowed) {
       return res.status(404).json({ error: 'Document not found.' });
     }

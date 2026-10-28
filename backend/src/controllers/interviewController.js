@@ -586,12 +586,31 @@ async function getMyInterviews(req, res) {
         ]
       },
       include: {
-        job: true,
+        job: {
+          include: {
+            school: true,
+            departmentRef: true
+          }
+        },
+        application: true,
+        panel: {
+          include: {
+            members: true
+          }
+        },
+        selectedMembers: {
+          include: {
+            member: true
+          }
+        },
         candidates: {
           where: { candidateId: applicant.id }
         }
       },
-      orderBy: { date: 'asc' }
+      orderBy: [
+        { scheduledAt: 'asc' },
+        { date: 'asc' }
+      ]
     });
 
     return res.json(interviews);

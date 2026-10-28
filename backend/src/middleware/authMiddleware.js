@@ -4,10 +4,15 @@ const { JWT_SECRET, JWT_ALGORITHM, ADMIN_ROLES } = require('../config');
 
 function extractBearer(req) {
   const header = req.headers['authorization'];
-  if (!header || typeof header !== 'string') return null;
-  const [scheme, token] = header.split(' ');
-  if (!/^Bearer$/i.test(scheme) || !token) return null;
-  return token;
+  if (header && typeof header === 'string') {
+    const [scheme, token] = header.split(' ');
+    if (/^Bearer$/i.test(scheme) && token) return token;
+  }
+  // Allow ?token= parameter for direct browser downloads / view links
+  if (req.query && req.query.token && typeof req.query.token === 'string') {
+    return req.query.token;
+  }
+  return null;
 }
 
 function verifyAccessToken(token) {

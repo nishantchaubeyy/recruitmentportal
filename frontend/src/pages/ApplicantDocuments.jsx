@@ -283,7 +283,7 @@ function ApplicantDocuments() {
                             <div style={{ fontSize: '0.76rem', color: '#64748B', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '10px' }}>
                               <span>Uploaded: {latestDoc.fileName} ({(latestDoc.fileSize / 1024).toFixed(0)} KB)</span>
                               <a
-                                href={`${API_URL}/documents/file/${latestDoc.id}?inline=true`}
+                                href={`${API_URL}/documents/file/${latestDoc.id}?inline=true&token=${encodeURIComponent(localStorage.getItem('token') || '')}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 style={{ color: '#2563EB', textDecoration: 'none', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '3px' }}
