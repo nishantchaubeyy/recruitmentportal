@@ -514,6 +514,7 @@ function Home() {
           align-items: center;
           justify-content: center;
           transition: all 0.2s ease;
+          z-index: 10;
         }
 
         .portal-modal-close-btn:hover {
@@ -1059,11 +1060,11 @@ function Home() {
       {activePosterUrl && (
         <div className="portal-modal-overlay" onClick={() => setActivePosterUrl(null)}>
           <div className="poster-modal-card" onClick={(e) => e.stopPropagation()}>
-            <div style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', marginBottom: '14px', padding: '0 44px', boxSizing: 'border-box' }}>
+            <button className="portal-modal-close-btn" onClick={() => setActivePosterUrl(null)} title="Close">✕</button>
+            <div style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '14px', padding: '0 52px', boxSizing: 'border-box' }}>
               <h3 style={{ margin: 0, color: '#8B1235', fontFamily: 'Playfair Display, serif', fontSize: '1.3rem', textAlign: 'center', fontWeight: 700 }}>
                 Official Recruitment Advertisement
               </h3>
-              <button className="portal-modal-close-btn" onClick={() => setActivePosterUrl(null)} title="Close">✕</button>
             </div>
             <div style={{
               display: 'flex',
