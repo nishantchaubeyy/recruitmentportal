@@ -72,9 +72,9 @@ app.use('/api/auth/forgot-password', limiter(60 * MIN, 10, 'Too many reset reque
 app.use('/api/auth/reset-password', limiter(15 * MIN, 20, 'Too many reset attempts. Please try again later.'));
 app.use('/api/auth/refresh', limiter(15 * MIN, 120, 'Too many session refresh attempts.'));
 
-// Body parser middleware
-app.use(express.json({ limit: '1mb' }));
-app.use(express.urlencoded({ extended: false, limit: '100kb' }));
+// Body parser middleware - allows recruitment posters, rich descriptions, and application payloads
+app.use(express.json({ limit: '25mb' }));
+app.use(express.urlencoded({ extended: true, limit: '25mb' }));
 
 // Uploads: only recruitment poster images are public. Candidate and application
 // documents are private and are only reachable through authorised API endpoints.

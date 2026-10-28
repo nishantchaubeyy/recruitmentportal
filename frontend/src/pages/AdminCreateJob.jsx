@@ -2,6 +2,42 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, Link, useSearchParams } from 'react-router-dom';
 import { apiRequest, getMediaUrl } from '../utils/api';
 
+function compressPosterImage(file) {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const MAX_DIM = 1600;
+        let { width, height } = img;
+        if (width > MAX_DIM || height > MAX_DIM) {
+          if (width > height) {
+            height = Math.round((height * MAX_DIM) / width);
+            width = MAX_DIM;
+          } else {
+            width = Math.round((width * MAX_DIM) / height);
+            height = MAX_DIM;
+          }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL('image/jpeg', 0.85));
+        } else {
+          resolve(e.target.result);
+        }
+      };
+      img.onerror = () => resolve(e.target.result);
+      img.src = e.target.result;
+    };
+    reader.onerror = () => resolve(null);
+    reader.readAsDataURL(file);
+  });
+}
+
 function AdminCreateJob() {
   const { id } = useParams(); // If id exists, it's Edit mode
   const isEditMode = Boolean(id);
@@ -572,14 +608,21 @@ function AdminCreateJob() {
                   <input
                     type="file"
                     accept="image/*"
-                    onChange={(e) => {
+                    onChange={async (e) => {
                       const file = e.target.files?.[0];
                       if (file) {
-                        const reader = new FileReader();
-                        reader.onloadend = () => {
-                          setFormData((prev) => ({ ...prev, posterUrl: reader.result }));
-                        };
-                        reader.readAsDataURL(file);
+                        try {
+                          const compressed = await compressPosterImage(file);
+                          if (compressed) {
+                            setFormData((prev) => ({ ...prev, posterUrl: compressed }));
+                          }
+                        } catch (err) {
+                          const reader = new FileReader();
+                          reader.onloadend = () => {
+                            setFormData((prev) => ({ ...prev, posterUrl: reader.result }));
+                          };
+                          reader.readAsDataURL(file);
+                        }
                       }
                     }}
                     style={{ fontSize: '0.88rem', padding: '6px 0' }}

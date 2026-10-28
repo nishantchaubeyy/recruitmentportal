@@ -1,3 +1,6 @@
+const path = require('path');
+const fs = require('fs');
+const crypto = require('crypto');
 const prisma = require('../services/prisma');
 const { matchAndNotifyInterestedApplicants } = require('../services/interestMatchingService');
 const storageService = require('../services/storageService');
@@ -6,12 +9,27 @@ const { cleanString, parseDate, searchTerm } = require('../utils/validate');
 
 const JOB_STATUSES = ['DRAFT', 'PUBLISHED', 'CLOSED', 'ARCHIVED'];
 
-/** Only same-site poster uploads or https image links may be stored as a poster/banner URL. */
+/** Only same-site poster uploads, base64 data URIs, or https image links may be stored as a poster/banner URL. */
 function validMediaUrl(value) {
   if (value === null || value === '') return true;
-  if (typeof value !== 'string' || value.length > 500) return false;
+  if (typeof value !== 'string') return false;
+  if (value.startsWith('data:image/')) return true;
   if (storageService.posterKeyFromUrl(value)) return true;
-  return /^https:\/\/[^\s]+$/i.test(value);
+  return /^https?:\/\/[^\s]+$/i.test(value);
+}
+
+async function saveBase64Poster(dataUri, prefix = 'poster') {
+  if (typeof dataUri !== 'string' || !dataUri.startsWith('data:image/')) return dataUri;
+  const match = dataUri.match(/^data:image\/([a-zA-Z0-9+]+);base64,(.+)$/);
+  if (!match) return dataUri;
+  const rawExt = match[1].toLowerCase() === 'jpeg' ? '.jpg' : `.${match[1].toLowerCase()}`;
+  const ext = ['.jpg', '.jpeg', '.png', '.webp'].includes(rawExt) ? rawExt : '.png';
+  const buffer = Buffer.from(match[2], 'base64');
+  const fileName = `${prefix}-${Date.now()}-${crypto.randomBytes(8).toString('hex')}${ext}`;
+  const filePath = path.join(storageService.POSTER_ROOT, fileName);
+  await fs.promises.mkdir(storageService.POSTER_ROOT, { recursive: true });
+  await fs.promises.writeFile(filePath, buffer, { mode: 0o640 });
+  return `/uploads/posters/${fileName}`;
 }
 
 function stripInternal(job) {
@@ -23,7 +41,7 @@ function stripInternal(job) {
  * Validate and normalise vacancy fields shared by create and update.
  * Returns { error } or { data } containing only whitelisted, typed values.
  */
-function normaliseJobInput(input, { partial }) {
+async function normaliseJobInput(input, { partial }) {
   const data = {};
   const need = (cond, msg) => (cond ? null : msg);
 
@@ -62,6 +80,13 @@ function normaliseJobInput(input, { partial }) {
   }
   for (const key of ['bannerUrl', 'posterUrl', 'imageUrl']) {
     if (input[key] === undefined) continue;
+    if (typeof input[key] === 'string' && input[key].startsWith('data:image/')) {
+      try {
+        input[key] = await saveBase64Poster(input[key], key);
+      } catch (err) {
+        console.warn(`[Job] Could not save ${key} data URI:`, err.message);
+      }
+    }
     if (!validMediaUrl(input[key])) return { error: `"${key}" must be an uploaded poster or an https image URL.` };
     data[key] = input[key] || null;
   }
@@ -346,7 +371,7 @@ async function getJobById(req, res) {
  * Create a new Vacancy (Admin only).
  */
 async function createJob(req, res) {
-  const parsed = normaliseJobInput(req.body || {}, { partial: false });
+  const parsed = await normaliseJobInput(req.body || {}, { partial: false });
   if (parsed.error) return res.status(400).json({ error: parsed.error });
   const input = parsed.data;
 
@@ -439,7 +464,7 @@ async function updateJob(req, res) {
       return res.status(404).json({ error: 'Vacancy opening not found.' });
     }
 
-    const parsed = normaliseJobInput(req.body || {}, { partial: true });
+    const parsed = await normaliseJobInput(req.body || {}, { partial: true });
     if (parsed.error) return res.status(400).json({ error: parsed.error });
     const updateData = parsed.data;
 
