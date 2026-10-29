@@ -259,330 +259,78 @@ function formatDate(dateInput) {
 /**
  * Generates the complete official Application Form Dossier HTML for the confirmation email.
  */
-function buildApplicationFormDossierHtml(app, options = {}) {
+function buildPlainLetterApplicationHtml(app, options = {}) {
   const personal = safeParseJSON(app.personalInfo);
   const contact = safeParseJSON(app.contactDetails);
-  const qualifications = safeParseArray(app.qualifications);
-  const experience = safeParseArray(app.experience || app.workExperience);
-  const research = safeParseJSON(app.researchDetails || app.phdDetails);
 
   const applicantName = getApplicantDisplayName(app);
-  const postName = app.job?.position || personal.postAppliedFor || 'Faculty Position';
-  const schoolName = app.job?.school?.name || app.job?.department || personal.faculty || 'D Y Patil International University';
-  const schoolOrDept = app.job?.department || app.job?.school?.name || 'School of Computing';
+  const postName = app.job?.position || personal.postAppliedFor || 'Associate Professor';
+  const schoolOrDept = app.job?.department || app.job?.school?.name || personal.faculty || '';
+  const departmentDisplay = schoolOrDept ? ` (${schoolOrDept})` : '';
   const appNumber = app.applicationNumber || app.id;
   const formattedDate = formatDate(app.submittedAt || app.createdAt);
-
-  const candidateEmail = contact.email || personal.email || app.applicant?.user?.email || 'N/A';
-  const candidateMobile = contact.mobile || personal.mobile || app.applicant?.mobile || 'N/A';
-
-  const formatBirthDate = (rawDob) => {
-    if (!rawDob) return 'N/A';
-    try {
-      const d = new Date(rawDob);
-      if (isNaN(d.getTime())) return rawDob;
-      return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
-    } catch (e) {
-      return rawDob;
-    }
-  };
-
-  // Generate HTML table for Qualifications
-  let qualRows = '';
-  if (qualifications.length === 0) {
-    qualRows = `<tr><td colspan="6" style="padding: 8px; color: #64748b; font-style: italic; font-size: 12px;">No formal qualifications recorded.</td></tr>`;
-  } else {
-    qualRows = qualifications.map(q => `
-      <tr style="border-bottom: 1px solid #e2e8f0;">
-        <td style="padding: 6px 8px; font-weight: 600;">${q.qualificationDegree || q.degreeLevel || 'Graduation'}</td>
-        <td style="padding: 6px 8px;">${q.degreeName || 'N/A'}</td>
-        <td style="padding: 6px 8px;">${q.instituteName || q.university || 'N/A'}</td>
-        <td style="padding: 6px 8px;">${q.specialization || 'General'}</td>
-        <td style="padding: 6px 8px; text-align: center;">${q.passingYear || q.year || 'N/A'}</td>
-        <td style="padding: 6px 8px; text-align: right; font-weight: bold;">${q.cgpa || q.percentage || 'N/A'}</td>
-      </tr>
-    `).join('');
-  }
-
-  // Generate HTML table for Experience
-  let expRows = '';
-  if (experience.length === 0) {
-    expRows = `<tr><td colspan="7" style="padding: 8px; color: #64748b; font-style: italic; font-size: 12px;">Fresher Submission — No prior formal professional experience recorded.</td></tr>`;
-  } else {
-    expRows = experience.map(e => `
-      <tr style="border-bottom: 1px solid #e2e8f0;">
-        <td style="padding: 6px 8px; font-weight: bold;">${e.organization || 'N/A'}</td>
-        <td style="padding: 6px 8px;">${e.designation || 'N/A'}</td>
-        <td style="padding: 6px 8px;">${e.type || e.experienceType || 'Full-Time'}</td>
-        <td style="padding: 6px 8px;">${e.fromDate || 'N/A'}</td>
-        <td style="padding: 6px 8px;">${e.isCurrent ? 'Present' : (e.toDate || 'N/A')}</td>
-        <td style="padding: 6px 8px;">${e.salary || '—'}</td>
-        <td style="padding: 6px 8px;">${e.noticePeriod || '—'}</td>
-      </tr>
-    `).join('');
-  }
+  const recipientEmail = getApplicantRecipientEmail(app);
+  const loginUrl = options.loginUrl || 'https://recruitment.dypiu.ac.in/login';
 
   return `<!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="utf-8">
-  <title>Application Received – ${postName} | D Y Patil International University</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Application Received</title>
 </head>
-<body style="margin: 0; padding: 0; background-color: #f8fafc; font-family: Arial, Helvetica, sans-serif; color: #1e293b; line-height: 1.5;">
-  <div style="max-width: 680px; margin: 20px auto; padding: 30px; background-color: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px;">
-    
-    <!-- CALM CORPORATE APPLICATION CONFIRMATION & CREDENTIALS CARD -->
-    <div style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; margin-bottom: 28px; box-shadow: 0 1px 4px rgba(0,0,0,0.05);">
-      <!-- Charcoal Header -->
-      <div style="background: #1f2937; color: #ffffff; padding: 26px 30px;">
-        <div style="font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #9ca3af; margin-bottom: 8px;">
-          ${options.isInterest ? 'Application & Interest Registered' : 'Application Received'}
-        </div>
-        <h1 style="margin: 0 0 12px 0; font-size: 18px; font-weight: 600; line-height: 1.35; color: #ffffff;">
-          Dear ${applicantName},
-        </h1>
-        <p style="margin: 0; font-size: 14px; line-height: 1.6; color: #d1d5db;">
-          Thank you for applying at <strong style="color: #ffffff; font-weight: 600;">D Y Patil International University</strong>.<br />
-          ${options.isInterest 
-            ? `We have received your application for the post of <strong style="color: #ffffff; font-weight: 600;">${postName}</strong> (Registration / Ref No: <strong style="color: #ffffff; font-weight: 600;">${appNumber}</strong>). Applications for this position are currently closed, but we have securely recorded your credentials and qualifications in our database. We will reach out to you as soon as the vacancy is officially opened.`
-            : `We have received your application for the post of <strong style="color: #ffffff; font-weight: 600;">${postName}</strong> (Application No: <strong style="color: #ffffff; font-weight: 600;">${appNumber}</strong>). Our team will review your application and reach out to you soon.`
-          }
-        </p>
-        <div style="margin-top: 16px; padding: 10px 14px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); border-radius: 6px; font-size: 12.5px; color: #d1d5db;">
-          📎 <strong>Official Application Dossier Attached</strong> &mdash; A PDF copy of your submitted application has been attached to this email for your records.
-        </div>
-      </div>
+<body style="margin:0;padding:0;background:#ffffff;font-family:Arial,Helvetica,sans-serif;color:#000000;">
+  <div style="max-width:600px;margin:0 auto;padding:24px 20px;font-size:14px;line-height:1.6;">
 
-      <!-- Credentials / Portal Access Body -->
-      <div style="padding: 24px 30px;">
-        ${options.generatedPassword ? `
-        <h2 style="margin: 0 0 8px 0; font-size: 15px; font-weight: 600; color: #1f2937;">
-          Your recruitment portal login
-        </h2>
-        <p style="margin: 0 0 18px 0; font-size: 13.5px; line-height: 1.6; color: #6b7280;">
-          An account has been created for you to track your application status. You can log in using this email and the auto-generated password below:
-        </p>
-        <div style="border: 1px solid #e5e7eb; border-radius: 6px; overflow: hidden; margin-bottom: 20px;">
-          <table style="width: 100%; border-collapse: collapse; font-size: 13.5px;">
-            <tr style="border-bottom: 1px solid #e5e7eb;">
-              <td style="padding: 11px 16px; width: 140px; color: #6b7280; font-weight: 500; background: #fafafa;">Login email</td>
-              <td style="padding: 11px 16px; font-weight: 500; color: #1f2937;">
-                <a href="mailto:${candidateEmail}" style="color: #1f2937; text-decoration: underline;">${candidateEmail}</a>
-              </td>
-            </tr>
-            <tr>
-              <td style="padding: 11px 16px; color: #6b7280; font-weight: 500; background: #fafafa;">Password</td>
-              <td style="padding: 11px 16px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 14.5px; font-weight: 600; color: #1f2937; letter-spacing: 0.04em;">${options.generatedPassword}</td>
-            </tr>
-          </table>
-        </div>
-        ` : `
-        <h2 style="margin: 0 0 8px 0; font-size: 15px; font-weight: 600; color: #1f2937;">
-          Application status tracking
-        </h2>
-        <p style="margin: 0 0 18px 0; font-size: 13.5px; line-height: 1.6; color: #6b7280;">
-          You can log in to the recruitment portal to track review progress, interview schedules, and any document verification requests.
-        </p>
-        `}
-      </div>
+    <p style="margin:0 0 16px 0;">Dear ${applicantName},</p>
 
-      <!-- Action Button & Fineprint Footer -->
-      <div style="padding: 18px 30px 24px; border-top: 1px solid #e5e7eb; background: #fafafa;">
-        <a href="${options.loginUrl || process.env.APP_URL || 'http://localhost:5173/login'}" 
-           style="display: inline-block; background: #1f2937; color: #ffffff !important; text-decoration: none; font-size: 13.5px; font-weight: 500; padding: 10px 18px; border-radius: 6px;">
-          Open recruitment portal &rarr;
-        </a>
-        <p style="margin: 14px 0 0 0; font-size: 12px; color: #9ca3af; line-height: 1.5;">
-          For security, please change your password after your first login. If you did not submit this application, you can ignore this email.
-        </p>
-      </div>
-    </div>
+    <p style="margin:0 0 16px 0;">Greetings from D Y Patil International University.</p>
 
-    <!-- OFFICIAL APPLICATION FORM HEADER -->
-    <div style="border-bottom: 2px solid #0f2b5c; padding-bottom: 14px; margin-bottom: 20px;">
-      <div style="display: flex; justify-content: space-between; align-items: center;">
-        <div>
-          <h2 style="margin: 0; color: #0f2b5c; font-size: 20px; font-weight: bold; letter-spacing: -0.3px;">APPLICATION FORM</h2>
-          <p style="margin: 2px 0 0 0; color: #475569; font-size: 13px; font-weight: bold;">D Y Patil International University, Akurdi, Pune</p>
-        </div>
-      </div>
-      <div style="margin-top: 14px; padding-top: 10px; border-top: 1px solid #e2e8f0; font-size: 13px; color: #0f172a;">
-        <table style="width: 100%; border-collapse: collapse;">
-          <tr>
-            <td style="padding: 3px 0; width: 60%;"><strong>Department:</strong> ${schoolOrDept}</td>
-            <td style="padding: 3px 0; text-align: right; width: 40%;"><strong>Application ID:</strong> ${appNumber}</td>
-          </tr>
-          <tr>
-            <td style="padding: 3px 0;"><strong>Post Applied For:</strong> ${postName}</td>
-            <td style="padding: 3px 0; text-align: right;"><strong>Application Date:</strong> ${formattedDate}</td>
-          </tr>
-        </table>
-      </div>
-    </div>
+    <p style="margin:0 0 16px 0;">
+      Thank you for applying for the post of <strong>${postName}</strong>${departmentDisplay}.
+    </p>
 
-    <!-- CANDIDATE DETAILS -->
-    <div style="margin-bottom: 22px;">
-      <div style="font-size: 12px; font-weight: bold; text-transform: uppercase; color: #0f2b5c; border-bottom: 1.5px solid #0f2b5c; padding-bottom: 4px; margin-bottom: 8px;">
-        CANDIDATE DETAILS
-      </div>
-      <table style="width: 100%; font-size: 12px; border-collapse: collapse;">
-        <tr>
-          <td style="padding: 4px 0; width: 33%;"><span style="color: #64748b; font-size: 10px; display: block; text-transform: uppercase;">Full Name</span><strong>${applicantName}</strong></td>
-          <td style="padding: 4px 0; width: 33%;"><span style="color: #64748b; font-size: 10px; display: block; text-transform: uppercase;">Date of Birth</span><strong>${formatBirthDate(personal.dob)} ${personal.age ? `(${personal.age} Years)` : ''}</strong></td>
-          <td style="padding: 4px 0; width: 33%;"><span style="color: #64748b; font-size: 10px; display: block; text-transform: uppercase;">Gender</span><strong>${personal.gender || 'N/A'}</strong></td>
-        </tr>
-        <tr>
-          <td style="padding: 4px 0;"><span style="color: #64748b; font-size: 10px; display: block; text-transform: uppercase;">Marital Status</span><strong>${personal.maritalStatus || 'N/A'}</strong></td>
-          <td style="padding: 4px 0;"><span style="color: #64748b; font-size: 10px; display: block; text-transform: uppercase;">Primary Email</span><strong>${candidateEmail}</strong></td>
-          <td style="padding: 4px 0;"><span style="color: #64748b; font-size: 10px; display: block; text-transform: uppercase;">Primary Mobile</span><strong>${candidateMobile}</strong></td>
-        </tr>
-      </table>
-    </div>
+    <p style="margin:0 0 16px 0;">
+      We have received your application. Your application number is
+      <strong>${appNumber}</strong>, dated ${formattedDate}.
+    </p>
 
-    <!-- 01. PERSONAL INFORMATION -->
-    <div style="margin-bottom: 22px;">
-      <div style="font-size: 12px; font-weight: bold; text-transform: uppercase; color: #0f2b5c; border-bottom: 1px solid #cbd5e1; padding-bottom: 4px; margin-bottom: 8px;">
-        01. PERSONAL INFORMATION
-      </div>
-      <table style="width: 100%; font-size: 12px; border-collapse: collapse;">
-        <tr>
-          <td style="padding: 4px 0; width: 25%;"><span style="color: #64748b; font-size: 10px; display: block;">Title</span><strong>${personal.title || 'N/A'}</strong></td>
-          <td style="padding: 4px 0; width: 25%;"><span style="color: #64748b; font-size: 10px; display: block;">First Name</span><strong>${personal.firstName || 'N/A'}</strong></td>
-          <td style="padding: 4px 0; width: 25%;"><span style="color: #64748b; font-size: 10px; display: block;">Middle Name</span><strong>${personal.middleName || '—'}</strong></td>
-          <td style="padding: 4px 0; width: 25%;"><span style="color: #64748b; font-size: 10px; display: block;">Last Name</span><strong>${personal.lastName || 'N/A'}</strong></td>
-        </tr>
-        <tr>
-          <td style="padding: 4px 0;"><span style="color: #64748b; font-size: 10px; display: block;">Date of Birth</span><strong>${formatBirthDate(personal.dob)}</strong></td>
-          <td style="padding: 4px 0;"><span style="color: #64748b; font-size: 10px; display: block;">Age</span><strong>${personal.age || 'N/A'}</strong></td>
-          <td style="padding: 4px 0;"><span style="color: #64748b; font-size: 10px; display: block;">Gender</span><strong>${personal.gender || 'N/A'}</strong></td>
-          <td style="padding: 4px 0;"><span style="color: #64748b; font-size: 10px; display: block;">Marital Status</span><strong>${personal.maritalStatus || 'N/A'}</strong></td>
-        </tr>
-      </table>
-    </div>
+    <p style="margin:0 0 16px 0;">
+      Our recruitment team will review your application and contact you if you are
+      shortlisted for the next stage.
+    </p>
 
-    <!-- 02. LOCATION & COMMUNICATION -->
-    <div style="margin-bottom: 22px;">
-      <div style="font-size: 12px; font-weight: bold; text-transform: uppercase; color: #0f2b5c; border-bottom: 1px solid #cbd5e1; padding-bottom: 4px; margin-bottom: 8px;">
-        02. LOCATION & COMMUNICATION
-      </div>
-      <table style="width: 100%; font-size: 12px; border-collapse: collapse;">
-        <tr>
-          <td style="padding: 4px 0; width: 33%;"><span style="color: #64748b; font-size: 10px; display: block;">Primary Email</span><strong>${candidateEmail}</strong></td>
-          <td style="padding: 4px 0; width: 33%;"><span style="color: #64748b; font-size: 10px; display: block;">Alternate Email</span><strong>${contact.alternateEmail || personal.alternateEmail || '—'}</strong></td>
-          <td style="padding: 4px 0; width: 33%;"><span style="color: #64748b; font-size: 10px; display: block;">Primary Mobile</span><strong>${candidateMobile}</strong></td>
-        </tr>
-        <tr>
-          <td style="padding: 4px 0;"><span style="color: #64748b; font-size: 10px; display: block;">Alternate Mobile</span><strong>${contact.alternateMobile || '—'}</strong></td>
-          <td style="padding: 4px 0;"><span style="color: #64748b; font-size: 10px; display: block;">City / District</span><strong>${contact.city || 'Pune'}</strong></td>
-          <td style="padding: 4px 0;"><span style="color: #64748b; font-size: 10px; display: block;">State & PIN</span><strong>${contact.state || 'Maharashtra'}${contact.pinCode ? ` - ${contact.pinCode}` : ''}</strong></td>
-        </tr>
-        <tr>
-          <td colspan="3" style="padding: 6px 0;">
-            <span style="color: #64748b; font-size: 10px; display: block;">Full Residential Address</span>
-            <strong>${contact.address || 'Address on file with university application dossier.'}</strong>
-          </td>
-        </tr>
-      </table>
-    </div>
+    <p style="margin:0 0 16px 0;">
+      A PDF copy of your submitted application form is attached to this email for your records.
+    </p>
 
-    <!-- 03. ACADEMIC QUALIFICATIONS -->
-    <div style="margin-bottom: 22px;">
-      <div style="font-size: 12px; font-weight: bold; text-transform: uppercase; color: #0f2b5c; border-bottom: 1px solid #cbd5e1; padding-bottom: 4px; margin-bottom: 8px;">
-        03. ACADEMIC QUALIFICATIONS
-      </div>
-      <table style="width: 100%; border-collapse: collapse; font-size: 11px; text-align: left;">
-        <thead>
-          <tr style="border-bottom: 1.5px solid #0f2b5c; background-color: #f1f5f9;">
-            <th style="padding: 6px 8px; font-weight: bold;">Degree Level</th>
-            <th style="padding: 6px 8px; font-weight: bold;">Degree Name</th>
-            <th style="padding: 6px 8px; font-weight: bold;">Institute / University</th>
-            <th style="padding: 6px 8px; font-weight: bold;">Specialization</th>
-            <th style="padding: 6px 8px; font-weight: bold; text-align: center;">Year</th>
-            <th style="padding: 6px 8px; font-weight: bold; text-align: right;">CGPA / %</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${qualRows}
-        </tbody>
-      </table>
-    </div>
+    ${options.generatedPassword ? `
+    <p style="margin:0 0 8px 0;">Your login details for the recruitment portal are as follows:</p>
 
-    <!-- 04. RESEARCH & PROFESSIONAL PROFILE -->
-    <div style="margin-bottom: 22px;">
-      <div style="font-size: 12px; font-weight: bold; text-transform: uppercase; color: #0f2b5c; border-bottom: 1px solid #cbd5e1; padding-bottom: 4px; margin-bottom: 8px;">
-        04. RESEARCH & PROFESSIONAL PROFILE
-      </div>
-      <table style="width: 100%; font-size: 12px; border-collapse: collapse; margin-bottom: 8px;">
-        <tr>
-          <td style="padding: 4px 0; width: 20%;"><span style="color: #64748b; font-size: 10px; display: block;">Ph.D. Status</span><strong>${research.phdStatus || 'N/A'}</strong></td>
-          <td style="padding: 4px 0; width: 25%;"><span style="color: #64748b; font-size: 10px; display: block;">Ph.D. Subject / Field</span><strong>${research.phdSpecialization || research.phdSubject || '—'}</strong></td>
-          <td style="padding: 4px 0; width: 25%;"><span style="color: #64748b; font-size: 10px; display: block;">Ph.D. University</span><strong>${research.phdUniversity || '—'}</strong></td>
-          <td style="padding: 4px 0; width: 15%;"><span style="color: #64748b; font-size: 10px; display: block;">Ph.D. Year</span><strong>${research.phdYear || '—'}</strong></td>
-          <td style="padding: 4px 0; width: 15%;"><span style="color: #64748b; font-size: 10px; display: block;">Conference Papers</span><strong>${research.conferencePaper || 0}</strong></td>
-        </tr>
-        <tr>
-          <td style="padding: 4px 0;"><span style="color: #64748b; font-size: 10px; display: block;">Scopus Publications</span><strong>${research.scopusCount || 0}</strong></td>
-          <td style="padding: 4px 0;"><span style="color: #64748b; font-size: 10px; display: block;">Scopus Author ID</span><strong>${research.scopusId || '—'}</strong></td>
-          <td style="padding: 4px 0;"><span style="color: #64748b; font-size: 10px; display: block;">Web of Science (SCI)</span><strong>${research.wosCount || research.webOfScienceCount || 0}</strong></td>
-          <td style="padding: 4px 0;"><span style="color: #64748b; font-size: 10px; display: block;">Web of Science ID</span><strong>${research.wosId || '—'}</strong></td>
-        </tr>
-      </table>
-      <div style="padding: 8px 12px; border: 1px solid #e2e8f0; font-size: 11px; background-color: #f8fafc; border-radius: 4px;">
-        <strong>National Eligibility Examination Clearance:</strong>
-        NET: <strong>${research.net === 'Yes' || research.netCleared ? 'Cleared' : 'Not Cleared'}</strong> &bull;
-        SET: <strong>${research.setExam === 'Yes' || research.setCleared ? 'Cleared' : 'Not Cleared'}</strong> &bull;
-        GATE: <strong>${research.gate === 'Yes' || research.gateCleared ? 'Cleared' : 'Not Cleared'}</strong>
-      </div>
-    </div>
+    <p style="margin:0 0 4px 0;">Login email: ${recipientEmail}</p>
+    <p style="margin:0 0 16px 0;">Password: ${options.generatedPassword}</p>
 
-    <!-- 05. WORK EXPERIENCE -->
-    <div style="margin-bottom: 22px;">
-      <div style="font-size: 12px; font-weight: bold; text-transform: uppercase; color: #0f2b5c; border-bottom: 1px solid #cbd5e1; padding-bottom: 4px; margin-bottom: 8px;">
-        05. WORK EXPERIENCE
-      </div>
-      <table style="width: 100%; border-collapse: collapse; font-size: 11px; text-align: left;">
-        <thead>
-          <tr style="border-bottom: 1.5px solid #0f2b5c; background-color: #f1f5f9;">
-            <th style="padding: 6px 8px; font-weight: bold;">Organization</th>
-            <th style="padding: 6px 8px; font-weight: bold;">Designation</th>
-            <th style="padding: 6px 8px; font-weight: bold;">Employment Type</th>
-            <th style="padding: 6px 8px; font-weight: bold;">From</th>
-            <th style="padding: 6px 8px; font-weight: bold;">To</th>
-            <th style="padding: 6px 8px; font-weight: bold;">Salary</th>
-            <th style="padding: 6px 8px; font-weight: bold;">Notice Period</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${expRows}
-        </tbody>
-      </table>
-    </div>
+    <p style="margin:0 0 16px 0;">
+      You can log in here:<br />
+      <a href="${loginUrl}" style="color:#0000ee;text-decoration:underline;">${loginUrl}</a>
+    </p>
 
-    <!-- NEXT STEPS NOTE -->
-    <div style="margin-bottom: 22px; padding: 12px 16px; background-color: #f8fafc; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 12px;">
-      <p style="margin: 0; color: #334155;">
-        Our recruitment team will review your application dossier. If your profile is shortlisted for further consideration, our team will contact you using the contact details provided above.
-      </p>
-    </div>
+    <p style="margin:0 0 16px 0;">Please change your password after the first login.</p>
+    ` : `
+    <p style="margin:0 0 16px 0;">
+      You can log in here:<br />
+      <a href="${loginUrl}" style="color:#0000ee;text-decoration:underline;">${loginUrl}</a>
+    </p>
+    `}
 
-    <!-- CANDIDATE DECLARATION & FOOTER -->
-    <div style="margin-top: 30px; padding-top: 14px; border-top: 2px solid #0f2b5c; font-size: 11px; color: #475569;">
-      <p style="margin: 0 0 10px 0;"><strong>Candidate Declaration:</strong> I hereby declare that all the information given in this application is true, complete and correct to the best of my knowledge and belief.</p>
-      <div style="display: flex; justify-content: space-between; align-items: flex-end; padding-top: 12px;">
-        <div>
-          <div><strong>Candidate:</strong> ${applicantName}</div>
-          <div style="font-size: 10px; color: #64748b;">Filing Date: ${formattedDate}</div>
-        </div>
-      </div>
-    </div>
+    <p style="margin:0 0 16px 0;">
+      For any queries, write to us at <a href="mailto:recruitment@dypiu.ac.in" style="color:#0000ee;text-decoration:underline;">recruitment@dypiu.ac.in</a>.
+    </p>
 
-    <!-- RECRUITMENT CELL FOOTER -->
-    <div style="margin-top: 24px; border-top: 1px solid #cbd5e1; padding-top: 16px; font-size: 12px; color: #334155;">
-      <p style="margin: 0;">Regards,</p>
-      <p style="margin: 2px 0 0 0; font-weight: bold; color: #0f2b5c;">Recruitment Cell</p>
-      <p style="margin: 2px 0 0 0;">D Y Patil International University</p>
-      <p style="margin: 2px 0 0 0;">Akurdi, Pune</p>
-    </div>
+    <p style="margin:0 0 4px 0;">With regards,</p>
+    <p style="margin:0 0 2px 0;">Recruitment Cell</p>
+    <p style="margin:0 0 2px 0;">D Y Patil International University</p>
+    <p style="margin:0;">Akurdi, Pune</p>
 
   </div>
 </body>
@@ -636,66 +384,70 @@ async function sendSubmissionConfirmationEmail(applicationId, options = {}) {
     const appNumber = app.applicationNumber || app.id;
     const formattedDate = formatDate(app.submittedAt || app.createdAt);
 
-    // EMAIL SUBJECT
-    const subject = options.isInterest
-      ? `Interest & Application Registered – D Y Patil International University`
-      : `Application Received – D Y Patil International University`;
+    const loginUrl = options.loginUrl || 'https://recruitment.dypiu.ac.in/login';
+    const departmentDisplay = schoolOrDept ? ` (${schoolOrDept})` : '';
 
-    // EMAIL HTML BODY (Renders Full Application Form Dossier)
-    const htmlBody = buildApplicationFormDossierHtml(app, options);
+    // EMAIL SUBJECT (Plain institutional style)
+    const subject = `Application received – ${appNumber} | ${postName} | D Y Patil International University`;
 
-    // PLAIN TEXT FALLBACK
-    const textBody = `D Y PATIL INTERNATIONAL UNIVERSITY
-Akurdi, Pune
+    // EMAIL HTML BODY (Plain letter style)
+    const htmlBody = buildPlainLetterApplicationHtml(app, options);
 
-Dear ${applicantName},
+    // PLAIN TEXT BODY (Normal written letter)
+    let textBody = `Dear ${applicantName},
 
-Thank you for applying at D Y Patil International University.
-${options.isInterest
-  ? `We have received your application for the post of ${postName} (Reference No: ${appNumber}). Currently applications for this position are closed, but we have securely recorded your details. We will reach out to you as soon as the vacancy is officially opened.`
-  : `We have received your application for the post of ${postName} (Application No: ${appNumber}). Our team will review your application and reach out to you soon.`}
-${options.generatedPassword ? `
-------------------------------------------------------------
-YOUR APPLICANT PORTAL LOGIN CREDENTIALS:
-An account has been created for you to track your application status.
-You can login using this email and the following auto-generated password:
+Greetings from D Y Patil International University.
 
-Login Email: ${recipientEmail}
-Auto-Generated Password: ${options.generatedPassword}
-Login URL: ${options.loginUrl || 'https://intranet.dypiu.ac.in/recruitment/login'}
-------------------------------------------------------------
-` : ''}
-APPLICATION DETAILS:
-Application ID: ${appNumber}
-Position Applied For: ${postName}
-School / Department: ${schoolName}
-Application Date: ${formattedDate}
+Thank you for applying for the post of ${postName}${departmentDisplay}.
 
-CANDIDATE DETAILS:
-Name: ${applicantName}
-Email: ${recipientEmail}
+We have received your application. Your application number is ${appNumber}, dated ${formattedDate}.
 
-Your official application form PDF is attached to this email.
+Our recruitment team will review your application and contact you if you are shortlisted for the next stage.
 
-Regards,
+A PDF copy of your submitted application form is attached to this email for your records.
+`;
+
+    if (options.generatedPassword) {
+      textBody += `
+Your login details for the recruitment portal are as follows:
+
+Login email: ${recipientEmail}
+Password:    ${options.generatedPassword}
+
+You can log in here:
+${loginUrl}
+
+Please change your password after the first login.
+`;
+    } else {
+      textBody += `
+You can log in here:
+${loginUrl}
+`;
+    }
+
+    textBody += `
+For any queries, write to us at recruitment@dypiu.ac.in.
+
+With regards,
 Recruitment Cell
 D Y Patil International University
 Akurdi, Pune`;
 
-    // GENERATE APPLICATION DOSSIER PDF
+    // GENERATE APPLICATION PDF ATTACHMENT
     let attachments = [];
     try {
       const pdfBuffer = await generateApplicationPdf(app);
       if (pdfBuffer && pdfBuffer.length > 0) {
         attachments.push({
-          filename: `Application_${appNumber}.pdf`,
+          filename: `${appNumber}_Application_Form.pdf`,
           content: pdfBuffer,
           contentType: 'application/pdf'
         });
-        console.log(`[Confirmation Email] Generated PDF dossier for ${appNumber} (${pdfBuffer.length} bytes)`);
+        console.log(`[Confirmation Email] Attached PDF application form for ${appNumber} (${pdfBuffer.length} bytes)`);
       }
     } catch (pdfErr) {
-      console.error(`[Confirmation Email] Failed to generate PDF dossier for ${appNumber}:`, pdfErr.message);
+      console.error(`[Confirmation Email] Failed to generate PDF application form for ${appNumber}:`, pdfErr.message);
     }
 
     const sendResult = await sendEmail({

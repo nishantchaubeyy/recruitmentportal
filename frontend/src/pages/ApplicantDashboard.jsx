@@ -167,7 +167,22 @@ function ApplicantDashboard() {
             HR has reviewed your application and requested original marksheets and certificates
             through the portal before the deadline.
           </p>
-          <Link to="/applicant/documents" className="ad-btn ad-btn-dark">
+          <Link
+            to="/applicant/documents"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              backgroundColor: '#8B1235',
+              color: '#FFE600',
+              fontWeight: 800,
+              fontSize: '0.86rem',
+              padding: '10px 20px',
+              borderRadius: '8px',
+              textDecoration: 'none',
+              boxShadow: '0 2px 8px rgba(139, 18, 53, 0.3)'
+            }}
+          >
             Upload documents &rarr;
           </Link>
         </div>

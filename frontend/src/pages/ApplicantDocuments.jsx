@@ -327,20 +327,24 @@ function ApplicantDocuments() {
                           {!isItemVerified && (
                             <label
                               style={{
-                                backgroundColor: isItemRejected ? '#DC2626' : isUploaded ? '#ffffff' : '#8B1235',
-                                color: isUploaded && !isItemRejected ? '#8B1235' : '#ffffff',
-                                border: isUploaded && !isItemRejected ? '1.5px solid #8B1235' : 'none',
-                                padding: '8px 16px',
+                                backgroundColor: isItemRejected ? '#DC2626' : '#8B1235',
+                                color: '#FFE600',
+                                border: 'none',
+                                padding: '9px 18px',
                                 borderRadius: '8px',
-                                fontSize: '0.82rem',
-                                fontWeight: 700,
+                                fontSize: '0.85rem',
+                                fontWeight: 800,
                                 cursor: isItemUploading ? 'not-allowed' : 'pointer',
                                 display: 'inline-flex',
                                 alignItems: 'center',
-                                gap: '6px'
+                                gap: '6px',
+                                boxShadow: '0 2px 6px rgba(139, 18, 53, 0.3)',
+                                transition: 'all 0.2s'
                               }}
                             >
-                              <span>{isItemUploading ? 'Uploading...' : isItemRejected ? 'Re-upload ⟳' : isUploaded ? 'Replace File' : 'Upload File ↑'}</span>
+                              <span style={{ color: '#FFE600', fontWeight: 800, letterSpacing: '0.02em' }}>
+                                {isItemUploading ? 'Uploading...' : isItemRejected ? 'Re-upload ⟳' : isUploaded ? 'Replace File ↑' : 'Upload File ↑'}
+                              </span>
                               <input
                                 type="file"
                                 accept=".pdf,.jpg,.jpeg,.png"
