@@ -576,7 +576,7 @@ async function getMyInterviews(req, res) {
       where: {
         OR: [
           { userId },
-          { user: { email: userEmail } }
+          { user: { email: { equals: userEmail, mode: 'insensitive' } } }
         ]
       },
       select: { id: true }

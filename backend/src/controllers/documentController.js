@@ -281,7 +281,7 @@ async function getMyDocumentRequests(req, res) {
       where: {
         OR: [
           { userId },
-          { user: { email: userEmail } }
+          { user: { email: { equals: userEmail, mode: 'insensitive' } } }
         ]
       },
       select: { id: true }
@@ -301,7 +301,7 @@ async function getMyDocumentRequests(req, res) {
         OR: [
           { candidateId: { in: candidateIds } },
           { candidate: { userId } },
-          { candidate: { user: { email: userEmail } } }
+          { candidate: { user: { email: { equals: userEmail, mode: 'insensitive' } } } }
         ]
       },
       include: {
@@ -319,7 +319,9 @@ async function getMyDocumentRequests(req, res) {
       orderBy: { createdAt: 'desc' }
     });
 
-    return res.json(requests);
+    // Only return document requests that actually have items requested by HR
+    const activeRequests = requests.filter(r => Array.isArray(r.items) && r.items.length > 0);
+    return res.json(activeRequests);
   } catch (error) {
     console.error('Get my document requests error:', error);
     return res.status(500).json({ error: 'Failed to retrieve requested documents.' });

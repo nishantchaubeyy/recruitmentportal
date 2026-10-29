@@ -592,12 +592,12 @@ async function getMyApplications(req, res) {
     const userId = req.user.id;
     const userEmail = (req.user.email || '').toLowerCase().trim();
 
-    // Collect all applicant records for this user ID or email
+    // Collect all applicant records for this user ID or email (case-insensitive)
     const applicants = await prisma.applicant.findMany({
       where: {
         OR: [
           { userId },
-          { user: { email: userEmail } }
+          { user: { email: { equals: userEmail, mode: 'insensitive' } } }
         ]
       },
       select: { id: true }
@@ -608,20 +608,39 @@ async function getMyApplications(req, res) {
       applicantIds.push(req.user.applicantId);
     }
 
-    const applications = await prisma.application.findMany({
+    let applications = await prisma.application.findMany({
       where: {
         OR: [
           { applicantId: { in: applicantIds } },
           { applicant: { userId } },
-          { applicant: { user: { email: userEmail } } }
+          { applicant: { user: { email: { equals: userEmail, mode: 'insensitive' } } } }
         ]
       },
       include: {
         job: true,
+        applicant: { include: { user: true } },
         documents: { select: ownDocumentSelect }
       },
       orderBy: { updatedAt: 'desc' }
     });
+
+    // Fallback: If no applications were found via relational links, check personalInfo by candidate email
+    if (applications.length === 0 && userEmail) {
+      const fallbackApps = await prisma.application.findMany({
+        where: {
+          personalInfo: { contains: userEmail }
+        },
+        include: {
+          job: true,
+          applicant: { include: { user: true } },
+          documents: { select: ownDocumentSelect }
+        },
+        orderBy: { updatedAt: 'desc' }
+      });
+      if (fallbackApps.length > 0) {
+        applications = fallbackApps;
+      }
+    }
 
     // Screening remarks are internal to HR.
     return res.json(applications.map(({ screeningRemarks, ...rest }) => rest));

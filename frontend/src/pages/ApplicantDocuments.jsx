@@ -244,7 +244,7 @@ function ApplicantDocuments() {
 
                 {/* Instructions Alert */}
                 <div style={{ backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '10px', padding: '14px 18px', marginBottom: '20px', fontSize: '0.82rem', color: '#475569' }}>
-                  <strong style="color: #0F172A;">Upload Guidelines:</strong>
+                  <strong style={{ color: '#0F172A' }}>Upload Guidelines:</strong>
                   <ul style={{ margin: '6px 0 0 0', paddingLeft: '20px', lineHeight: 1.5 }}>
                     <li>Accepted file formats: <strong>PDF, JPG, JPEG, PNG</strong></li>
                     <li>Maximum file size per document: <strong>5 MB</strong></li>

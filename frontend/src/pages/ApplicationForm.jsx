@@ -97,13 +97,13 @@ const STEPS = [
   { id: 7, title: 'Review & Submit', shortName: 'Review' }
 ];
 
-// DOB hybrid field: allows typing a number directly OR picking from a dropdown list
+// DOB hybrid field with strict limits and input validation
 function DobNumberInput({ value, onChange, placeholder, min, max, flex = 1, listId, options }) {
   const inputStyle = {
     width: '100%',
     padding: '9px 10px',
     borderRadius: '8px',
-    border: '1px solid #cbd5e1',
+    border: '1.5px solid #cbd5e1',
     backgroundColor: '#ffffff',
     color: value ? '#0f172a' : '#64748b',
     fontSize: '0.86rem',
@@ -112,28 +112,66 @@ function DobNumberInput({ value, onChange, placeholder, min, max, flex = 1, list
     outline: 'none',
     cursor: 'text'
   };
+
+  const handleInputChange = (e) => {
+    let raw = e.target.value.replace(/\D/g, ''); // only digits
+    if (placeholder === 'DAY') {
+      raw = raw.slice(0, 2);
+      if (raw !== '') {
+        const num = parseInt(raw, 10);
+        if (num > 31) raw = '31';
+      }
+    } else if (placeholder === 'MONTH') {
+      raw = raw.slice(0, 2);
+      if (raw !== '') {
+        const num = parseInt(raw, 10);
+        if (num > 12) raw = '12';
+      }
+    } else if (placeholder === 'YEAR') {
+      raw = raw.slice(0, 4);
+      if (raw.length === 4) {
+        const num = parseInt(raw, 10);
+        if (max && num > max) raw = String(max);
+      }
+    }
+    onChange(raw);
+  };
+
+  const handleBlur = (e) => {
+    let raw = e.target.value.replace(/\D/g, '');
+    if (!raw) {
+      onChange('');
+      return;
+    }
+    const num = parseInt(raw, 10);
+    if (placeholder === 'DAY') {
+      const clamped = Math.max(1, Math.min(31, isNaN(num) ? 1 : num));
+      onChange(String(clamped).padStart(2, '0'));
+    } else if (placeholder === 'MONTH') {
+      const clamped = Math.max(1, Math.min(12, isNaN(num) ? 1 : num));
+      onChange(String(clamped).padStart(2, '0'));
+    } else if (placeholder === 'YEAR') {
+      if (raw.length === 4) {
+        const minYear = min || 1940;
+        const maxYear = max || (new Date().getFullYear() - 18);
+        const clamped = Math.max(minYear, Math.min(maxYear, isNaN(num) ? maxYear : num));
+        onChange(String(clamped));
+      } else if (raw.length > 0 && raw.length < 4) {
+        onChange('');
+      }
+    }
+  };
+
   return (
     <div style={{ flex, minWidth: '72px' }}>
       <input
-        type="number"
-        min={min}
-        max={max}
+        type="text"
+        inputMode="numeric"
         placeholder={placeholder}
         value={value}
         list={listId}
-        onChange={(e) => {
-          const v = e.target.value;
-          // Pad day/month to 2 digits when done typing
-          onChange(v);
-        }}
-        onBlur={(e) => {
-          const v = e.target.value;
-          if (v && (placeholder === 'DAY' || placeholder === 'MONTH')) {
-            onChange(String(Number(v)).padStart(2, '0'));
-          } else if (v) {
-            onChange(v);
-          }
-        }}
+        onChange={handleInputChange}
+        onBlur={handleBlur}
         style={inputStyle}
       />
       {listId && options && (
@@ -1283,8 +1321,6 @@ function ApplicationForm() {
                 <select value={maritalStatus} onChange={(e) => setMaritalStatus(e.target.value)} required>
                   <option value="Married">Married</option>
                   <option value="Unmarried">Unmarried</option>
-                  <option value="Single">Single</option>
-                  <option value="Divorced">Divorced</option>
                 </select>
               </div>
             </div>

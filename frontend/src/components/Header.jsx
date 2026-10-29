@@ -14,8 +14,10 @@ function Header() {
     if (user && user.role === 'APPLICANT') {
       apiRequest('/documents/my')
         .then(data => {
-          // Strictly show My Documents option ONLY if HR has requested documents
-          const hasActive = Array.isArray(data) && data.some(r => ['PENDING', 'PARTIALLY_UPLOADED', 'REJECTED'].includes(r.status));
+          // Strictly show My Documents option ONLY if HR has requested documents with items
+          const hasActive = Array.isArray(data) && data.some(r =>
+            ['PENDING', 'PARTIALLY_UPLOADED', 'REJECTED'].includes(r.status) && Array.isArray(r.items) && r.items.length > 0
+          );
           setHasDocRequests(hasActive);
         })
         .catch(() => setHasDocRequests(false));
