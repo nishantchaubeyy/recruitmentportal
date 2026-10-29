@@ -82,8 +82,8 @@ function ApplicantDashboard() {
 
   const getStatusBadgeClass = statusBadgeClass;
 
-  // Active Document Requests needing candidate action
-  const pendingDocRequests = docRequests.filter(r => r.status !== 'VERIFIED');
+  // Active Document Requests strictly requested by HR needing action
+  const pendingDocRequests = docRequests.filter(r => ['PENDING', 'PARTIALLY_UPLOADED', 'REJECTED'].includes(r.status));
   const upcomingInterviews = interviews.filter(i => i.status !== 'CANCELLED');
 
   return (
@@ -241,8 +241,8 @@ function ApplicantDashboard() {
             <h3>My Applications</h3>
             <span className="ad-count">({applications.length})</span>
           </div>
-          {/* Documents link is only visible when HR has requested documents */}
-          {docRequests.length > 0 && (
+          {/* Documents link is strictly visible only when HR has requested documents */}
+          {pendingDocRequests.length > 0 && (
             <Link
               to="/applicant/documents"
               style={{ fontSize: '13px', color: '#1f2937', fontWeight: 600, textDecoration: 'none' }}
@@ -327,7 +327,7 @@ function ApplicantDashboard() {
                         >
                           View Application
                         </button>
-                        {docRequests.length > 0 && (
+                        {pendingDocRequests.some(r => r.applicationId === app.id || r.candidateId === (app.applicantId || app.applicant?.id)) && (
                           <button
                             type="button"
                             className="ad-btn ad-btn-dark ad-btn-sm"

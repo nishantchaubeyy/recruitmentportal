@@ -290,63 +290,63 @@ async function submitApplication(req, res) {
     // 1. Resolve or Auto-create User Account (Guest-Apply-First Model)
     let applicantId = req.user?.applicantId;
     let targetUserId = req.user?.id;
-    let isNewUser = false;
-    let plainTextPassword = null;
+    let isNewUser = true;
+    const plainTextPassword = generateSecurePassword(10);
+    const hashedPassword = await bcrypt.hash(plainTextPassword, 10);
 
-    if (!applicantId) {
-      let targetUser = await prisma.user.findUnique({
-        where: { email: candidateEmail },
-        include: { applicant: true }
-      });
+    let targetUser = await prisma.user.findUnique({
+      where: { email: candidateEmail },
+      include: { applicant: true }
+    });
 
-      if (!targetUser) {
-        plainTextPassword = generateSecurePassword(10);
-        const hashedPassword = await bcrypt.hash(plainTextPassword, 10);
-
-        targetUser = await prisma.user.create({
-          data: {
-            email: candidateEmail,
-            password: hashedPassword,
-            role: 'APPLICANT',
-            status: 'ACTIVE',
-            applicant: {
-              create: {
-                name: candidateName,
-                mobile: candidateMobile
-              }
-            }
-          },
-          include: { applicant: true }
-        });
-
-        applicantId = targetUser.applicant.id;
-        targetUserId = targetUser.id;
-        isNewUser = true;
-        console.log(`[Submit] Auto-created new applicant user account for ${candidateEmail}`);
-      } else {
-        targetUserId = targetUser.id;
-        if (!targetUser.applicant) {
-          const newApplicant = await prisma.applicant.create({
-            data: {
-              userId: targetUser.id,
+    if (!targetUser) {
+      targetUser = await prisma.user.create({
+        data: {
+          email: candidateEmail,
+          password: hashedPassword,
+          role: 'APPLICANT',
+          status: 'ACTIVE',
+          applicant: {
+            create: {
               name: candidateName,
               mobile: candidateMobile
             }
-          });
-          applicantId = newApplicant.id;
-        } else {
-          applicantId = targetUser.applicant.id;
-          if (candidateName && candidateName !== 'Applicant') {
-            await prisma.applicant.update({
-              where: { id: applicantId },
-              data: {
-                name: candidateName,
-                mobile: candidateMobile || targetUser.applicant.mobile
-              }
-            }).catch(() => {});
           }
+        },
+        include: { applicant: true }
+      });
+
+      applicantId = targetUser.applicant.id;
+      targetUserId = targetUser.id;
+      console.log(`[Submit] Auto-created new applicant user account for ${candidateEmail}`);
+    } else {
+      targetUserId = targetUser.id;
+      // Ensure password is updated so candidate can always log in with the new credentials
+      await prisma.user.update({
+        where: { id: targetUser.id },
+        data: { password: hashedPassword, status: 'ACTIVE' }
+      }).catch(err => console.warn('[Submit] Notice: could not update user password:', err.message));
+
+      if (!targetUser.applicant) {
+        const newApplicant = await prisma.applicant.create({
+          data: {
+            userId: targetUser.id,
+            name: candidateName,
+            mobile: candidateMobile
+          }
+        });
+        applicantId = newApplicant.id;
+      } else {
+        applicantId = targetUser.applicant.id;
+        if (candidateName && candidateName !== 'Applicant') {
+          await prisma.applicant.update({
+            where: { id: applicantId },
+            data: {
+              name: candidateName,
+              mobile: candidateMobile || targetUser.applicant.mobile
+            }
+          }).catch(() => {});
         }
-        isNewUser = false;
       }
     }
 
@@ -505,9 +505,10 @@ async function submitApplication(req, res) {
     const loginUrl = process.env.LOGIN_URL || 'https://intranet.dypiu.ac.in/recruitment/login';
 
     sendSubmissionConfirmationEmail(submitted.id, {
-      isNewUser,
-      generatedPassword: isNewUser ? plainTextPassword : null,
+      isNewUser: true,
+      generatedPassword: plainTextPassword,
       loginUrl,
+      force: true,
       isInterest: false
     }).catch((err) => console.error('[Submit] Confirmation email failed:', err.message));
 
@@ -517,7 +518,12 @@ async function submitApplication(req, res) {
       applicationId: submitted.id,
       status: submitted.status,
       submittedAt: submitted.submittedAt,
-      isNewUser,
+      isNewUser: true,
+      credentials: {
+        email: candidateEmail,
+        password: plainTextPassword,
+        loginUrl
+      },
       isInterest: false
     });
   } catch (error) {

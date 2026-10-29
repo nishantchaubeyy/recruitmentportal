@@ -617,7 +617,7 @@ async function sendSubmissionConfirmationEmail(applicationId, options = {}) {
     }
 
     // Duplicate Email Prevention
-    if (app.confirmationEmailSent) {
+    if (app.confirmationEmailSent && !options.force && !options.generatedPassword) {
       console.log(`[Confirmation Email] Email already sent previously for application ${app.applicationNumber}. Skipping.`);
       return { success: true, skipped: true };
     }

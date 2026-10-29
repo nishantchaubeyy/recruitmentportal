@@ -54,9 +54,10 @@ function AdminCreateJob() {
     schoolId: '',
     departmentId: '',
     positionId: '',
+    schoolName: '',
     position: '',
     department: '',
-    employmentType: 'Full Time',
+    employmentType: initialType === 'CUSTOM' ? '' : 'Full Time',
     numPositions: 1,
     location: 'Pune',
     qualification: '',
@@ -185,6 +186,10 @@ function AdminCreateJob() {
       schoolId: '',
       departmentId: '',
       positionId: '',
+      schoolName: '',
+      customCategory: newType === 'CUSTOM' ? (prev.customCategory || '') : '',
+      customLabel: newType === 'CUSTOM' ? (prev.customLabel || '') : '',
+      employmentType: newType === 'CUSTOM' ? '' : 'Full Time',
       position: '',
       department: ''
     }));
@@ -245,6 +250,25 @@ function AdminCreateJob() {
       status: targetStatus || formData.status
     };
 
+    if (payload.type === 'CUSTOM') {
+      payload.schoolId = null;
+      payload.departmentId = null;
+      payload.positionId = null;
+      const schPart = (formData.schoolName || '').trim();
+      const deptPart = (formData.department || '').trim();
+      if (schPart && deptPart && !deptPart.toLowerCase().includes(schPart.toLowerCase())) {
+        payload.department = `${schPart} - ${deptPart}`;
+      } else {
+        payload.department = deptPart || schPart || 'DYPIU Campus';
+      }
+      payload.schoolName = schPart;
+      payload.customCategory = formData.customCategory || formData.customLabel || 'Visiting Faculty';
+      payload.customLabel = formData.customCategory || formData.customLabel || 'Visiting Faculty';
+      if (!payload.employmentType) {
+        payload.employmentType = 'Contract / Visiting';
+      }
+    }
+
     if (!payload.position || !payload.qualification || !payload.experience || !payload.description || !payload.deadline) {
       setErrorMsg('Please fill in all mandatory fields: Position, Qualification, Experience, Description, and Deadline.');
       setSubmitting(false);
@@ -252,7 +276,7 @@ function AdminCreateJob() {
     }
 
     if (payload.type === 'CUSTOM' && !payload.customCategory && !payload.customLabel) {
-      setErrorMsg('Category / Label is required for Customized Vacancies (e.g. Visiting Faculty, Project Fellow, Internship).');
+      setErrorMsg('Category / Label is required for Custom Vacancies (e.g. Visiting Faculty, Project Fellow, Internship).');
       setSubmitting(false);
       return;
     }
@@ -320,33 +344,75 @@ function AdminCreateJob() {
       {/* Clean Basic Form Card */}
       <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '30px', boxShadow: '0 2px 8px rgba(0,0,0,0.03)' }}>
         <form onSubmit={(e) => e.preventDefault()}>
-          {/* SECTION 1: VACANCY CLASSIFICATION & DROPDOWNS */}
+          {/* SECTION 1: VACANCY CLASSIFICATION */}
           <div style={sectionBoxStyle}>
-            <h4 style={sectionTitleStyle}>1. Classification & Department Setup</h4>
+            <h4 style={sectionTitleStyle}>1. Classification & Position Details</h4>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-              <div style={formGroupStyle}>
-                <label style={labelStyle}>Vacancy Type *</label>
-                <select style={selectStyle} value={formData.type} onChange={handleTypeChange}>
-                  <option value="TEACHING">Teaching</option>
-                  <option value="NON_TEACHING">Non-Teaching</option>
-                  <option value="CUSTOM">Customized (Visiting, Contract, Internship, etc.)</option>
-                </select>
-              </div>
+            {formData.type === 'CUSTOM' ? (
+              /* ============================================================== */
+              /* CUSTOM VACANCY: STRICTLY BLANK TEXT INPUT FIELDS (NO DROPDOWNS) */
+              /* ============================================================== */
+              <div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+                  <div style={formGroupStyle}>
+                    <label style={labelStyle}>Vacancy Type *</label>
+                    <select style={selectStyle} value={formData.type} onChange={handleTypeChange}>
+                      <option value="TEACHING">Teaching</option>
+                      <option value="NON_TEACHING">Non-Teaching</option>
+                      <option value="CUSTOM">Custom</option>
+                    </select>
+                  </div>
 
-              {formData.type === 'CUSTOM' ? (
-                <div style={formGroupStyle}>
-                  <label style={labelStyle}>Category / Label *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Visiting Faculty, Consultant, Internship"
-                    style={inputStyle}
-                    value={formData.customCategory}
-                    onChange={(e) => setFormData({ ...formData, customCategory: e.target.value, customLabel: e.target.value })}
-                  />
+                  <div style={formGroupStyle}>
+                    <label style={labelStyle}>Category / Label *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Visiting Faculty, Chair Professor, Consultant, Internship"
+                      style={inputStyle}
+                      value={formData.customCategory}
+                      onChange={(e) => setFormData({ ...formData, customCategory: e.target.value, customLabel: e.target.value })}
+                    />
+                  </div>
                 </div>
-              ) : (
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+                  <div style={formGroupStyle}>
+                    <label style={labelStyle}>Position / Role Title *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Visiting Professor - Artificial Intelligence"
+                      style={inputStyle}
+                      value={formData.position}
+                      onChange={(e) => setFormData({ ...formData, position: e.target.value })}
+                    />
+                  </div>
+
+                  <div style={formGroupStyle}>
+                    <label style={labelStyle}>School / Faculty / Center *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. School of Digital Sciences"
+                      style={inputStyle}
+                      value={formData.schoolName || ''}
+                      onChange={(e) => setFormData({ ...formData, schoolName: e.target.value })}
+                    />
+                  </div>
+
+                  <div style={formGroupStyle}>
+                    <label style={labelStyle}>Department / Specialization</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Machine Learning & Robotics"
+                      style={inputStyle}
+                      value={formData.department}
+                      onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+                    />
+                  </div>
+                </div>
+
                 <div style={formGroupStyle}>
                   <label style={labelStyle}>Vacancy / Reference Number</label>
                   <input
@@ -357,81 +423,106 @@ function AdminCreateJob() {
                     onChange={(e) => setFormData({ ...formData, vacancyNumber: e.target.value })}
                   />
                 </div>
-              )}
-            </div>
+              </div>
+            ) : (
+              /* ============================================================== */
+              /* STANDARD TEACHING / NON-TEACHING VACANCY (WITH DROPDOWNS)       */
+              /* ============================================================== */
+              <div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                  <div style={formGroupStyle}>
+                    <label style={labelStyle}>Vacancy Type *</label>
+                    <select style={selectStyle} value={formData.type} onChange={handleTypeChange}>
+                      <option value="TEACHING">Teaching</option>
+                      <option value="NON_TEACHING">Non-Teaching</option>
+                      <option value="CUSTOM">Custom</option>
+                    </select>
+                  </div>
 
-            {formData.type === 'CUSTOM' && (
-              <div style={{ ...formGroupStyle, marginTop: '12px' }}>
-                <label style={labelStyle}>Vacancy / Reference Number</label>
-                <input
-                  type="text"
-                  placeholder="Auto-generated if left blank (e.g. VAC-2026-001)"
-                  style={inputStyle}
-                  value={formData.vacancyNumber}
-                  onChange={(e) => setFormData({ ...formData, vacancyNumber: e.target.value })}
-                />
+                  <div style={formGroupStyle}>
+                    <label style={labelStyle}>Vacancy / Reference Number</label>
+                    <input
+                      type="text"
+                      placeholder="Auto-generated if left blank (e.g. VAC-2026-001)"
+                      style={inputStyle}
+                      value={formData.vacancyNumber}
+                      onChange={(e) => setFormData({ ...formData, vacancyNumber: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', marginTop: '12px' }}>
+                  {/* School / Institute Dropdown */}
+                  <div style={formGroupStyle}>
+                    <label style={labelStyle}>School / Institute *</label>
+                    <select style={selectStyle} value={formData.schoolId} onChange={handleSchoolChange}>
+                      <option value="">-- Select School --</option>
+                      {schools.map((s) => (
+                        <option key={s.id} value={s.id}>{s.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Department Dynamic Dropdown */}
+                  <div style={formGroupStyle}>
+                    <label style={labelStyle}>Department *</label>
+                    <select style={selectStyle} value={formData.departmentId} onChange={handleDepartmentChange} disabled={!formData.schoolId}>
+                      <option value="">-- Select Department --</option>
+                      {departments.map((d) => (
+                        <option key={d.id} value={d.id}>{d.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Position Dynamic Dropdown */}
+                  <div style={formGroupStyle}>
+                    <label style={labelStyle}>Position / Designation *</label>
+                    {positions.length > 0 ? (
+                      <select style={selectStyle} value={formData.positionId || formData.position} onChange={handlePositionChange}>
+                        <option value="">-- Select Position --</option>
+                        {positions.map((p) => (
+                          <option key={p.id} value={p.id}>{p.title}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <input
+                        type="text"
+                        placeholder="e.g. Assistant Professor – Computer Science"
+                        style={inputStyle}
+                        value={formData.position}
+                        onChange={(e) => setFormData({ ...formData, position: e.target.value })}
+                      />
+                    )}
+                  </div>
+                </div>
               </div>
             )}
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', marginTop: '12px' }}>
-              {/* School / Institute Dropdown */}
-              <div style={formGroupStyle}>
-                <label style={labelStyle}>School / Institute *</label>
-                <select style={selectStyle} value={formData.schoolId} onChange={handleSchoolChange}>
-                  <option value="">-- Select School --</option>
-                  {schools.map((s) => (
-                    <option key={s.id} value={s.id}>{s.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Department Dynamic Dropdown */}
-              <div style={formGroupStyle}>
-                <label style={labelStyle}>Department *</label>
-                <select style={selectStyle} value={formData.departmentId} onChange={handleDepartmentChange} disabled={!formData.schoolId}>
-                  <option value="">-- Select Department --</option>
-                  {departments.map((d) => (
-                    <option key={d.id} value={d.id}>{d.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Position Dynamic Dropdown or Custom Title */}
-              <div style={formGroupStyle}>
-                <label style={labelStyle}>Position / Designation *</label>
-                {positions.length > 0 ? (
-                  <select style={selectStyle} value={formData.positionId || formData.position} onChange={handlePositionChange}>
-                    <option value="">-- Select Position --</option>
-                    {positions.map((p) => (
-                      <option key={p.id} value={p.id}>{p.title}</option>
-                    ))}
-                  </select>
-                ) : (
-                  <input
-                    type="text"
-                    placeholder="e.g. Assistant Professor – Computer Science"
-                    style={inputStyle}
-                    value={formData.position}
-                    onChange={(e) => setFormData({ ...formData, position: e.target.value })}
-                  />
-                )}
-              </div>
-            </div>
           </div>
 
-          {/* SECTION 2: POSITION TERMS & DATES */}
+          {/* SECTION 2: POSITION TERMS & SCHEDULE */}
           <div style={sectionBoxStyle}>
             <h4 style={sectionTitleStyle}>2. Employment Terms & Schedule</h4>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '16px' }}>
               <div style={formGroupStyle}>
-                <label style={labelStyle}>Employment Type</label>
-                <select style={selectStyle} value={formData.employmentType} onChange={(e) => setFormData({ ...formData, employmentType: e.target.value })}>
-                  <option value="Full Time">Full Time</option>
-                  <option value="Part Time">Part Time</option>
-                  <option value="Contract">Contract</option>
-                  <option value="Adjunct">Adjunct</option>
-                </select>
+                <label style={labelStyle}>Employment Type *</label>
+                {formData.type === 'CUSTOM' ? (
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Visiting, Contract, Adjunct, Full Time"
+                    style={inputStyle}
+                    value={formData.employmentType}
+                    onChange={(e) => setFormData({ ...formData, employmentType: e.target.value })}
+                  />
+                ) : (
+                  <select style={selectStyle} value={formData.employmentType} onChange={(e) => setFormData({ ...formData, employmentType: e.target.value })}>
+                    <option value="Full Time">Full Time</option>
+                    <option value="Part Time">Part Time</option>
+                    <option value="Contract">Contract</option>
+                    <option value="Adjunct">Adjunct</option>
+                  </select>
+                )}
               </div>
 
               <div style={formGroupStyle}>

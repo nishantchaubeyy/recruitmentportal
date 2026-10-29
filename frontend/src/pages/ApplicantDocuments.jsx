@@ -133,9 +133,25 @@ function ApplicantDocuments() {
             <IconFolder size={28} />
           </div>
           <h3 style={{ margin: '0 0 6px 0', color: '#8B1235', fontSize: '1.15rem', fontWeight: 800 }}>No Documents Requested</h3>
-          <p style={{ color: '#64748b', fontSize: '0.9rem', maxWidth: '440px', margin: '0 auto' }}>
-            HR has not requested any additional original documents for your application at this stage. You will receive an email if documents are required.
+          <p style={{ color: '#64748b', fontSize: '0.9rem', maxWidth: '460px', margin: '0 auto 20px auto', lineHeight: 1.5 }}>
+            HR has not requested any additional original documents for your application at this stage. You will receive an email notification if documents are required.
           </p>
+          <a
+            href="#/applicant/dashboard"
+            onClick={(e) => { e.preventDefault(); window.location.href = window.location.pathname.replace(/\/documents.*$/, '/dashboard'); }}
+            style={{
+              display: 'inline-block',
+              backgroundColor: '#8B1235',
+              color: '#ffffff',
+              padding: '9px 20px',
+              borderRadius: '8px',
+              textDecoration: 'none',
+              fontWeight: 700,
+              fontSize: '0.86rem'
+            }}
+          >
+            &larr; Return to Dashboard
+          </a>
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>

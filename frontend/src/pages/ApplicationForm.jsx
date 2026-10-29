@@ -962,6 +962,7 @@ function ApplicationForm() {
           position: postAppliedFor || selectedFaculty,
           status: 'SUBMITTED',
           isNewUser: Boolean(submitRes.isNewUser),
+          credentials: submitRes.credentials || null,
           isInterest
         }
       });

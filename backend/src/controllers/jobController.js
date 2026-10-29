@@ -48,7 +48,8 @@ async function normaliseJobInput(input, { partial }) {
   const strings = {
     position: 200, department: 200, employmentType: 50, qualification: 2000, experience: 1000,
     skills: 2000, description: 10000, salaryScale: 200, location: 200,
-    requiredDocuments: 2000, eligibilityCriteria: 4000
+    requiredDocuments: 2000, eligibilityCriteria: 4000,
+    customCategory: 200, customLabel: 200, schoolName: 200
   };
   for (const [key, max] of Object.entries(strings)) {
     if (input[key] === undefined) continue;
@@ -57,7 +58,7 @@ async function normaliseJobInput(input, { partial }) {
   }
 
   if (input.type !== undefined) {
-    if (!['TEACHING', 'NON_TEACHING'].includes(input.type)) return { error: 'Vacancy type must be TEACHING or NON_TEACHING.' };
+    if (!['TEACHING', 'NON_TEACHING', 'CUSTOM'].includes(input.type)) return { error: 'Vacancy type must be TEACHING, NON_TEACHING, or CUSTOM.' };
     data.type = input.type;
   }
   if (input.status !== undefined) {
@@ -160,7 +161,7 @@ async function getPublicVacancies(req, res) {
     AND: []
   };
 
-  if (targetCategory && (targetCategory === 'TEACHING' || targetCategory === 'NON_TEACHING')) {
+  if (targetCategory && (targetCategory === 'TEACHING' || targetCategory === 'NON_TEACHING' || targetCategory === 'CUSTOM')) {
     where.type = targetCategory;
   }
 
@@ -394,10 +395,12 @@ async function createJob(req, res) {
             vacancyNumber: requestedNumber || (await generateVacancyNumber()),
             position: input.position,
             type: input.type,
-            schoolId: input.schoolId || null,
-            departmentId: input.departmentId || null,
-            positionId: input.positionId || null,
-            department: deptName || 'DYPIU Campus',
+            customCategory: input.customCategory || input.customLabel || null,
+            customLabel: input.customLabel || input.customCategory || null,
+            schoolId: input.type === 'CUSTOM' ? null : (input.schoolId || null),
+            departmentId: input.type === 'CUSTOM' ? null : (input.departmentId || null),
+            positionId: input.type === 'CUSTOM' ? null : (input.positionId || null),
+            department: input.type === 'CUSTOM' ? (input.department || input.schoolName || 'DYPIU Campus') : (deptName || 'DYPIU Campus'),
             employmentType: input.employmentType || 'Full Time',
             numPositions: input.numPositions || 1,
             qualification: input.qualification,
