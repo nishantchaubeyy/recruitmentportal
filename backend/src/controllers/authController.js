@@ -136,6 +136,7 @@ async function sendOTP(req, res) {
 
   if (process.env.NODE_ENV === 'development') console.log(`[OTP:dev] ${email} -> ${issued.code}`);
 
+  logAuditAction({ action: 'OTP_SENT', actor: { email }, targetType: 'Email', targetId: email, summary: `Verification code requested for ${email}`, req });
   sendOTPEmail({ to: email, otpCode: issued.code }).catch((err) => {
     console.warn(`[OTP] Email delivery failed: ${err.message}`);
   });
@@ -156,7 +157,11 @@ async function verifyOTP(req, res) {
   }
 
   const result = consumeOtp(email, otp);
-  if (!result.ok) return res.status(result.status).json({ error: result.error });
+  if (!result.ok) {
+    logAuditAction({ action: 'OTP_FAILED', actor: { email }, targetType: 'Email', targetId: email, outcome: 'FAILURE', summary: `Wrong or expired verification code for ${email}`, req });
+    return res.status(result.status).json({ error: result.error });
+  }
+  logAuditAction({ action: 'OTP_VERIFIED', actor: { email }, targetType: 'Email', targetId: email, summary: `${email} verified`, req });
 
   const verificationToken = jwt.sign({ email, typ: 'email-verified' }, VERIFY_SECRET, {
     algorithm: JWT_ALGORITHM,
@@ -317,6 +322,10 @@ async function login(req, res) {
   const failure = loginFailures.get(lockKey);
   if (failure?.lockedUntil && failure.lockedUntil > Date.now()) {
     const minutes = Math.ceil((failure.lockedUntil - Date.now()) / 60000);
+    logAuditAction({
+      action: 'USER_LOGIN_FAILED', actor: { email }, targetType: 'User', targetId: email, outcome: 'DENIED', severity: 'WARNING',
+      summary: `Sign-in blocked: too many failed attempts for ${email}`, details: { locked: true, minutesLeft: minutes }, req
+    });
     return res.status(429).json({ error: `Too many failed attempts. Try again in ${minutes} minute(s).` });
   }
 
@@ -337,16 +346,25 @@ async function login(req, res) {
       });
       await logAuditAction({
         action: 'USER_LOGIN_FAILED',
-        userId: user?.id || null,
+        actor: { id: user?.id || null, email, role: user?.role || null },
         targetType: 'User',
         targetId: user?.id || email,
-        details: { attempt: count },
+        outcome: 'FAILURE',
+        severity: count >= LOGIN_MAX_FAILURES ? 'CRITICAL' : 'WARNING',
+        summary: count >= LOGIN_MAX_FAILURES
+          ? `Account ${email} locked after ${count} failed sign-in attempts`
+          : `Failed sign-in for ${email} (attempt ${count})`,
+        details: { attempt: count, accountExists: Boolean(user) },
         req
       }).catch(() => {});
       return res.status(401).json({ error: 'Invalid email or password.' });
     }
 
     if (user.status !== 'ACTIVE') {
+      logAuditAction({
+        action: 'USER_LOGIN_FAILED', actor: { id: user.id, email: user.email, role: user.role }, targetType: 'User', targetId: user.id,
+        outcome: 'DENIED', summary: `Sign-in refused: account ${user.email} is disabled`, req
+      });
       return res.status(403).json({ error: 'Account disabled. Please contact the system administrator.' });
     }
 
@@ -360,7 +378,9 @@ async function login(req, res) {
       userId: user.id,
       targetType: 'User',
       targetId: user.id,
-      details: { role: user.role, email: user.email },
+      actor: { id: user.id, email: user.email, role: user.role },
+      summary: `${user.email} signed in as ${user.role}`,
+      details: { role: user.role },
       req
     });
 
@@ -486,8 +506,17 @@ async function changePassword(req, res) {
   }
 }
 
+/**
+ * POST /auth/logout - sessions are stateless JWTs, so this only records the sign-out for the audit trail.
+ */
+async function logout(req, res) {
+  await logAuditAction({ action: 'USER_LOGOUT', targetType: 'User', targetId: req.user.id, summary: `${req.user.email} signed out`, req });
+  return res.json({ message: 'Signed out.' });
+}
+
 module.exports = {
   register,
+  logout,
   login,
   refreshToken,
   getMe,

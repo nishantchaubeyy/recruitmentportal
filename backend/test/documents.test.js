@@ -65,6 +65,7 @@ const prismaStub = {
       return request;
     },
     findUnique: async ({ where }) => hydrate(db.requests.get(where.id)),
+    findFirst: async ({ where }) => [...db.requests.values()].filter((r) => r.applicationId === where.applicationId).pop() || null,
     findMany: async () => [...db.requests.values()].map(hydrate),
     update: async ({ where, data }) => Object.assign(db.requests.get(where.id), data)
   },
@@ -93,8 +94,9 @@ const prismaStub = {
     findUnique: async ({ where }) => db.docs.get(where.id) || null
   },
   notification: { create: async () => ({}) },
-  auditLog: { create: async ({ data }) => data },
+  auditLog: { create: async ({ data }) => data, findFirst: async () => null },
   $transaction: async (fn) => fn(prismaStub),
+  $executeRawUnsafe: async () => 0,
   $connect: async () => {},
   $disconnect: async () => {}
 };
@@ -177,6 +179,22 @@ test('a request for a selected candidate keeps mandatory/optional flags, drops d
   assert.match(res.json.message, /not sent/i);
 
   requestId = res.json.documentRequest.id;
+
+  // One request per application: asking again is refused, whatever state the first one is in.
+  const again = await call('POST', '/api/documents', {
+    token: tokenFor('hr'),
+    body: { candidateId: 'c1', applicationId: 'sel', deadline, documents: [{ name: 'Passport Copy' }] }
+  });
+  assert.equal(again.status, 409);
+  assert.match(again.json.error, /already open/i);
+  db.requests.get(requestId).status = 'VERIFIED';
+  const verified = await call('POST', '/api/documents', {
+    token: tokenFor('hr'),
+    body: { candidateId: 'c1', applicationId: 'sel', deadline, documents: [{ name: 'Passport Copy' }] }
+  });
+  assert.equal(verified.status, 409);
+  assert.match(verified.json.error, /verified/i);
+  db.requests.get(requestId).status = 'PENDING';
   const items = itemsOf(requestId);
   assert.equal(items.length, 2);
   assert.deepEqual(items.map((i) => [i.documentName, i.isMandatory]), [['PAN Card', true], ['Passport Copy', false]]);

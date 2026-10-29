@@ -7,6 +7,9 @@ import ScheduleInterviewModal from '../components/ScheduleInterviewModal';
 import { fetchAllApplications } from '../utils/applicationsApi';
 import { downloadCsv, csvDate } from '../utils/csv';
 
+// The candidate's CV: the document filed as the resume, otherwise whatever was attached first.
+const resumeOf = (app) => (app.documents || []).find((d) => d.documentType === 'resume') || (app.documents || [])[0] || null;
+
 function AdminApplications() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -152,6 +155,7 @@ function AdminApplications() {
         { header: 'Submitted On', value: (a) => csvDate(a.submittedAt || a.createdAt) },
         { header: 'Last Updated', value: (a) => csvDate(a.updatedAt) }
       ], rows);
+      apiRequest('/admin/events/export', { method: 'POST', body: JSON.stringify({ source: 'applications', rows: rows.length, filters: activeFilters() }) }).catch(() => {});
       setActionSuccess(`Exported ${rows.length} application${rows.length === 1 ? '' : 's'}.`);
       setTimeout(() => setActionSuccess(''), 5000);
     } catch (err) {
@@ -495,9 +499,9 @@ function AdminApplications() {
                         </span>
                       </td>
                       <td style={{ padding: '12px 14px', textAlign: 'center' }}>
-                        {app.documents && app.documents.length > 0 ? (
+                        {resumeOf(app) ? (
                           <button
-                            onClick={() => handleDownloadCV(app.id, app.documents[0].id, app.documents[0].originalName)}
+                            onClick={() => handleDownloadCV(app.id, resumeOf(app).id, resumeOf(app).originalName)}
                             style={{
                               backgroundColor: '#FFFFFF',
                               border: '1.5px solid #721B28',
@@ -513,7 +517,7 @@ function AdminApplications() {
                               whiteSpace: 'nowrap',
                               boxShadow: '0 1px 2px rgba(114,27,40,0.06)'
                             }}
-                            title={`Download Resume: ${app.documents[0].originalName || 'resume.pdf'}`}
+                            title={`Download Resume: ${resumeOf(app).originalName || 'resume.pdf'}`}
                           >
                             <IconDownload size={13} color="#721B28" />
                             Download Resume

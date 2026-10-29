@@ -79,11 +79,18 @@ const prismaStub = {
       return doc && doc.applicationId === where.applicationId ? { ...doc, application: db.applications.get(doc.applicationId) } : null;
     },
     count: async ({ where } = {}) => (where?.documentType === 'resume' ? db.resumeCount : 0),
-    create: async ({ data }) => ({ id: 'doc-new', ...data })
+    create: async ({ data }) => ({ id: 'doc-new', ...data }),
+    createMany: async ({ data }) => {
+      data.forEach((row, i) => db.documents.set(`stored-${db.documents.size}-${i}`, { id: `stored-${db.documents.size}-${i}`, ...row }));
+      return { count: data.length };
+    }
   },
   applicationStatusHistory: { create: async ({ data }) => data },
   interviewPanel: { findFirst: async () => null },
-  auditLog: { create: async ({ data }) => { db.audit.push(data); return data; } },
+  auditLog: {
+    create: async ({ data }) => { db.audit.push(data); return data; },
+    findFirst: async () => [...db.audit].reverse().find((r) => r.hash) || null
+  },
   job: {
     findUnique: async ({ where }) => db.jobs.get(where.id) || null,
     findFirst: async ({ where }) => {
@@ -92,6 +99,7 @@ const prismaStub = {
     }
   },
   $transaction: async (fn) => fn(prismaStub),
+  $executeRawUnsafe: async () => 0,
   $connect: async () => {},
   $disconnect: async () => {}
 };
@@ -554,4 +562,28 @@ test('guest submission validates attached documents, then creates the account wi
   assert.equal(ok.json.credentials, undefined);
   assert.equal(ok.json.password, undefined);
   assert.equal([...db.users.values()].filter((u) => u.email === email).length, 1);
+
+  // The resume is stored together with the application and is what the admin screens read back.
+  const stored = [...db.documents.values()].filter((d) => d.applicationId === ok.json.applicationId);
+  assert.equal(stored.length, 1);
+  assert.equal(stored[0].documentType, 'resume');
+  assert.ok(storageService.fileExists(stored[0].filePath), 'the file is on disk');
+});
+
+test('if the attached files cannot be stored, nothing is submitted (no application without its resume)', async () => {
+  const email = 'meera@example.com';
+  const original = storageService.saveFile;
+  storageService.saveFile = async () => { throw new Error('disk is full'); };
+  const silence = console.error; console.error = () => {};
+  const before = db.applications.size;
+  try {
+    const res = await call('POST', '/api/applications/submit', { body: guestForm(email, { verificationToken: guestProof(email) }) });
+    assert.equal(res.status, 500);
+    assert.match(res.json.error, /not submitted/);
+  } finally {
+    storageService.saveFile = original;
+    console.error = silence;
+  }
+  assert.equal(db.applications.size, before, 'no application was created');
+  assert.equal([...db.users.values()].some((u) => u.email === email), false, 'and no account either');
 });

@@ -168,6 +168,20 @@ async function createDocumentRequest(req, res) {
       });
     }
 
+    // One request per application: a second one would give the candidate two checklists for the same documents.
+    const existing = await prisma.documentRequest.findFirst({
+      where: { applicationId: application.id },
+      orderBy: { createdAt: 'desc' },
+      select: { id: true, status: true }
+    });
+    if (existing) {
+      const state = {
+        VERIFIED: 'The documents for this application have already been submitted and verified.',
+        SUBMITTED: 'The candidate has already submitted documents for this application and they are waiting for review.'
+      }[existing.status] || 'A document request for this application is already open. Wait for the candidate to respond, or review it on the Document Verification page.';
+      return res.status(409).json({ error: state, existingRequestId: existing.id, existingStatus: existing.status });
+    }
+
     // Create DocumentRequest & Items in transaction
     const request = await prisma.$transaction(async (tx) => {
       const created = await tx.documentRequest.create({
@@ -237,7 +251,8 @@ async function createDocumentRequest(req, res) {
       userId: req.user.id,
       targetType: 'DocumentRequest',
       targetId: request.id,
-      details: { candidateId, itemCount: cleanDocs.length, priority, deadline: deadlineDate },
+      summary: `Requested ${cleanDocs.length} document${cleanDocs.length === 1 ? '' : 's'} from ${contact.name} (${application.applicationNumber})`,
+      details: { candidateId, applicationId: application.id, documents: cleanDocs.map((c) => `${c.name}${c.isMandatory ? '' : ' (optional)'}`), priority, deadline: deadlineDate, email: emailOutcome.status },
       req
     });
 
@@ -260,9 +275,10 @@ async function createDocumentRequest(req, res) {
  */
 async function getAllDocumentRequests(req, res) {
   try {
-    const { status, priority, search } = req.query;
+    const { status, priority, search, applicationId } = req.query;
 
     const where = {};
+    if (applicationId) where.applicationId = String(applicationId);
     if (status && status !== 'ALL') {
       where.status = status;
     }
@@ -482,6 +498,15 @@ async function uploadCandidateDocumentItem(req, res) {
       return doc;
     });
 
+    await logAuditAction({
+      action: 'DOCUMENT_UPLOADED',
+      targetType: 'DocumentRequestItem',
+      targetId: itemId,
+      summary: `Uploaded "${item.documentName}" (${safeFilename(req.file.originalname)})`,
+      details: { requestId, document: item.documentName, fileName: safeFilename(req.file.originalname), bytes: req.file.size, mime: req.file.mimetype },
+      req
+    });
+
     return res.status(201).json({
       message: 'Document uploaded successfully.',
       document
@@ -611,10 +636,13 @@ async function verifyCandidateDocumentItem(req, res) {
         where: { documentRequestId: requestId }
       });
 
-      const allVerified = allItems.every(i => i.status === 'VERIFIED');
+      // Optional documents the candidate skipped do not hold the request back.
+      const relevant = allItems.filter(i => i.isMandatory || i.status !== 'PENDING');
+      const allVerified = relevant.length > 0 && relevant.every(i => i.status === 'VERIFIED');
       const anyRejected = allItems.some(i => i.status === 'REJECTED');
+      const allMandatoryIn = allItems.filter(i => i.isMandatory).every(i => i.status !== 'PENDING');
 
-      let parentStatus = 'UNDER_REVIEW';
+      let parentStatus = allMandatoryIn ? 'SUBMITTED' : 'PARTIALLY_UPLOADED';
       if (allVerified) parentStatus = 'VERIFIED';
       else if (anyRejected) parentStatus = 'REJECTED';
 
@@ -636,6 +664,16 @@ async function verifyCandidateDocumentItem(req, res) {
         rejectedItems: [{ name: item.documentName, reason: rejectionReason }]
       }).catch(() => {});
     }
+
+    await logAuditAction({
+      action: status === 'VERIFIED' ? 'DOCUMENT_VERIFIED' : 'DOCUMENT_REJECTED',
+      targetType: 'DocumentRequestItem',
+      targetId: itemId,
+      summary: `${status === 'VERIFIED' ? 'Verified' : 'Rejected'} "${item.documentName}" for ${item.documentRequest.application?.applicationNumber || 'an application'}`,
+      details: { requestId, document: item.documentName, fileName: latestDoc.fileName, reason: status === 'REJECTED' ? cleanString(rejectionReason, 1000) : undefined },
+      oldValue: { itemStatus: item.status },
+      req
+    });
 
     return res.json({
       message: `Document has been marked as ${status}.`
@@ -715,6 +753,15 @@ async function approveAllDocuments(req, res) {
       }).catch(() => {});
     }
 
+    await logAuditAction({
+      action: 'DOCUMENTS_APPROVED_ALL',
+      targetType: 'DocumentRequest',
+      targetId: requestId,
+      summary: `Approved all uploaded documents for ${request.application?.applicationNumber || 'an application'}`,
+      details: { documents: request.items.filter((i) => i.documents.length > 0).map((i) => i.documentName) },
+      req
+    });
+
     return res.json({
       message: 'All candidate documents have been verified and approved.'
     });
@@ -751,6 +798,18 @@ async function downloadDocumentFile(req, res) {
 
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('Content-Security-Policy', "default-src 'none'; sandbox");
+
+    // Candidates opening their own files is routine; every time staff open a candidate's file is recorded.
+    if (isAdminRole(req.user.role)) {
+      await logAuditAction({
+        action: 'DOCUMENT_FILE_ACCESSED',
+        targetType: 'CandidateDocument',
+        targetId: doc.id,
+        summary: `${inline === 'true' ? 'Viewed' : 'Downloaded'} ${fileName}`,
+        details: { candidateId: doc.candidateId, fileName, mode: inline === 'true' ? 'view' : 'download' },
+        req
+      });
+    }
 
     if (inline === 'true' && ['application/pdf', 'image/jpeg', 'image/png'].includes(doc.fileType)) {
       res.setHeader('Content-Type', doc.fileType);

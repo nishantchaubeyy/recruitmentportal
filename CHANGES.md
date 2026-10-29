@@ -81,3 +81,27 @@ This document summarizes the 21 logic and wiring issues identified during the sy
 - Display fallbacks that invented an application number (`APP-2026-000001`, `DYPIU-2026-000001`) were removed from the screens; the mock data uses the new format.
 - Tests: `backend/test/pdf.test.js` (one page for typical, heavy and fresher applications) and the numbering assertion in `security.test.js`.
 
+---
+
+## Audit log, candidate deletion and the request-documents button
+
+- **Request button**: an application can have one document request. Once documents have been requested, submitted or verified, the page shows the request's real state ("awaiting candidate", "submitted - awaiting your review", "submitted & verified") instead of an active button, and the server refuses a second request (409). A request now reaches *Verified* when every mandatory document and every optional document the candidate did upload is verified (a skipped optional document no longer blocks it), and its status is kept to the values the screens understand.
+- **Audit log** (Admin menu > *Audit Logs*, super admin / HR admin):
+  - *Tamper-evident*: every record carries an HMAC over its content and the previous record, so an edited, removed or inserted record is detected. **Verify integrity** re-checks the whole chain. The database also refuses UPDATE / DELETE / TRUNCATE on the table. Set `AUDIT_SECRET` (and never change it); a changed secret is reported as a key mismatch rather than as tampering.
+  - *Rich records*: actor (id, e-mail, role), action, category, severity, outcome (success / failed / denied), what was touched, a readable summary, before/after values, IP address, browser, request id, method and path. Passwords, tokens and codes are never stored. The actor is stored as plain values (no foreign key), so deleting an account never changes history.
+  - *Coverage*: sign-in, failed and blocked sign-ins, lock-outs, sign-out, e-mail verification codes, password changes and resets, access denied (wrong role or disabled account), application views and status changes, every time staff open a candidate file or application document, document requests / uploads / verify / reject / approve-all / ZIP downloads, interviews, vacancies, user and role management, CSV exports, candidate deletion, and reading or exporting the audit log itself.
+  - *Viewer*: search, category / action / severity / outcome / date filters, summary counters, expandable detail with before/after, live mode, CSV export, integrity check.
+  - `TRUST_PROXY` (default 1 in production) makes the app use the real client address behind nginx instead of a spoofable header.
+- **Delete candidate & all data** (candidate page > *Danger zone*, super administrators only): shows exactly what will be removed, then requires a reason, the candidate's e-mail typed in full and the administrator's own password (wrong-password attempts are throttled). Removes the account, applications, uploaded files, document requests, interviews, notifications, e-mail log entries and interest registrations, and the files on disk. The audit record is written in the same database transaction (no record, no deletion) and keeps only a masked reference. Staff accounts and your own account cannot be deleted this way.
+- **Upgrade note**: adds migration `20261030000000_audit_log_hardening` (applied by `prisma migrate deploy` on deploy). Add `AUDIT_SECRET` to the production `.env` before or with the deploy.
+- Tested against a real PostgreSQL: all migrations apply, concurrent writers produce one valid chain, the append-only triggers block edits and deletes, and the deletion cascades through every table.
+
+---
+
+## Resume not visible to admins
+
+- **Applications list**: the list endpoint did not return the attached documents, so the *Download Resume* column always read "Not attached". It now returns each application's documents (names and sizes only, never storage paths) and the column picks the file filed as the resume.
+- **Submitting**: attached files are now stored *before* the application is finalised, and their database rows are written in the same transaction as the application. If a file cannot be stored (for example a full or read-only upload folder) the candidate gets an error and nothing is submitted, instead of an application that silently has no resume.
+- **Review page**: no longer claims "CV / Resume attached in candidate submission" when nothing is on file; it says so and warns when no file is filed as the resume.
+- Applications that were already submitted without a stored file cannot be recovered; their candidates need to send the CV again.
+

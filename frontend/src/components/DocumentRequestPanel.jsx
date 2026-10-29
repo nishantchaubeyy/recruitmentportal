@@ -37,7 +37,7 @@ function DocumentRequestPanel({ application = null, applications = [], onClose, 
   useEffect(() => {
     apiRequest('/documents/catalog').then((list) => setCatalog(Array.isArray(list) ? list : [])).catch(() => setCatalog([]));
     apiRequest('/documents')
-      .then((list) => setOpenRequests(Array.isArray(list) ? list.filter((r) => r.status !== 'VERIFIED') : []))
+      .then((list) => setOpenRequests(Array.isArray(list) ? list : []))
       .catch(() => setOpenRequests([]));
   }, []);
 
@@ -196,8 +196,10 @@ function DocumentRequestPanel({ application = null, applications = [], onClose, 
               </div>
             )}
             {existing && (
-              <div style={{ padding: '10px 14px', backgroundColor: '#FEF2F2', border: '1px solid #FECACA', color: '#991B1B', borderRadius: '8px', fontSize: '0.84rem', marginBottom: '14px' }}>
-                A document request for this application is already open ({existing.status === 'SUBMITTED' ? 'under review' : existing.status.toLowerCase().replace('_', ' ')}). Sending another creates a second checklist for the candidate.
+              <div role="alert" style={{ padding: '10px 14px', backgroundColor: '#FEF2F2', border: '1px solid #FECACA', color: '#991B1B', borderRadius: '8px', fontSize: '0.84rem', marginBottom: '14px' }}>
+                {existing.status === 'VERIFIED'
+                  ? 'This candidate’s documents have already been submitted and verified.'
+                  : `A document request for this application already exists (${existing.status === 'SUBMITTED' ? 'submitted, under review' : existing.status.toLowerCase().replace('_', ' ')}). Review it on the Document Verification page instead of sending another.`}
               </div>
             )}
 
@@ -282,7 +284,7 @@ function DocumentRequestPanel({ application = null, applications = [], onClose, 
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', flexWrap: 'wrap' }}>
               <button type="button" onClick={onClose} style={{ padding: '10px 18px', border: '1px solid #CBD5E1', backgroundColor: '#fff', borderRadius: '8px', fontSize: '0.86rem', fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
-              <button type="submit" disabled={submitting || !summary || loadingApp} style={{ padding: '10px 24px', border: 'none', backgroundColor: '#721B28', color: '#fff', borderRadius: '8px', fontSize: '0.88rem', fontWeight: 700, cursor: submitting || !summary ? 'not-allowed' : 'pointer', opacity: submitting || !summary ? 0.6 : 1 }}>
+              <button type="submit" disabled={submitting || !summary || loadingApp || Boolean(existing)} style={{ padding: '10px 24px', border: 'none', backgroundColor: '#721B28', color: '#fff', borderRadius: '8px', fontSize: '0.88rem', fontWeight: 700, cursor: submitting || !summary || existing ? 'not-allowed' : 'pointer', opacity: submitting || !summary || existing ? 0.6 : 1 }}>
                 {submitting ? 'Sending…' : 'Send Document Request'}
               </button>
             </div>

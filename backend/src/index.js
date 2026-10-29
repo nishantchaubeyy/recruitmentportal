@@ -21,6 +21,8 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 app.disable('x-powered-by');
+app.set('trust proxy', require('./config').TRUST_PROXY);
+app.use(require('./middleware/requestContext'));
 
 // This server only returns JSON and files, so the strictest CSP is appropriate.
 app.use(helmet({

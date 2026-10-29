@@ -441,6 +441,25 @@ async function submitApplication(req, res) {
     const now = new Date();
     let submitted = null;
 
+    // ---- store the attached files first: if that fails nothing is submitted (a resume must never go missing silently)
+    const applicationId = existingApplication ? existingApplication.id : crypto.randomUUID();
+    const storedFiles = [];
+    const discardStoredFiles = () => Promise.all(storedFiles.map((f) => storageService.deleteFile(f.fileKey).catch(() => {})));
+    for (const doc of prepared.documents) {
+      try {
+        const saved = await storageService.saveFile(
+          { buffer: doc.buffer, originalname: doc.originalName, mimetype: doc.detected.mime, size: doc.buffer.length, detectedExt: doc.detected.ext },
+          job.id,
+          applicationId
+        );
+        storedFiles.push({ fileKey: saved.fileKey, size: saved.size, mimeType: saved.mimeType, documentType: doc.documentType, originalName: doc.originalName });
+      } catch (storageError) {
+        console.error('[Submit] Could not store an attached document:', storageError.message);
+        await discardStoredFiles();
+        return res.status(500).json({ error: 'Your documents could not be saved, so the application was not submitted. Please try again.' });
+      }
+    }
+
     for (let attempt = 0; attempt < 5 && !submitted; attempt += 1) {
       try {
         submitted = await prisma.$transaction(async (tx) => {
@@ -479,6 +498,7 @@ async function submitApplication(req, res) {
           } else {
             app = await tx.application.create({
               data: {
+                id: applicationId,
                 applicationNumber,
                 applicantId,
                 jobId: job.id,
@@ -503,16 +523,31 @@ async function submitApplication(req, res) {
               comment: 'Application submitted by candidate.'
             }
           });
+          // The document rows are written in the same transaction as the application itself.
+          if (storedFiles.length > 0) {
+            await tx.applicationDocument.createMany({
+              data: storedFiles.map((f) => ({
+                applicationId: app.id,
+                documentType: f.documentType,
+                filePath: f.fileKey,
+                originalName: f.originalName,
+                fileSize: f.size,
+                mimeType: f.mimeType
+              }))
+            });
+          }
           return app;
         });
       } catch (err) {
         if (err.code === 'P2002') {
           const target = JSON.stringify(err.meta?.target || '');
           if (/email/i.test(target)) {
+            await discardStoredFiles();
             return res.status(409).json({ error: 'An account already exists for this email address. Please log in to submit your application.' });
           }
           continue; // application number collision: retry
         }
+        await discardStoredFiles();
         if (err.message === 'ALREADY_SUBMITTED') {
           return res.status(409).json({ error: 'This application has already been submitted.' });
         }
@@ -521,30 +556,8 @@ async function submitApplication(req, res) {
     }
 
     if (!submitted) {
+      await discardStoredFiles();
       return res.status(503).json({ error: 'Could not allocate an application number. Please try again.' });
-    }
-
-    // ---- store validated documents --------------------------------------------------------------------------
-    for (const doc of prepared.documents) {
-      try {
-        const saved = await storageService.saveFile(
-          { buffer: doc.buffer, originalname: doc.originalName, mimetype: doc.detected.mime, size: doc.buffer.length, detectedExt: doc.detected.ext },
-          job.id,
-          submitted.id
-        );
-        await prisma.applicationDocument.create({
-          data: {
-            applicationId: submitted.id,
-            documentType: doc.documentType,
-            filePath: saved.fileKey,
-            originalName: doc.originalName,
-            fileSize: saved.size,
-            mimeType: saved.mimeType
-          }
-        });
-      } catch (docErr) {
-        console.error('[Submit] Could not store an attached document:', docErr.message);
-      }
     }
 
     await logAuditAction({
@@ -552,7 +565,7 @@ async function submitApplication(req, res) {
       userId: targetUserId,
       targetType: 'Application',
       targetId: submitted.id,
-      details: { applicationNumber: submitted.applicationNumber, jobId: job.id, newAccount: isGuest },
+      details: { applicationNumber: submitted.applicationNumber, jobId: job.id, newAccount: isGuest, documents: storedFiles.map((f) => `${f.documentType}: ${f.originalName}`) },
       req
     });
 
@@ -711,7 +724,9 @@ async function getAllApplications(req, res) {
         where,
         include: {
           applicant: { select: { name: true, mobile: true, user: { select: { email: true } } } },
-          job: true
+          job: true,
+          // Needed for the "Download Resume" column; metadata only, never storage paths.
+          documents: { select: ownDocumentSelect, orderBy: { uploadedAt: 'asc' } }
         },
         orderBy: { [sortBy]: sortOrder },
         skip: (pageNum - 1) * limitNum,
@@ -768,6 +783,13 @@ async function getApplicationById(req, res) {
     if (!isAdminRole(req.user.role)) delete application.screeningRemarks;
     else application.allowedTransitions = allowedFor(req.user.role, application.status);
     application.statusHistory = visibleHistory(application.statusHistory, req.user.role);
+    // Opening a candidate's personal data is itself recorded (staff only; candidates reading their own are not).
+    if (isAdminRole(req.user.role) || isCommittee(req.user.role)) {
+      logAuditAction({
+        action: 'APPLICATION_VIEWED', targetType: 'Application', targetId: application.id,
+        summary: `Opened application ${application.applicationNumber}`, req
+      });
+    }
     application.nextStep = STATUS_NEXT_STEP[application.status] || null;
 
     // Committee members evaluate on merit: contact details are withheld.
@@ -864,8 +886,9 @@ async function updateApplicationStatus(req, res) {
       userId: req.user.id,
       targetType: 'Application',
       targetId: application.id,
+      summary: `Moved ${application.applicationNumber} from ${STATUS_LABELS[previousStatus] || previousStatus} to ${STATUS_LABELS[status] || status}`,
       oldValue: { status: previousStatus },
-      details: { status, comment: comment || null },
+      details: { status, comment: comment || null, emailStatus: notification?.email?.status || null },
       req
     });
 
@@ -1052,6 +1075,13 @@ async function downloadDocument(req, res) {
 
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('Content-Security-Policy', "default-src 'none'; sandbox");
+    if (req.user.role !== 'APPLICANT') {
+      logAuditAction({
+        action: 'APPLICATION_DOCUMENT_ACCESSED', targetType: 'ApplicationDocument', targetId: doc.id,
+        summary: `Downloaded ${safeFilename(doc.originalName)} (${doc.documentType})`,
+        details: { applicationId: doc.application.id, fileName: safeFilename(doc.originalName), type: doc.documentType }, req
+      });
+    }
     return res.download(storageService.getFileLocation(doc.filePath), safeFilename(doc.originalName));
   } catch (error) {
     console.error('Document download error:', error);

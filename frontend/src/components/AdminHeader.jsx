@@ -93,6 +93,15 @@ function AdminHeader() {
             Users
           </Link>
         )}
+
+        {isSuperAdminOrHRAdmin && (
+          <Link
+            to="/admin/audit-logs"
+            style={isActive('/admin/audit-logs') ? activeLinkStyle : linkStyle}
+          >
+            Audit Logs
+          </Link>
+        )}
       </nav>
 
       {/* RIGHT: USER PROFILE & LOGOUT */}

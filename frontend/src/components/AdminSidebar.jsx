@@ -10,7 +10,8 @@ import {
   IconBarChart,
   IconUsers,
   IconLogOut,
-  IconFolder
+  IconFolder,
+  IconShield
 } from './icons/AdminIcons';
 
 function AdminSidebar() {
@@ -41,7 +42,10 @@ function AdminSidebar() {
     { label: 'Interested Applicants', path: '/admin/vacancy-interests', icon: IconUserCheck },
     { label: 'Reports', path: '/admin/reports', icon: IconBarChart },
     { label: 'Advertisements', path: '/admin/schools', icon: IconFileText },
-    ...(isSuperAdminOrHRAdmin ? [{ label: 'User Management', path: '/admin/users', icon: IconUsers }] : [])
+    ...(isSuperAdminOrHRAdmin ? [
+      { label: 'User Management', path: '/admin/users', icon: IconUsers },
+      { label: 'Audit Logs', path: '/admin/audit-logs', icon: IconShield }
+    ] : [])
   ];
 
   return (

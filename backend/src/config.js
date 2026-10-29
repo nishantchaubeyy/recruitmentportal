@@ -33,6 +33,10 @@ if (corsOrigins.length === 0 || corsOrigins.includes('*')) {
   corsOrigins.push(...defaultOrigins);
 }
 
+if (isProduction && !process.env.AUDIT_SECRET) {
+  console.warn('[Config] AUDIT_SECRET is not set: the audit log is signed with JWT_SECRET, so changing JWT_SECRET would make older audit records unverifiable. Set AUDIT_SECRET and never change it.');
+}
+
 module.exports = {
   isProduction,
   JWT_SECRET: resolveSecret('JWT_SECRET'),
@@ -43,6 +47,11 @@ module.exports = {
   REFRESH_TOKEN_TTL: process.env.REFRESH_TOKEN_TTL || '7d',
   JWT_ALGORITHM: 'HS256',
   corsOrigins,
+  // How many reverse proxies (nginx) sit in front of the app. It decides which address req.ip reports, so
+  // rate limiting and the audit log see the real client instead of the proxy or a spoofed X-Forwarded-For.
+  TRUST_PROXY: process.env.TRUST_PROXY !== undefined
+    ? (/^\d+$/.test(process.env.TRUST_PROXY) ? Number(process.env.TRUST_PROXY) : process.env.TRUST_PROXY === 'true')
+    : (isProduction ? 1 : false),
   uploadRoot: process.env.UPLOAD_DIR || 'uploads',
   // Roles that can reach staff endpoints.
   ADMIN_ROLES: ['SUPER_ADMIN', 'HR_ADMIN', 'HR_USER', 'ADMIN'],

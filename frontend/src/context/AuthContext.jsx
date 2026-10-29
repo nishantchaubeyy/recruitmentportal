@@ -1,5 +1,5 @@
 import React, { createContext, useState, useEffect } from 'react';
-import { apiRequest } from '../utils/api';
+import { apiRequest, API_URL, IS_MOCK } from '../utils/api';
 
 export const AuthContext = createContext();
 
@@ -48,6 +48,12 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = () => {
+    // Tell the server so the sign-out is in the audit trail. Best effort: it must never block signing out
+    // (the token may already have expired, which is why this does not go through apiRequest).
+    const current = localStorage.getItem('token');
+    if (current && !IS_MOCK) {
+      fetch(`${API_URL}/auth/logout`, { method: 'POST', headers: { Authorization: `Bearer ${current}` }, keepalive: true }).catch(() => {});
+    }
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setToken(null);

@@ -179,6 +179,7 @@ function AdminDocumentVerification() {
       { header: 'Uploaded On', value: ({ doc }) => csvDate(doc?.uploadDate) },
       { header: 'Rejection Reason', value: ({ doc }) => doc?.rejectionReason }
     ], rows);
+    apiRequest('/admin/events/export', { method: 'POST', body: JSON.stringify({ source: 'document-requests', rows: rows.length, filters: { status: statusFilter, search: searchQuery || undefined } }) }).catch(() => {});
   };
 
   const statusBadge = (status) => ({

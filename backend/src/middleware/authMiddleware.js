@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
 const prisma = require('../services/prisma');
 const { JWT_SECRET, JWT_ALGORITHM, ADMIN_ROLES } = require('../config');
+const { logAuditAction } = require('../services/auditService');
 
 function extractBearer(req) {
   const header = req.headers['authorization'];
@@ -65,6 +66,10 @@ async function authenticate(req, res, next) {
       return res.status(401).json({ error: 'User account no longer exists.' });
     }
     if (user.status !== 'ACTIVE') {
+      logAuditAction({
+        action: 'ACCESS_DENIED', actor: { id: user.id, email: user.email, role: user.role }, targetType: 'User', targetId: user.id,
+        outcome: 'DENIED', summary: 'A disabled account tried to use the portal', req
+      });
       return res.status(403).json({ error: 'Account disabled. Please contact the system administrator.' });
     }
 
@@ -119,6 +124,11 @@ function authorize(...allowedRoles) {
       (role === 'ADMIN' && (allowedRoles.includes('SUPER_ADMIN') || allowedRoles.includes('HR_ADMIN')));
 
     if (!allowed) {
+      // Fire-and-forget: the denial is recorded without slowing or failing the response.
+      logAuditAction({
+        action: 'ACCESS_DENIED', targetType: 'Route', targetId: `${req.method} ${(req.baseUrl || '') + (req.route?.path || '')}`.slice(0, 120),
+        outcome: 'DENIED', summary: `${role} tried to use an endpoint reserved for ${allowedRoles.join(' / ')}`, details: { required: allowedRoles }, req
+      });
       return res.status(403).json({ error: 'You do not have permission to perform this action.' });
     }
     return next();

@@ -5,6 +5,7 @@ const auditController = require('../controllers/auditController');
 const panelController = require('../controllers/panelController');
 const interviewController = require('../controllers/interviewController');
 const applicationController = require('../controllers/applicationController');
+const candidateController = require('../controllers/candidateController');
 const { authenticate, authorize, requireAdmin, requireSuperAdmin } = require('../middleware/authMiddleware');
 const { getEmailProviderStatus } = require('../services/emailService');
 
@@ -23,6 +24,15 @@ router.post('/users/:id/reset-password', authenticate, requireSuperAdmin, userCo
 
 // System Audit Logs (Super Admin & HR Admin)
 router.get('/audit-logs', authenticate, adminOnly, auditController.getAuditLogs);
+router.get('/audit-logs/summary', authenticate, adminOnly, auditController.getAuditSummary);
+router.get('/audit-logs/facets', authenticate, adminOnly, auditController.getAuditFacets);
+router.get('/audit-logs/verify', authenticate, adminOnly, auditController.verifyAuditLog);
+// CSV exports are built in the browser; this records who exported what.
+router.post('/events/export', authenticate, requireAdmin, auditController.recordExport);
+
+// Permanent removal of a candidate and all their data (super administrators only; see candidateController)
+router.get('/candidates/:id/deletion-preview', authenticate, requireSuperAdmin, candidateController.previewDeletion);
+router.delete('/candidates/:id', authenticate, requireSuperAdmin, candidateController.deleteCandidate);
 
 // Applications Screening endpoint
 router.get('/applications', authenticate, adminOnly, applicationController.getAllApplications);

@@ -13,6 +13,7 @@ router.post('/forgot-password', authController.forgotPassword);
 router.post('/reset-password', authController.resetPassword);
 router.get('/me', authenticate, authController.getMe);
 router.post('/change-password', authenticate, authController.changePassword);
+router.post('/logout', authenticate, authController.logout);
 
 // Applicant Auth Explicit Alias Routes (backward compat)
 router.post('/applicant/auth/register', authController.register);

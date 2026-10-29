@@ -1,5 +1,5 @@
 import React, { useContext, useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { apiRequest, API_URL } from '../utils/api';
 import { AuthContext } from '../context/AuthContext';
 import { HR_STATUS_OPTIONS, statusLabel, statusOptionState, APPLICATION_STATUS } from '../utils/status';
@@ -7,11 +7,15 @@ import DossierPrintDocument from '../components/DossierPrintDocument';
 import { viewCandidateDocument, downloadCandidateDocument } from '../utils/pdfHelper';
 import ScheduleInterviewModal from '../components/ScheduleInterviewModal';
 import DocumentRequestPanel from '../components/DocumentRequestPanel';
+import DeleteCandidateModal from '../components/DeleteCandidateModal';
 import { DOCUMENT_REQUEST_STATUSES } from '../utils/documentChecklist';
 
 function AdminReviewApplication() {
   const { id } = useParams();
   const { user } = useContext(AuthContext);
+  const navigate = useNavigate();
+  const canDeleteCandidate = ['SUPER_ADMIN', 'ADMIN'].includes(user?.role);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [app, setApp] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -27,6 +31,7 @@ function AdminReviewApplication() {
   const [emailLogs, setEmailLogs] = useState([]);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [showDocumentPanel, setShowDocumentPanel] = useState(false);
+  const [docRequest, setDocRequest] = useState(null); // the one document request this application can have
 
   const fetchApplicationDetails = async () => {
     try {
@@ -62,6 +67,19 @@ function AdminReviewApplication() {
 
   useEffect(() => {
     if (id) loadEmailInfo();
+  }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const loadDocRequest = async () => {
+    try {
+      const list = await apiRequest(`/documents?applicationId=${encodeURIComponent(id)}`);
+      setDocRequest(Array.isArray(list) && list.length > 0 ? list[0] : null);
+    } catch {
+      setDocRequest(null);
+    }
+  };
+
+  useEffect(() => {
+    if (id) loadDocRequest();
   }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const describeNotice = (n) => {
@@ -325,7 +343,38 @@ function AdminReviewApplication() {
               HR / ADMINISTRATIVE REVIEW PANEL
             </div>
             <div style={{ display: 'flex', gap: '8px' }}>
-              {DOCUMENT_REQUEST_STATUSES.includes(app.status) ? (
+              {!DOCUMENT_REQUEST_STATUSES.includes(app.status) ? (
+                <span
+                  title="Documents can be requested once the application is shortlisted or further along."
+                  style={{ fontSize: '0.74rem', color: '#64748b', alignSelf: 'center' }}
+                >
+                  Document requests open at Shortlisted
+                </span>
+              ) : docRequest ? (
+                // Already requested: show where it stands instead of offering the button again.
+                <Link
+                  to="/admin/documents"
+                  title="Open this request on the Document Verification page"
+                  style={{
+                    backgroundColor: docRequest.status === 'VERIFIED' ? '#DEF7EC' : '#FEF3C7',
+                    color: docRequest.status === 'VERIFIED' ? '#03543F' : '#92400E',
+                    border: `1px solid ${docRequest.status === 'VERIFIED' ? '#A7F3D0' : '#FCD34D'}`,
+                    padding: '6px 14px',
+                    borderRadius: '4px',
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    textDecoration: 'none',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px'
+                  }}
+                >
+                  {docRequest.status === 'VERIFIED' && '✓ Documents submitted & verified'}
+                  {docRequest.status === 'SUBMITTED' && '📑 Documents submitted — awaiting your review'}
+                  {docRequest.status === 'REJECTED' && '📑 Documents requested — some need re-upload'}
+                  {['PENDING', 'PARTIALLY_UPLOADED'].includes(docRequest.status) && '📑 Documents requested — awaiting candidate'}
+                </Link>
+              ) : (
                 <button
                   type="button"
                   onClick={() => setShowDocumentPanel(true)}
@@ -345,13 +394,6 @@ function AdminReviewApplication() {
                 >
                   <span>📑 Request Documents{app.status === APPLICATION_STATUS.SELECTED ? ' from Selected Candidate' : ''}</span>
                 </button>
-              ) : (
-                <span
-                  title="Documents can be requested once the application is shortlisted or further along."
-                  style={{ fontSize: '0.74rem', color: '#64748b', alignSelf: 'center' }}
-                >
-                  Document requests open at Shortlisted
-                </span>
               )}
               <button
                 type="button"
@@ -472,6 +514,24 @@ function AdminReviewApplication() {
               </div>
             )}
           </form>
+
+          {canDeleteCandidate && app.applicantId && (
+            <div style={{ marginTop: '22px', paddingTop: '16px', borderTop: '1px dashed #FCA5A5', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+              <div>
+                <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#B91C1C', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Danger zone</div>
+                <div style={{ fontSize: '0.8rem', color: '#64748B', maxWidth: '520px' }}>
+                  Permanently remove this candidate, every application, uploaded file, document request and interview record. Recorded in the audit log.
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowDeleteModal(true)}
+                style={{ backgroundColor: '#fff', color: '#B91C1C', border: '1.5px solid #B91C1C', padding: '8px 16px', borderRadius: '6px', fontSize: '0.8rem', fontWeight: 800, cursor: 'pointer', letterSpacing: 'normal', textTransform: 'none' }}
+              >
+                🗑 Delete candidate &amp; all data…
+              </button>
+            </div>
+          )}
         </section>
 
         {/* ─── 01 PERSONAL INFORMATION ─── */}
@@ -681,9 +741,14 @@ function AdminReviewApplication() {
           </div>
 
           {documents.length === 0 ? (
-            <p style={{ color: '#64748b', fontStyle: 'italic' }}>CV / Resume attached in candidate submission.</p>
+            <p style={{ color: '#b45309', fontWeight: 600 }}>
+              No documents are on file for this application, not even a resume. Ask the candidate to send their CV again.
+            </p>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {!documents.some((d) => d.documentType === 'resume') && (
+                <p style={{ margin: 0, color: '#b45309', fontWeight: 600, fontSize: '0.86rem' }}>⚠ No file is filed as the resume for this application.</p>
+              )}
               {documents.map((doc) => (
                 <div key={doc.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', border: '1px solid #e5e7eb', borderRadius: '4px', backgroundColor: '#fafafa' }}>
                   <div>
@@ -741,12 +806,20 @@ function AdminReviewApplication() {
         <DossierPrintDocument app={app} />
       </div>
 
+      {showDeleteModal && (
+        <DeleteCandidateModal
+          applicantId={app.applicantId}
+          onClose={() => setShowDeleteModal(false)}
+          onDeleted={() => navigate('/admin/applications', { replace: true })}
+        />
+      )}
+
       {/* REQUEST DOCUMENTS (prefilled from this application) */}
       {showDocumentPanel && (
         <DocumentRequestPanel
           application={app}
           onClose={() => setShowDocumentPanel(false)}
-          onSent={(res) => setStatusSuccess(res.message)}
+          onSent={(res) => { setStatusSuccess(res.message); loadDocRequest(); }}
         />
       )}
 

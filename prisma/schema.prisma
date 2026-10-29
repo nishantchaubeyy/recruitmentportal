@@ -19,7 +19,6 @@ model User {
   applicant         Applicant?
   admin             Admin?
   notifications     Notification[]
-  auditLogs         AuditLog[]
   interviewsCreated Interview[]          @relation("CreatedInterviews")
   evaluations       Evaluation[]
   vacanciesCreated  Job[]            @relation("CreatedVacancies")
@@ -373,21 +372,40 @@ model Evaluation {
   @@index([evaluatorId])
 }
 
+/// Append-only security trail. Rows are chained with an HMAC (prevHash -> hash) so edits, deletions and
+/// insertions are detectable, and the database refuses UPDATE / DELETE / TRUNCATE (see migration 20261030000000).
 model AuditLog {
   id         String   @id @default(uuid())
-  userId     String?
-  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  seq        Int      @unique @default(autoincrement())
+  userId     String?  // the actor; deliberately not a foreign key, so removing an account never alters history
+  actorEmail String?
+  actorRole  String?
   action     String
+  category   String   @default("SYSTEM") // AUTH, SECURITY, USER, APPLICATION, DOCUMENT, INTERVIEW, VACANCY, DATA, EXPORT, COMMUNICATION, SYSTEM
+  severity   String   @default("INFO")   // INFO, WARNING, CRITICAL
+  outcome    String   @default("SUCCESS") // SUCCESS, FAILURE, DENIED
   entity     String
   entityId   String
+  summary    String?
   oldValue   String?
   newValue   String?
   ipAddress  String?
+  userAgent  String?
+  requestId  String?
+  method     String?
+  path       String?
+  prevHash   String?
+  hash       String?
+  keyId      String?  // fingerprint of the signing secret, so a changed secret is not mistaken for tampering
   createdAt  DateTime @default(now())
 
   @@index([userId])
   @@index([action])
   @@index([entity])
+  @@index([entityId])
+  @@index([category])
+  @@index([severity])
+  @@index([outcome])
   @@index([createdAt])
 }
 

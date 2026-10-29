@@ -19,6 +19,8 @@ function AdminTopBar() {
     if (path.startsWith('/admin/vacancy-interests')) return 'Interested Applicants';
     if (path.startsWith('/admin/reports')) return 'Analytics & Reports';
     if (path.startsWith('/admin/users')) return 'User Management';
+    if (path.startsWith('/admin/audit-logs')) return 'Audit Logs';
+    if (path.startsWith('/admin/documents')) return 'Document Verification';
     return 'Dashboard';
   };
 
