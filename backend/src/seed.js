@@ -1,112 +1,88 @@
 require('dotenv').config({ path: require('path').resolve(__dirname, '../.env') });
+const crypto = require('crypto');
 const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcryptjs');
+const { passwordPolicyError } = require('./utils/validate');
 
 const prisma = new PrismaClient();
+const isProduction = process.env.NODE_ENV === 'production';
+// Demo accounts and sample vacancies are for development only unless explicitly requested.
+const seedSamples = process.env.SEED_SAMPLE_DATA
+  ? process.env.SEED_SAMPLE_DATA === 'true'
+  : !isProduction;
+
+const DAY = 24 * 60 * 60 * 1000;
+
+function generatedPassword() {
+  const all = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
+  let value = 'Aa3!';
+  while (value.length < 16) value += all[crypto.randomInt(all.length)];
+  return value;
+}
 
 async function main() {
   console.log('[Seed] Starting database seeding...');
 
-  // 1. Create Default Admin User (override via env for production).
+  // 1. Initial super administrator.
+  // The password is only ever written when the account is first created; re-running the
+  // seed (every deployment does) never resets credentials, roles or status of an existing user.
   const adminEmail = (process.env.SEED_ADMIN_EMAIL || 'admin@dypiu.edu').toLowerCase();
-  const rawAdminPassword = process.env.SEED_ADMIN_PASSWORD;
-  const defaultAdminPassword = (rawAdminPassword && rawAdminPassword !== '<CHANGE_ME_ADMIN_PASSWORD>')
-    ? rawAdminPassword
-    : 'AdminPassword123';
+  const configured = process.env.SEED_ADMIN_PASSWORD;
+  const placeholder = !configured || /^<.*>$/.test(configured);
 
-  if (process.env.NODE_ENV === 'production' && !rawAdminPassword) {
-    console.warn('[Seed] Using default admin password. Set SEED_ADMIN_PASSWORD in production to customize.');
-  }
-
-  let adminUser = await prisma.user.findUnique({
-    where: { email: adminEmail },
-    include: { admin: true }
-  });
-
-  const hashedPassword = await bcrypt.hash(defaultAdminPassword, 10);
+  let adminUser = await prisma.user.findUnique({ where: { email: adminEmail }, include: { admin: true } });
 
   if (!adminUser) {
-    console.log(`[Seed] Creating default Admin user: ${adminEmail}`);
+    if (isProduction && placeholder) {
+      throw new Error('SEED_ADMIN_PASSWORD must be set to a strong password to create the first administrator in production.');
+    }
+    const initialPassword = placeholder ? generatedPassword() : configured;
+    const policy = passwordPolicyError(initialPassword, adminEmail);
+    if (policy) throw new Error(`SEED_ADMIN_PASSWORD rejected: ${policy}`);
+
     adminUser = await prisma.user.create({
       data: {
         email: adminEmail,
-        password: hashedPassword,
-        role: 'ADMIN',
+        password: await bcrypt.hash(initialPassword, 12),
+        role: 'SUPER_ADMIN',
         status: 'ACTIVE',
-        admin: {
-          create: {
-            name: 'HR Administrator'
-          }
-        }
+        admin: { create: { name: 'HR Administrator' } }
       },
       include: { admin: true }
     });
-    console.log(`[Seed] Admin created successfully. Credentials: ${adminEmail} / ${defaultAdminPassword}`);
-  } else {
-    console.log(`[Seed] Admin user ${adminEmail} already exists. Refreshing credentials and status...`);
-    adminUser = await prisma.user.update({
-      where: { id: adminUser.id },
-      data: {
-        password: hashedPassword,
-        role: 'ADMIN',
-        status: 'ACTIVE'
-      },
-      include: { admin: true }
-    });
-    if (!adminUser.admin) {
-      await prisma.admin.create({
-        data: {
-          userId: adminUser.id,
-          name: 'HR Administrator'
-        }
-      });
+    console.log(`[Seed] Created super administrator ${adminEmail}.`);
+    if (placeholder) {
+      // Shown once, only in the local console, only when the operator did not choose a password.
+      console.log(`[Seed] Generated initial password (change it after first login): ${initialPassword}`);
     }
-    console.log(`[Seed] Admin credentials refreshed successfully: ${adminEmail} / ${defaultAdminPassword}`);
+  } else {
+    console.log(`[Seed] Administrator ${adminEmail} already exists - credentials left unchanged.`);
+    if (!adminUser.admin) {
+      await prisma.admin.create({ data: { userId: adminUser.id, name: 'HR Administrator' } });
+    }
   }
 
-  // 1b. Create a demo Applicant account (applying now requires login).
-  const demoApplicantEmail = (process.env.SEED_APPLICANT_EMAIL || 'demo@applicant.com').toLowerCase();
-  const rawDemoPassword = process.env.SEED_APPLICANT_PASSWORD;
-  const demoApplicantPassword = (rawDemoPassword && rawDemoPassword !== '<CHANGE_ME_APPLICANT_PASSWORD>')
-    ? rawDemoPassword
-    : 'Demo@1234';
+  // 1b. Demo applicant (development only).
+  if (seedSamples) {
+    const demoEmail = (process.env.SEED_APPLICANT_EMAIL || 'demo@applicant.com').toLowerCase();
+    const demoConfigured = process.env.SEED_APPLICANT_PASSWORD;
+    const demoPlaceholder = !demoConfigured || /^<.*>$/.test(demoConfigured);
+    const existingDemo = await prisma.user.findUnique({ where: { email: demoEmail } });
 
-  const demoHashed = await bcrypt.hash(demoApplicantPassword, 10);
-  const existingApplicant = await prisma.user.findUnique({
-    where: { email: demoApplicantEmail },
-    include: { applicant: true }
-  });
-
-  if (!existingApplicant) {
-    await prisma.user.create({
-      data: {
-        email: demoApplicantEmail,
-        password: demoHashed,
-        role: 'APPLICANT',
-        status: 'ACTIVE',
-        applicant: { create: { name: 'Demo Applicant', mobile: '9000000000' } }
-      }
-    });
-    console.log(`[Seed] Demo applicant created. Credentials: ${demoApplicantEmail} / ${demoApplicantPassword}`);
-  } else {
-    await prisma.user.update({
-      where: { id: existingApplicant.id },
-      data: {
-        password: demoHashed,
-        role: 'APPLICANT',
-        status: 'ACTIVE'
-      }
-    });
-    if (!existingApplicant.applicant) {
-      await prisma.applicant.create({
+    if (!existingDemo) {
+      const demoPassword = demoPlaceholder ? generatedPassword() : demoConfigured;
+      await prisma.user.create({
         data: {
-          userId: existingApplicant.id,
-          name: 'Demo Applicant',
-          mobile: '9000000000'
+          email: demoEmail,
+          password: await bcrypt.hash(demoPassword, 12),
+          role: 'APPLICANT',
+          status: 'ACTIVE',
+          applicant: { create: { name: 'Demo Applicant', mobile: '9000000000' } }
         }
       });
+      console.log(`[Seed] Created demo applicant ${demoEmail}.`);
+      if (demoPlaceholder) console.log(`[Seed] Generated demo applicant password: ${demoPassword}`);
     }
-    console.log(`[Seed] Demo applicant refreshed: ${demoApplicantEmail} / ${demoApplicantPassword}`);
   }
 
   // ─────────────────────────────────────────────────────────────────────
@@ -256,8 +232,8 @@ async function main() {
       description: 'Responsible for conducting lectures, mentoring undergraduate projects, curriculum updating, and active research publication.',
       salaryScale: 'As per 7th Pay Commission Scale',
       location: 'Pune',
-      openingDate: new Date('2026-08-01T00:00:00.000Z'),
-      deadline: new Date('2026-09-30T23:59:59.000Z'),
+      openingDate: new Date(Date.now() - 7 * DAY),
+      deadline: new Date(Date.now() + 45 * DAY),
       requiredDocuments: 'CV, Educational Marksheets, Degree Certificates, Ph.D. Award Letter',
       eligibilityCriteria: 'Ph.D. mandatory or M.Tech with NET/SET qualification.',
       status: 'PUBLISHED',
@@ -279,8 +255,8 @@ async function main() {
       description: 'Engage MBA students through case-based teaching methods, supervise industry internships, and facilitate placement mentorship.',
       salaryScale: 'As per 7th Pay Commission scale',
       location: 'Pune',
-      openingDate: new Date('2026-08-01T00:00:00.000Z'),
-      deadline: new Date('2026-09-25T23:59:59.000Z'),
+      openingDate: new Date(Date.now() - 7 * DAY),
+      deadline: new Date(Date.now() + 45 * DAY),
       requiredDocuments: 'Resume, MBA Passing Certificate, Ph.D. Degree, Experience Letters',
       eligibilityCriteria: 'Minimum 2 Scopus indexed publication papers.',
       status: 'PUBLISHED',
@@ -302,8 +278,8 @@ async function main() {
       description: 'Guide studio design projects, conduct workshops on digital prototyping, and evaluate student design portfolios.',
       salaryScale: 'Commensurate with experience & industry portfolio',
       location: 'Pune',
-      openingDate: new Date('2026-08-10T00:00:00.000Z'),
-      deadline: new Date('2026-10-10T23:59:59.000Z'),
+      openingDate: new Date(Date.now() - 7 * DAY),
+      deadline: new Date(Date.now() + 45 * DAY),
       requiredDocuments: 'CV, Portfolio PDF / Link, Degree Certificates',
       eligibilityCriteria: 'Strong digital portfolio demonstrating end-to-end design projects.',
       status: 'PUBLISHED',
@@ -325,8 +301,8 @@ async function main() {
       description: 'Design official university marketing collateral, event posters, social media banners, newsletter templates, and branding assets.',
       salaryScale: 'Rs. 35,000 - 45,000 per month',
       location: 'Pune',
-      openingDate: new Date('2026-08-01T00:00:00.000Z'),
-      deadline: new Date('2026-09-20T23:59:59.000Z'),
+      openingDate: new Date(Date.now() - 7 * DAY),
+      deadline: new Date(Date.now() + 45 * DAY),
       requiredDocuments: 'Resume, Creative Portfolio (Behance / Drive link), ID Proofs',
       eligibilityCriteria: 'Proven portfolio in print and digital design layout.',
       status: 'PUBLISHED',
@@ -348,8 +324,8 @@ async function main() {
       description: 'Coordinate end-to-end faculty and staff recruitment processing, issue appointment letters, maintain HR personnel files.',
       salaryScale: 'Rs. 30,000 - 40,000 per month',
       location: 'Pune',
-      openingDate: new Date('2026-08-05T00:00:00.000Z'),
-      deadline: new Date('2026-09-28T23:59:59.000Z'),
+      openingDate: new Date(Date.now() - 7 * DAY),
+      deadline: new Date(Date.now() + 45 * DAY),
       requiredDocuments: 'Resume, PG Degree, Experience Certificate',
       eligibilityCriteria: 'Proficiency in MS Office and university HR procedures.',
       status: 'PUBLISHED',
@@ -371,8 +347,8 @@ async function main() {
       description: 'Oversee architectural designs for new campus buildings, monitor contractor execution, and manage space allocation.',
       salaryScale: 'Consolidated Rs. 60,000 - 75,000 per month',
       location: 'Pune',
-      openingDate: new Date('2026-08-15T00:00:00.000Z'),
-      deadline: new Date('2026-10-01T23:59:59.000Z'),
+      openingDate: new Date(Date.now() - 7 * DAY),
+      deadline: new Date(Date.now() + 45 * DAY),
       requiredDocuments: 'Resume, B.Arch Degree, CoA Registration Certificate',
       eligibilityCriteria: 'COA Registration mandatory.',
       status: 'DRAFT',
@@ -380,8 +356,8 @@ async function main() {
     }
   ];
 
-  console.log('[Seed] Inserting sample vacancies...');
-  for (const v of sampleVacancies) {
+  console.log(seedSamples ? '[Seed] Inserting sample vacancies...' : '[Seed] Skipping sample vacancies (production).');
+  for (const v of seedSamples ? sampleVacancies : []) {
     const existing = await prisma.job.findUnique({
       where: { vacancyNumber: v.vacancyNumber }
     });
@@ -418,7 +394,7 @@ async function main() {
     }
   ];
 
-  for (const item of sampleInterests) {
+  for (const item of seedSamples ? sampleInterests : []) {
     const existing = await prisma.vacancyInterest.findFirst({
       where: { email: item.email, interestedPosition: item.interestedPosition }
     });

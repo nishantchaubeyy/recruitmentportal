@@ -42,7 +42,9 @@ function Header() {
         <button 
           className="navbar-mobile-toggle" 
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          aria-label="Toggle navigation"
+          aria-label={mobileMenuOpen ? 'Close navigation' : 'Open navigation'}
+          aria-expanded={mobileMenuOpen}
+          type="button"
         >
           <span className={`hamburger-bar ${mobileMenuOpen ? 'open' : ''}`}></span>
           <span className={`hamburger-bar ${mobileMenuOpen ? 'open' : ''}`}></span>

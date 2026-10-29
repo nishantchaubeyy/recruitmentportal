@@ -8,10 +8,7 @@ function extractBearer(req) {
     const [scheme, token] = header.split(' ');
     if (/^Bearer$/i.test(scheme) && token) return token;
   }
-  // Allow ?token= parameter for direct browser downloads / view links
-  if (req.query && req.query.token && typeof req.query.token === 'string') {
-    return req.query.token;
-  }
+  // Tokens are only accepted in the Authorization header (a ?token= URL ends up in logs and referrers).
   return null;
 }
 

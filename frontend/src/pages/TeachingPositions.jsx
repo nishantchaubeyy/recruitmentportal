@@ -8,7 +8,7 @@ function TeachingPositions() {
   return (
     <div className="page-watermark-wrapper" style={{ minHeight: '85vh', position: 'relative' }}>
       
-      <div className="container" style={{ maxWidth: '1200px', padding: '30px 24px', position: 'relative', zIndex: 1 }}>
+      <div className="container pos-page-container" style={{ maxWidth: '1200px', padding: '30px 24px', position: 'relative', zIndex: 1 }}>
         <div style={{ marginBottom: '10px' }}>
           <button
             onClick={() => navigate(-1)}

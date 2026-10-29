@@ -43,7 +43,10 @@ const prismaStub = {
     update: async ({ where, data }) => Object.assign(db.users.get(where.id), data)
   },
   application: {
-    findUnique: async ({ where }) => db.applications.get(where.id) || null,
+    findUnique: async ({ where, include }) => {
+      const a = db.applications.get(where.id);
+      return a && include?.job ? { ...a, job: db.jobs.get(a.jobId) || null } : a || null;
+    },
     findFirst: async ({ where } = {}) => {
       const all = [...db.applications.values()];
       if (where?.applicantId) {
@@ -153,7 +156,6 @@ test('protected routes reject anonymous callers', async () => {
     ['GET', '/api/applications'],
     ['GET', '/api/applications/a1'],
     ['PUT', '/api/applications/a1'],
-    ['POST', '/api/applications/a1/submit'],
     ['GET', '/api/applications/a2/documents/d1/download'],
     ['GET', '/api/interviews'],
     ['GET', '/api/interviews/calendar'],
@@ -206,6 +208,21 @@ test('the owner can read their own application but not HR-only fields', async ()
   const res = await call('GET', '/api/applications/a2', { token: tokenFor('alice') });
   assert.equal(res.status, 200);
   assert.equal(res.json.screeningRemarks, undefined);
+});
+
+test('candidates see what changed and when, never HR remarks or who changed it', async () => {
+  const entry = { id: 'h1', previousStatus: 'SUBMITTED', newStatus: 'SHORTLISTED', changedAt: new Date(), comment: 'weak research record', changedByUserId: 'hr' };
+  Object.assign(db.applications.get('a2'), { job: {}, documents: [], statusHistory: [entry], applicant: {} });
+  const own = await call('GET', '/api/applications/a2', { token: tokenFor('alice') });
+  assert.equal(own.status, 200);
+  assert.equal(own.json.statusHistory.length, 1);
+  assert.equal(own.json.statusHistory[0].newStatus, 'SHORTLISTED');
+  assert.equal(own.json.statusHistory[0].comment, undefined);
+  assert.equal(own.json.statusHistory[0].changedByUserId, undefined);
+  assert.match(own.json.nextStep, /shortlisted|received|review/i);
+  // Staff still see the full record.
+  const staff = await call('GET', '/api/applications/a2', { token: tokenFor('hr') });
+  assert.equal(staff.json.statusHistory[0].comment, 'weak research record');
 });
 
 test('submitted applications are immutable for the applicant', async () => {
@@ -394,7 +411,10 @@ test('submission validates the form, assigns a sequential number and cannot be r
   const incomplete = await call('POST', `/api/applications/${draftId}/submit`, { token, body: { declaration: true, personalInfo: {}, contactDetails: {} } });
   assert.equal(incomplete.status, 400);
 
-  const form = { declaration: true, personalInfo: { firstName: 'Bob' }, contactDetails: { email: 'bob@example.com' } };
+  const form = {
+    declaration: true, personalInfo: { firstName: 'Bob' }, contactDetails: { email: 'bob@example.com' },
+    qualifications: [{ qualificationDegree: 'SSC', degreeName: 'SSC (10th)', instituteName: 'CBSE', passingYear: '2010', cgpa: '85' }]
+  };
 
   // The resume is mandatory.
   const noResume = await call('POST', `/api/applications/${draftId}/submit`, { token, body: form });
@@ -468,4 +488,65 @@ test('password reset does not reveal accounts and requires the emailed code', as
   assert.equal(ok.status, 200);
   assert.notEqual(db.users.get('alice').password, before);
   assert.equal((await call('POST', '/api/auth/reset-password', { body: body('654321', 'N3w!Passw0rdY') })).status, 400, 'code is single use');
+});
+
+// ---- guest ("apply first") flow --------------------------------------------------------------------------
+const guestProof = (email) => jwt.sign({ email, typ: 'email-verified' }, config.VERIFY_SECRET, { algorithm: 'HS256', expiresIn: '10m' });
+const guestForm = (email, extra = {}) => ({
+  jobId: 'job-open',
+  declaration: true,
+  personalInfo: { firstName: 'Gita', lastName: 'Rao' },
+  contactDetails: { email, mobile: '9876543210' },
+  qualifications: [{ qualificationDegree: 'SSC', degreeName: 'SSC (10th)', instituteName: 'CBSE', passingYear: '2010', cgpa: '85' }],
+  uploadedDocsList: [{ documentType: 'resume', originalName: 'cv.pdf', fileData: `data:application/pdf;base64,${Buffer.from('%PDF-1.7\n1 0 obj\n<<>>\nendobj\n').toString('base64')}` }],
+  ...extra
+});
+
+test('guests cannot read, edit or upload to stored applications', async () => {
+  assert.equal((await call('GET', '/api/applications/a1')).status, 401);
+  assert.equal((await call('PUT', '/api/applications/a1', { body: { personalInfo: { firstName: 'X' } } })).status, 401);
+  assert.equal((await call('GET', '/api/applications/a1/documents')).status, 401);
+  assert.equal((await call('DELETE', '/api/applications/a1/documents/d1')).status, 401);
+  // A guest "draft" never touches the database or any existing account, even when the e-mail is registered.
+  const start = await call('POST', '/api/applications', { body: { jobId: 'job-open', email: 'alice@example.com' } });
+  assert.equal(start.status, 200);
+  assert.match(start.json.applicationId, /^app-local-/);
+  assert.equal(start.json.application, undefined);
+});
+
+test('guest submission needs a verified e-mail and never touches an existing account', async () => {
+  const noProof = await call('POST', '/api/applications/submit', { body: guestForm('newbie@example.com') });
+  assert.equal(noProof.status, 400);
+  assert.match(noProof.json.error, /verify your email/i);
+
+  const wrongProof = await call('POST', '/api/applications/submit', { body: guestForm('newbie@example.com', { verificationToken: guestProof('other@example.com') }) });
+  assert.equal(wrongProof.status, 400);
+
+  // The e-mail already belongs to an account: no password reset, no new application - log in instead.
+  const before = db.users.get('alice').password;
+  const taken = await call('POST', '/api/applications/submit', { body: guestForm('alice@example.com', { verificationToken: guestProof('alice@example.com') }) });
+  assert.equal(taken.status, 409);
+  assert.equal(db.users.get('alice').password, before);
+});
+
+test('guest submission validates attached documents, then creates the account without leaking credentials', async () => {
+  const email = 'gita@example.com';
+  const verificationToken = guestProof(email);
+
+  const disguised = await call('POST', '/api/applications/submit', {
+    body: guestForm(email, { verificationToken, uploadedDocsList: [{ documentType: 'resume', originalName: 'cv.pdf', fileData: `data:application/pdf;base64,${Buffer.from('<html><script>alert(1)</script></html>').toString('base64')}` }] })
+  });
+  assert.equal(disguised.status, 400);
+
+  const noResume = await call('POST', '/api/applications/submit', { body: guestForm(email, { verificationToken, uploadedDocsList: [] }) });
+  assert.equal(noResume.status, 400);
+  assert.match(noResume.json.error, /Resume/);
+  assert.equal([...db.users.values()].some((u) => u.email === email), false, 'a rejected submission must not leave an account behind');
+
+  const ok = await call('POST', '/api/applications/submit', { body: guestForm(email, { verificationToken }) });
+  assert.equal(ok.status, 200, JSON.stringify(ok.json));
+  assert.equal(ok.json.isNewUser, true);
+  assert.equal(ok.json.credentials, undefined);
+  assert.equal(ok.json.password, undefined);
+  assert.equal([...db.users.values()].filter((u) => u.email === email).length, 1);
 });

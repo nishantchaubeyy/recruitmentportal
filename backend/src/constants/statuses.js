@@ -82,6 +82,33 @@ const LEGACY_STATUS_ALIASES = {
   REJECTED: ['REJECTED', 'Not Selected']
 };
 
+// Wording shown to candidates (e-mails, notifications) - never the raw enum value.
+const STATUS_LABELS = {
+  DRAFT: 'Draft',
+  SUBMITTED: 'Application Submitted',
+  UNDER_REVIEW: 'Under Review',
+  SHORTLISTED: 'Shortlisted',
+  INTERVIEW_SCHEDULED: 'Interview Scheduled',
+  SELECTED: 'Selected',
+  WAITLISTED: 'Waitlisted',
+  REJECTED: 'Not Selected',
+  WITHDRAWN: 'Withdrawn',
+  CLOSED: 'Application Closed'
+};
+
+// What the candidate should expect next.
+const STATUS_NEXT_STEP = {
+  SUBMITTED: 'We have received your application. The recruitment cell will begin screening shortly.',
+  UNDER_REVIEW: 'Your application is being reviewed by the recruitment cell. No action is needed from you right now.',
+  SHORTLISTED: 'Congratulations - you have been shortlisted. Please keep an eye on your e-mail and dashboard for interview and document-verification instructions.',
+  INTERVIEW_SCHEDULED: 'Your interview has been scheduled. Open your dashboard for the date, time and meeting details.',
+  SELECTED: 'Congratulations - you have been selected. The recruitment cell will contact you with the next steps and joining formalities.',
+  WAITLISTED: 'You are on the waiting list. We will contact you if a position becomes available.',
+  REJECTED: 'Thank you for your interest in D Y Patil International University. We regret that we are unable to take your application forward at this time.',
+  WITHDRAWN: 'Your application has been withdrawn.',
+  CLOSED: 'This application has been closed. Please contact the recruitment cell if you have questions.'
+};
+
 const JOB_STATUS = {
   DRAFT: 'DRAFT',
   PUBLISHED: 'PUBLISHED',
@@ -96,6 +123,8 @@ module.exports = {
   APPLICATION_STATUS_VALUES,
   HR_SETTABLE_STATUSES,
   STATUS_TRANSITIONS,
+  STATUS_LABELS,
+  STATUS_NEXT_STEP,
   DECISION_STATUSES,
   WITHDRAWABLE_STATUSES,
   LEGACY_STATUS_ALIASES,

@@ -69,6 +69,37 @@ export const HR_STATUS_OPTIONS = [
   APPLICATION_STATUS.CLOSED
 ].map((value) => ({ value, label: STATUS_LABEL[value] }));
 
+// Legal workflow transitions (mirrors backend/src/constants/statuses.js; the server is the authority
+// and sends `allowedTransitions` with each application, which takes precedence over this table).
+export const STATUS_TRANSITIONS = {
+  SUBMITTED: ['UNDER_REVIEW', 'SHORTLISTED', 'REJECTED', 'CLOSED'],
+  UNDER_REVIEW: ['SHORTLISTED', 'WAITLISTED', 'REJECTED', 'CLOSED'],
+  SHORTLISTED: ['UNDER_REVIEW', 'INTERVIEW_SCHEDULED', 'WAITLISTED', 'REJECTED', 'CLOSED'],
+  INTERVIEW_SCHEDULED: ['SHORTLISTED', 'SELECTED', 'WAITLISTED', 'REJECTED', 'CLOSED'],
+  WAITLISTED: ['UNDER_REVIEW', 'SHORTLISTED', 'SELECTED', 'REJECTED', 'CLOSED'],
+  SELECTED: ['REJECTED', 'CLOSED'],
+  REJECTED: ['UNDER_REVIEW'],
+  CLOSED: ['UNDER_REVIEW']
+};
+
+/**
+ * Whether `target` can be chosen from `current`, and if not, why - so the HR dropdown explains
+ * itself instead of silently doing nothing for "Selected" and friends.
+ */
+export function statusOptionState(current, target, role, serverAllowed) {
+  if (target === current) return { enabled: false, reason: 'current status' };
+  // Interviews are arranged with the "Schedule Interview" button, which also moves the status.
+  if (target === APPLICATION_STATUS.INTERVIEW_SCHEDULED) return { enabled: false, reason: 'use "Schedule Interview"' };
+  const table = STATUS_TRANSITIONS[current] || [];
+  const allowed = Array.isArray(serverAllowed) ? serverAllowed : table;
+  if (allowed.includes(target)) return { enabled: true };
+  if (target === APPLICATION_STATUS.SELECTED) {
+    if (table.includes(target)) return { enabled: false, reason: 'HR admin only' };
+    return { enabled: false, reason: 'only after the interview is scheduled' };
+  }
+  return { enabled: false, reason: `not available from "${STATUS_LABEL[current] || current}"` };
+}
+
 // Tabs for the screening list.
 export const STATUS_TABS = [
   { key: 'ALL', label: 'All Applications' },

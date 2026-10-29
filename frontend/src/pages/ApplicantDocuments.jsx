@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { apiRequest, API_URL } from '../utils/api';
+import { apiRequest, openFile } from '../utils/api';
 import {
   IconFolder,
   IconCheckCircle,
@@ -55,22 +55,10 @@ function ApplicantDocuments() {
     const formData = new FormData();
     formData.append('file', file);
 
-    const token = localStorage.getItem('token');
-
     try {
       setUploadProgress(70);
-      const response = await fetch(`${API_URL}/documents/${requestId}/items/${itemId}/upload`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`
-        },
-        body: formData
-      });
-
-      const result = await response.json();
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to upload document.');
-      }
+      // apiRequest adds the token and renews the session transparently when it has expired.
+      await apiRequest(`/documents/${requestId}/items/${itemId}/upload`, { method: 'POST', body: formData });
 
       setUploadProgress(100);
       setSuccess(`Document "${file.name}" uploaded successfully.`);
@@ -298,14 +286,13 @@ function ApplicantDocuments() {
                           {latestDoc && (
                             <div style={{ fontSize: '0.76rem', color: '#64748B', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '10px' }}>
                               <span>Uploaded: {latestDoc.fileName} ({(latestDoc.fileSize / 1024).toFixed(0)} KB)</span>
-                              <a
-                                href={`${API_URL}/documents/file/${latestDoc.id}?inline=true&token=${encodeURIComponent(localStorage.getItem('token') || '')}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                style={{ color: '#2563EB', textDecoration: 'none', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '3px' }}
+                              <button
+                                type="button"
+                                onClick={() => openFile(`/documents/file/${latestDoc.id}?inline=true`).catch((err) => setError(err.message))}
+                                style={{ color: '#2563EB', background: 'none', border: 0, padding: 0, cursor: 'pointer', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '3px' }}
                               >
                                 View File <IconExternalLink size={11} />
-                              </a>
+                              </button>
                             </div>
                           )}
                         </div>

@@ -281,6 +281,22 @@ function AdminCreateJob() {
       return;
     }
 
+    // Dates and counts: catch what would otherwise create a vacancy nobody can apply to.
+    const positionsCount = Number(payload.numPositions);
+    let dateProblem = '';
+    if (!Number.isInteger(positionsCount) || positionsCount < 1) {
+      dateProblem = 'Number of positions must be a whole number of at least 1.';
+    } else if (payload.openingDate && payload.deadline && payload.deadline < payload.openingDate) {
+      dateProblem = 'The application deadline cannot be before the opening date.';
+    } else if (payload.status === 'PUBLISHED' && payload.deadline < new Date().toISOString().split('T')[0]) {
+      dateProblem = 'The deadline is already in the past, so applicants could not apply. Choose a later deadline before publishing.';
+    }
+    if (dateProblem) {
+      setErrorMsg(dateProblem);
+      setSubmitting(false);
+      return;
+    }
+
     try {
       const endpoint = isEditMode ? `/admin/vacancies/${id}` : '/admin/vacancies';
       const method = isEditMode ? 'PUT' : 'POST';

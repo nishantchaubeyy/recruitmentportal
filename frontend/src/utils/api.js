@@ -73,6 +73,28 @@ async function apiRequest(endpoint, options = {}) {
 }
 
 /**
+ * Opens a protected file (sent only with the Authorization header, never a URL token) in a new tab.
+ */
+export async function openFile(endpoint) {
+  const token = localStorage.getItem('token');
+  const response = await fetch(`${API_URL}${endpoint}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {}
+  });
+  if (!response.ok) {
+    let message = `Could not open the file (${response.status}).`;
+    try {
+      const body = await response.json();
+      if (body?.error) message = body.error;
+    } catch { /* not JSON */ }
+    throw new Error(message);
+  }
+  const url = URL.createObjectURL(await response.blob());
+  const win = window.open(url, '_blank', 'noopener');
+  if (!win) window.location.assign(url);
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
+}
+
+/**
  * Resolves a media / poster path to a fully accessible URL.
  * Handles data URIs, absolute URLs, and relative upload paths.
  */

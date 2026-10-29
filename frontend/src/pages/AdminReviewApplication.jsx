@@ -1,13 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useContext, useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { apiRequest, API_URL } from '../utils/api';
-import { HR_STATUS_OPTIONS, statusLabel, APPLICATION_STATUS } from '../utils/status';
+import { AuthContext } from '../context/AuthContext';
+import { HR_STATUS_OPTIONS, statusLabel, statusOptionState } from '../utils/status';
 import DossierPrintDocument from '../components/DossierPrintDocument';
 import { viewCandidateDocument, downloadCandidateDocument } from '../utils/pdfHelper';
 import ScheduleInterviewModal from '../components/ScheduleInterviewModal';
 
 function AdminReviewApplication() {
   const { id } = useParams();
+  const { user } = useContext(AuthContext);
   const [app, setApp] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -17,10 +19,10 @@ function AdminReviewApplication() {
   const [newStatus, setNewStatus] = useState('');
   const [adminComment, setAdminComment] = useState('');
   const [statusSuccess, setStatusSuccess] = useState('');
-  const [interviewDate, setInterviewDate] = useState('');
-  const [interviewTime, setInterviewTime] = useState('10:00 AM');
-  const [interviewVenue, setInterviewVenue] = useState('DYPIU Akurdi Pune Campus - Conference Room A');
-  const [interviewMode, setInterviewMode] = useState('IN_PERSON');
+  const [statusError, setStatusError] = useState('');
+  const [notice, setNotice] = useState(null); // what the candidate was told after the last change
+  const [provider, setProvider] = useState(null);
+  const [emailLogs, setEmailLogs] = useState([]);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
 
   const fetchApplicationDetails = async () => {
@@ -28,7 +30,7 @@ function AdminReviewApplication() {
       setLoading(true);
       const data = await apiRequest(`/applications/${id}`);
       setApp(data);
-      setNewStatus(data?.status || 'SUBMITTED');
+      setNewStatus('');
     } catch (err) {
       setError(err.message || 'Failed to load application details.');
     } finally {
@@ -42,51 +44,70 @@ function AdminReviewApplication() {
     }
   }, [id]);
 
+  const loadEmailInfo = async () => {
+    try {
+      const [p, logs] = await Promise.all([
+        apiRequest('/admin/email/status'),
+        apiRequest(`/applications/${id}/email-logs`)
+      ]);
+      setProvider(p);
+      setEmailLogs(Array.isArray(logs?.logs) ? logs.logs : []);
+    } catch {
+      /* the e-mail panel is informational; the page works without it */
+    }
+  };
+
+  useEffect(() => {
+    if (id) loadEmailInfo();
+  }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const describeNotice = (n) => {
+    if (!n) return null;
+    if (n.email?.status === 'SENT') return { ok: true, text: 'The candidate was notified on the portal and by e-mail.' };
+    if (n.email?.status === 'SKIPPED') return { ok: false, text: 'The candidate was notified on the portal, but the e-mail was NOT sent because no e-mail provider is configured on this server.' };
+    return { ok: false, text: `The candidate was notified on the portal, but the e-mail could not be sent${n.email?.error ? ` (${n.email.error})` : ''}.` };
+  };
+
   const handleStatusChangeSubmit = async (e) => {
     e.preventDefault();
     if (!newStatus) {
-      alert('Please select a valid status.');
+      setStatusError('Please choose the new status first.');
       return;
     }
 
     setSubmitting(true);
-    setError('');
+    setStatusError('');
     setStatusSuccess('');
+    setNotice(null);
 
     try {
-      // 1. Update Application Status
-      await apiRequest(`/applications/${id}/status`, {
+      const res = await apiRequest(`/applications/${id}/status`, {
         method: 'PATCH',
-        body: JSON.stringify({
-          status: newStatus,
-          comment: adminComment
-        })
+        body: JSON.stringify({ status: newStatus, comment: adminComment })
       });
 
-      // 2. If status is Interview Scheduled, also schedule the interview record
-      if (newStatus === APPLICATION_STATUS.INTERVIEW_SCHEDULED && interviewDate) {
-        await apiRequest('/interviews', {
-          method: 'POST',
-          body: JSON.stringify({
-            applicationId: id,
-            jobId: app?.jobId,
-            candidateId: app?.applicantId,
-            date: interviewDate,
-            time: interviewTime,
-            venue: interviewVenue,
-            mode: interviewMode,
-            round: 'Technical & HR Interview'
-          })
-        });
-      }
-
-      setStatusSuccess(`Application status updated to "${statusLabel(newStatus)}" successfully.`);
+      setStatusSuccess(res.message || `Status updated to "${statusLabel(newStatus)}".`);
+      setNotice(res.notification || null);
       setAdminComment('');
-      fetchApplicationDetails();
+      setNewStatus('');
+      await fetchApplicationDetails();
+      loadEmailInfo();
     } catch (err) {
-      setError(err.message || 'Failed to update status.');
+      setStatusError(err.message || 'The status could not be updated.');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleResend = async () => {
+    setStatusError('');
+    try {
+      const res = await apiRequest(`/applications/${id}/resend-status-email`, { method: 'POST' });
+      setNotice(res.notification || null);
+      setStatusSuccess(res.message);
+      loadEmailInfo();
+    } catch (err) {
+      setStatusError(err.message || 'Could not resend the notification.');
     }
   };
 
@@ -340,9 +361,22 @@ function AdminReviewApplication() {
             </div>
           </div>
 
+          {provider && !provider.configured && (
+            <div role="alert" style={{ padding: '10px 14px', backgroundColor: '#fffbeb', border: '1px solid #fcd34d', color: '#92400e', borderRadius: '4px', marginBottom: '14px', fontSize: '0.82rem', fontWeight: 600 }}>
+              E-mail is not configured on this server, so candidates will only see updates on the portal. Set ZEPTOMAIL_TOKEN (or SMTP_HOST / SMTP_USER / SMTP_PASS) in the server environment to enable e-mail notifications.
+            </div>
+          )}
+          {statusError && (
+            <div role="alert" style={{ padding: '10px 14px', backgroundColor: '#fef2f2', border: '1px solid #fecaca', color: '#991b1b', borderRadius: '4px', marginBottom: '14px', fontSize: '0.86rem', fontWeight: 700 }}>
+              {statusError}
+            </div>
+          )}
           {statusSuccess && (
-            <div style={{ padding: '10px 14px', backgroundColor: '#fef2f2', border: '1px solid #fecaca', color: '#721b28', borderRadius: '4px', marginBottom: '16px', fontSize: '0.84rem', fontWeight: 600 }}>
+            <div style={{ padding: '10px 14px', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', color: '#166534', borderRadius: '4px', marginBottom: '14px', fontSize: '0.84rem', fontWeight: 600 }}>
               {statusSuccess}
+              {describeNotice(notice) && (
+                <div style={{ marginTop: 4, color: describeNotice(notice).ok ? '#166534' : '#92400e', fontWeight: 600 }}>{describeNotice(notice).text}</div>
+              )}
             </div>
           )}
 
@@ -357,9 +391,15 @@ function AdminReviewApplication() {
                   onChange={(e) => setNewStatus(e.target.value)}
                   style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '4px', backgroundColor: '#ffffff', color: '#171717', fontSize: '0.88rem', fontWeight: 600 }}
                 >
-                  {HR_STATUS_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                  ))}
+                  <option value="" disabled>Select the new status…</option>
+                  {HR_STATUS_OPTIONS.map((opt) => {
+                    const state = statusOptionState(app.status, opt.value, user?.role, app.allowedTransitions);
+                    return (
+                      <option key={opt.value} value={opt.value} disabled={!state.enabled}>
+                        {opt.label}{state.enabled ? '' : ` — ${state.reason}`}
+                      </option>
+                    );
+                  })}
                 </select>
               </div>
 
@@ -379,7 +419,7 @@ function AdminReviewApplication() {
               <div>
                 <button 
                   type="submit" 
-                  disabled={submitting}
+                  disabled={submitting || !newStatus}
                   style={{
                     backgroundColor: '#171717',
                     color: '#ffffff',
@@ -398,27 +438,23 @@ function AdminReviewApplication() {
               </div>
             </div>
 
-            {newStatus === APPLICATION_STATUS.INTERVIEW_SCHEDULED && (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px', marginTop: '18px', paddingTop: '16px', borderTop: '1px solid #e5e7eb' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, textTransform: 'uppercase', color: '#475569', marginBottom: '4px' }}>Interview Date *</label>
-                  <input type="date" value={interviewDate} onChange={e => setInterviewDate(e.target.value)} style={{ width: '100%', padding: '7px 10px', border: '1px solid #d1d5db', borderRadius: '4px' }} required />
+            <p style={{ margin: '12px 0 0', fontSize: '0.78rem', color: '#64748b' }}>
+              Current status: <strong>{statusLabel(app.status)}</strong>. To arrange an interview use <em>Schedule Interview</em> above — the status changes automatically and the candidate is invited.
+              Options shown greyed out are not available from the current status.
+            </p>
+            {emailLogs.length > 0 && (
+              <div style={{ marginTop: 16, paddingTop: 12, borderTop: '1px solid #e5e7eb' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                  <span style={{ fontSize: '0.74rem', fontWeight: 700, textTransform: 'uppercase', color: '#475569' }}>E-mails sent for this application</span>
+                  <button type="button" onClick={handleResend} style={{ background: 'none', border: '1px solid #cbd5e1', borderRadius: 4, padding: '3px 10px', fontSize: '0.74rem', fontWeight: 700, cursor: 'pointer' }}>Resend current status e-mail</button>
                 </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, textTransform: 'uppercase', color: '#475569', marginBottom: '4px' }}>Interview Time</label>
-                  <input type="text" value={interviewTime} onChange={e => setInterviewTime(e.target.value)} placeholder="10:00 AM" style={{ width: '100%', padding: '7px 10px', border: '1px solid #d1d5db', borderRadius: '4px' }} />
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, textTransform: 'uppercase', color: '#475569', marginBottom: '4px' }}>Interview Mode</label>
-                  <select value={interviewMode} onChange={e => setInterviewMode(e.target.value)} style={{ width: '100%', padding: '7px 10px', border: '1px solid #d1d5db', borderRadius: '4px' }}>
-                    <option value="IN_PERSON">In-Person (Campus)</option>
-                    <option value="ONLINE">Online Video Call</option>
-                  </select>
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, textTransform: 'uppercase', color: '#475569', marginBottom: '4px' }}>Venue / Meeting Link</label>
-                  <input type="text" value={interviewVenue} onChange={e => setInterviewVenue(e.target.value)} placeholder="Conference Room A / Google Meet Link" style={{ width: '100%', padding: '7px 10px', border: '1px solid #d1d5db', borderRadius: '4px' }} />
-                </div>
+                {emailLogs.slice(0, 6).map((log) => (
+                  <div key={log.id} style={{ display: 'flex', gap: 10, fontSize: '0.78rem', padding: '3px 0', color: '#334155' }}>
+                    <span style={{ minWidth: 70, fontWeight: 700, color: log.status === 'SENT' ? '#166534' : log.status === 'SKIPPED' ? '#92400e' : '#991b1b' }}>{log.status}</span>
+                    <span style={{ flex: 1 }}>{log.subject}</span>
+                    <span style={{ color: '#64748b' }}>{new Date(log.createdAt).toLocaleString('en-IN')}</span>
+                  </div>
+                ))}
               </div>
             )}
           </form>

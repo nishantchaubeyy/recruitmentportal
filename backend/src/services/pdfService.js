@@ -269,10 +269,10 @@ function generateApplicationPdf(app) {
           ],
           qualifications.map((q) => [
             q.qualificationDegree || q.degreeLevel || '—',
-            q.degreeName || '—',
+            [q.degreeName, q.specialization].filter(Boolean).join(' — ') || '—',
             q.instituteName || q.university || '—',
             q.passingYear || q.year || '—',
-            q.studyMode || 'Full-Time',
+            q.studyMode || '—',
             q.cgpa || q.percentage || '—'
           ])
         );
@@ -290,17 +290,24 @@ function generateApplicationPdf(app) {
         pairs(rest);
         wide.forEach(([label, value]) => rowFull(label, value));
       }
-      pairs([
-        ['Scopus Publications', String(research.scopusCount ?? '0')],
-        ['Scopus Author ID', research.scopusId],
-        ['Web of Science Papers', String(research.wosCount ?? '0')],
-        ['WoS ResearcherID', research.wosId],
-        ['Conference Papers', /^\d+$/.test(String(research.conferencePaper ?? '')) ? String(research.conferencePaper) : '0'],
-        ['UGC-NET / JRF', examText(research.net)],
-        ['SET', examText(research.setExam)],
-        ['SLET', examText(research.slet)],
-        ['GATE', examText(research.gate)]
-      ]);
+      // Publications and eligibility tests are only collected for teaching posts.
+      if (research.scopusCount !== undefined || research.net !== undefined) {
+        const otherPublications = Array.isArray(research.publications)
+          ? research.publications.map((p) => `${p.type}: ${p.count}`).join('; ')
+          : '';
+        pairs([
+          ['Scopus Publications', String(research.scopusCount ?? '0')],
+          ['Scopus Author ID', research.scopusId],
+          ['Web of Science Papers', String(research.wosCount ?? '0')],
+          ['WoS ResearcherID', research.wosId],
+          ['Conference Papers', /^\d+$/.test(String(research.conferencePaper ?? '')) ? String(research.conferencePaper) : '0'],
+          ['Other Publications', otherPublications],
+          ['UGC-NET / JRF', examText(research.net)],
+          ['SET', examText(research.setExam)],
+          ['SLET', examText(research.slet)],
+          ['GATE', examText(research.gate)]
+        ]);
+      }
       gap();
 
       // ---- 6. Experience -------------------------------------------------------------------------------

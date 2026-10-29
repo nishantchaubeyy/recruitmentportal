@@ -115,7 +115,7 @@ async function createDocumentRequest(req, res) {
   try {
     const applicant = await prisma.applicant.findUnique({
       where: { id: candidateId },
-      include: { user: true }
+      include: { user: { select: { id: true, email: true } } }
     });
 
     if (!applicant) {
@@ -458,7 +458,7 @@ async function submitAllDocuments(req, res) {
     const request = await prisma.documentRequest.findUnique({
       where: { id: requestId },
       include: {
-        candidate: { include: { user: true } },
+        candidate: { include: { user: { select: { id: true, email: true } } } },
         items: {
           include: { documents: true }
         }
@@ -528,7 +528,7 @@ async function verifyCandidateDocumentItem(req, res) {
         documents: { orderBy: { uploadDate: 'desc' }, take: 1 },
         documentRequest: {
           include: {
-            candidate: { include: { user: true } },
+            candidate: { include: { user: { select: { id: true, email: true } } } },
             application: true
           }
         }
@@ -612,7 +612,7 @@ async function approveAllDocuments(req, res) {
     const request = await prisma.documentRequest.findUnique({
       where: { id: requestId },
       include: {
-        candidate: { include: { user: true } },
+        candidate: { include: { user: { select: { id: true, email: true } } } },
         application: true,
         items: {
           include: { documents: { orderBy: { uploadDate: 'desc' } } }

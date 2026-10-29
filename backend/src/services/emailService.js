@@ -3,6 +3,8 @@ const path = require('path');
 const nodemailer = require('nodemailer');
 const prisma = require('./prisma');
 const { generateApplicationPdf } = require('./pdfService');
+const { recordEmail } = require('./emailLogService');
+const { escapeHtml } = require('../utils/validate');
 
 /**
  * ZeptoMail & Standard SMTP Configuration
@@ -35,7 +37,8 @@ function createTransporter() {
         pass: config.password
       },
       tls: {
-        rejectUnauthorized: false
+        // Verify the mail server certificate unless explicitly relaxed for an internal relay.
+        rejectUnauthorized: process.env.SMTP_ALLOW_SELF_SIGNED !== 'true'
       }
     });
   }
@@ -105,90 +108,100 @@ async function sendViaZeptoApi({ to, subject, html, text, attachments }) {
 }
 
 /**
- * Generic email dispatcher abstraction.
- * Tries ZeptoMail REST API first if token is available, otherwise SMTP, else simulation.
+ * Whether this server can actually deliver e-mail, and through which provider.
  */
-async function sendEmail({ to, subject, html, text, attachments }) {
+function getEmailProviderStatus() {
+  const config = getEmailConfig();
+  if (config.token || (config.password && config.password.startsWith('Zoho-enczapikey'))) {
+    return { configured: true, provider: 'zeptomail-api', from: config.fromEmail };
+  }
+  if (config.host && config.username && config.password) {
+    return { configured: true, provider: 'smtp', from: config.fromEmail };
+  }
+  return { configured: false, provider: 'none', from: config.fromEmail };
+}
+
+/**
+ * Deliver one message. Never throws and never pretends: the result says whether the mail was
+ * really handed to a provider (`success`), or why not (`error`, `skipped`).
+ */
+async function deliverEmail({ to, subject, html, text, attachments }) {
   const config = getEmailConfig();
 
-  // Save HTML preview file locally for easy inspection during testing
-  try {
-    const uploadsDir = path.join(__dirname, '../../uploads');
-    if (!fs.existsSync(uploadsDir)) {
-      fs.mkdirSync(uploadsDir, { recursive: true });
-    }
-    fs.writeFileSync(path.join(uploadsDir, 'last_application_email.html'), html, 'utf8');
-
-    if (attachments && attachments.length > 0) {
-      attachments.forEach((att, idx) => {
-        if (att.content) {
-          const filePath = path.join(uploadsDir, att.filename || `attachment_${idx}.pdf`);
-          fs.writeFileSync(filePath, Buffer.isBuffer(att.content) ? att.content : Buffer.from(att.content, 'base64'));
-          console.log(`[Email Preview] Attachment saved at: backend/uploads/${att.filename}`);
-        }
-      });
-    }
-  } catch (err) {
-    // Non-fatal preview saving error ignored
-  }
-
-  // 1. Try ZeptoMail REST API if token exists
-  if (config.token || (config.password && config.password.startsWith('Zoho-enczapikey'))) {
+  // Keep an HTML preview of the last mail for inspection (development convenience).
+  if (process.env.NODE_ENV !== 'production') {
     try {
-      return await sendViaZeptoApi({ to, subject, html, text, attachments });
-    } catch (apiErr) {
-      console.error(`[ZeptoMail API] Dispatch error: ${apiErr.message}`);
-      // Fall through to SMTP if configured
+      const uploadsDir = path.join(__dirname, '../../uploads');
+      fs.mkdirSync(uploadsDir, { recursive: true });
+      fs.writeFileSync(path.join(uploadsDir, 'last_application_email.html'), html || text || '', 'utf8');
+    } catch (err) {
+      // Non-fatal.
     }
   }
 
-  // 2. Try SMTP Transporter
+  let lastError = null;
+  let lastProvider = null;
+
+  // 1. ZeptoMail REST API
+  if (config.token || (config.password && config.password.startsWith('Zoho-enczapikey'))) {
+    lastProvider = 'zeptomail-api';
+    try {
+      const sent = await sendViaZeptoApi({ to, subject, html, text, attachments });
+      return { ...sent, provider: 'zeptomail-api' };
+    } catch (apiErr) {
+      lastError = apiErr.message;
+      console.error(`[ZeptoMail API] Dispatch error: ${apiErr.message}`);
+    }
+  }
+
+  // 2. SMTP
   const transporter = createTransporter();
   if (transporter) {
+    lastProvider = 'smtp';
     try {
-      const mailOptions = {
-        from: config.fromString,
-        to,
-        subject,
-        text,
-        html
-      };
+      const mailOptions = { from: config.fromString, to, subject, text, html };
       if (attachments && attachments.length > 0) {
-        mailOptions.attachments = attachments.map(att => ({
+        mailOptions.attachments = attachments.map((att) => ({
           filename: att.filename,
           content: att.content,
           contentType: att.contentType || 'application/pdf'
         }));
       }
-
       const info = await transporter.sendMail(mailOptions);
-      console.log(`Confirmation email sent via SMTP. (Message ID: ${info.messageId})`);
-      return { success: true, messageId: info.messageId };
+      return { success: true, messageId: info.messageId, provider: 'smtp' };
     } catch (error) {
       if (error.message.includes('Sender is not allowed to relay emails') || error.message.includes('553')) {
-        console.warn(`\n⚠️ [ZeptoMail SMTP Notice] Sender address "${config.fromEmail}" is not allowed to relay. Please verify domain/sender in ZeptoMail.\n`);
+        console.warn(`[SMTP] Sender address "${config.fromEmail}" is not allowed to relay. Verify the domain/sender with your mail provider.`);
       }
-      console.error(`Confirmation email via SMTP failed. Reason: ${error.message}`);
-      return { success: false, error: error.message };
+      console.error(`[SMTP] Delivery failed: ${error.message}`);
+      lastError = error.message;
     }
   }
 
-  // 3. Simulation Mode (Fallback when no live credentials are set)
-  if (process.env.NODE_ENV !== 'production') {
-    console.log(`\n==================================================`);
-    console.log(`[ZeptoMail Test Mode] Mail dispatch simulation for: ${to}`);
-    console.log(`[ZeptoMail Test Mode] From: ${config.fromString}`);
-    console.log(`[ZeptoMail Test Mode] Subject: ${subject}`);
-    if (attachments && attachments.length > 0) {
-      console.log(`[ZeptoMail Test Mode] Attachments: ${attachments.map(a => a.filename).join(', ')}`);
-    }
-    console.log(`[ZeptoMail Test Mode] HTML Email Preview saved at: backend/uploads/last_application_email.html`);
-    console.log(`Confirmation email simulated successfully.`);
-    console.log(`==================================================\n`);
-  } else {
-    console.warn(`[Mail] Mail dispatched in simulation mode (no mail provider configured).`);
-  }
-  return { success: true, mode: 'test_simulation' };
+  if (lastError) return { success: false, error: lastError, provider: lastProvider };
+
+  // 3. Nothing configured: say so clearly instead of reporting a fake success.
+  console.warn(`[Mail] NOT SENT to ${to} ("${subject}"): no e-mail provider is configured. Set ZEPTOMAIL_TOKEN (or SMTP_HOST/SMTP_USER/SMTP_PASS) in the server environment.`);
+  return { success: false, skipped: true, error: 'No e-mail provider is configured on this server.', provider: 'none' };
+}
+
+/**
+ * Generic e-mail dispatcher: delivers and records the attempt in the e-mail log.
+ * `meta` = { kind, entityType, entityId } ties the attempt to what triggered it.
+ */
+async function sendEmail({ to, subject, html, text, attachments, meta = {} }) {
+  const result = await deliverEmail({ to, subject, html, text, attachments });
+  await recordEmail({
+    to,
+    subject,
+    kind: meta.kind || 'GENERAL',
+    status: result.success ? 'SENT' : (result.skipped ? 'SKIPPED' : 'FAILED'),
+    provider: result.provider,
+    error: result.error,
+    entityType: meta.entityType,
+    entityId: meta.entityId
+  });
+  return result;
 }
 
 /**
@@ -480,34 +493,47 @@ Akurdi, Pune`;
 /**
  * Send candidate status notification email.
  */
-async function sendApplicationStatusEmail({ to, candidateName, applicationNumber, position, status, comment }) {
-  const subject = `Application Status Update - ${applicationNumber} | DYPIU Pune`;
+async function sendApplicationStatusEmail({ to, candidateName, applicationNumber, position, status, statusLabel, nextStep, comment, meta }) {
+  const label = statusLabel || status;
+  const subject = `Application Status Update: ${label} - ${applicationNumber} | DYPIU`;
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
       <div style="background-color: #0f2b5c; padding: 15px 20px; border-radius: 6px 6px 0 0; color: #ffffff;">
         <h2 style="margin: 0; font-size: 1.2rem;">D Y Patil International University, Pune</h2>
-        <p style="margin: 4px 0 0 0; font-size: 0.85rem; opacity: 0.9;">Recruitment Portal Status Notification</p>
+        <p style="margin: 4px 0 0 0; font-size: 0.85rem; opacity: 0.9;">Recruitment Portal - Application Status</p>
       </div>
 
       <div style="padding: 20px; color: #334155; line-height: 1.6;">
-        <p>Dear <strong>${candidateName}</strong>,</p>
+        <p>Dear <strong>${escapeHtml(candidateName)}</strong>,</p>
 
-        <p>This is to inform you that your application <strong>(${applicationNumber})</strong> for the position of <strong>${position}</strong> has been updated.</p>
+        <p>Your application <strong>(${escapeHtml(applicationNumber)})</strong> for the position of <strong>${escapeHtml(position)}</strong> has been updated.</p>
 
         <div style="background-color: #f8fafc; border-left: 4px solid #0891b2; padding: 12px 16px; margin: 20px 0; border-radius: 4px;">
-          <p style="margin: 0; font-size: 0.9rem; color: #64748b; font-weight: bold; text-transform: uppercase;">New Status</p>
-          <p style="margin: 4px 0 0 0; font-size: 1.1rem; color: #0f2b5c; font-weight: bold;">${status}</p>
-          ${comment ? `<p style="margin: 8px 0 0 0; font-size: 0.9rem; color: #475569; font-style: italic;">"${comment}"</p>` : ''}
+          <p style="margin: 0; font-size: 0.8rem; color: #64748b; font-weight: bold; text-transform: uppercase;">New status</p>
+          <p style="margin: 4px 0 0 0; font-size: 1.15rem; color: #0f2b5c; font-weight: bold;">${escapeHtml(label)}</p>
+          ${comment ? `<p style="margin: 10px 0 0 0; font-size: 0.9rem; color: #475569;"><strong>Remarks from the recruitment cell:</strong> ${escapeHtml(comment)}</p>` : ''}
         </div>
 
-        <p>Please retain your Application Number for future correspondence regarding your application.</p>
+        ${nextStep ? `<p>${escapeHtml(nextStep)}</p>` : ''}
 
-        <p style="margin-top: 30px;">Best Regards,<br /><strong>Human Resources & Recruitment Cell</strong><br />D Y Patil International University, Akurdi, Pune</p>
+        <p>You can follow your application any time by signing in to the recruitment portal. Please quote your application number in all correspondence.</p>
+
+        <p style="margin-top: 30px;">Best Regards,<br /><strong>Human Resources &amp; Recruitment Cell</strong><br />D Y Patil International University, Akurdi, Pune</p>
       </div>
     </div>
   `;
 
-  return sendEmail({ to, subject, html, text: `Dear ${candidateName}, Your application ${applicationNumber} for ${position} status is now: ${status}.` });
+  const plain = [
+    `Dear ${candidateName},`,
+    '',
+    `Your application ${applicationNumber} for ${position} is now: ${label}.`,
+    comment ? `Remarks: ${comment}` : '',
+    nextStep || '',
+    '',
+    'Recruitment Cell, D Y Patil International University, Akurdi, Pune'
+  ].filter((line, i, all) => line !== '' || all[i - 1] !== '').join('\n');
+
+  return sendEmail({ to, subject, html, text: plain, meta });
 }
 
 /**
@@ -1197,6 +1223,7 @@ async function sendPanelistInterviewInvite({
 
 module.exports = {
   sendEmail,
+  getEmailProviderStatus,
   sendOTPEmail,
   sendSubmissionConfirmationEmail,
   sendApplicationStatusEmail,

@@ -4,6 +4,7 @@ const prisma = require('../services/prisma');
 const storageService = require('../services/storageService');
 const { logAuditAction } = require('../services/auditService');
 const { createZoomMeeting } = require('../services/zoomService');
+const { STATUS_LABELS } = require('../constants/statuses');
 const {
   sendInterviewScheduledEmail,
   sendInterviewCancelledEmail,
@@ -128,7 +129,7 @@ async function getCandidateResumeAndCvAttachments(applicationId, candidateId, ca
           where: { id: applicationId },
           include: {
             job: { include: { school: true, departmentRef: true } },
-            applicant: { include: { user: true } }
+            applicant: { include: { user: { select: { id: true, email: true } } } }
           }
         });
         if (fullApp) {
@@ -151,6 +152,46 @@ async function getCandidateResumeAndCvAttachments(applicationId, candidateId, ca
   }
 
   return attachments;
+}
+
+// ---- application status rules for scheduling ---------------------------------------------------------
+// An interview can be arranged for anyone still in the running. Earlier stages are advanced
+// automatically (and recorded in the history) so the pipeline never skips a step silently.
+const SCHEDULABLE_STATUSES = ['SUBMITTED', 'UNDER_REVIEW', 'SHORTLISTED', 'WAITLISTED', 'INTERVIEW_SCHEDULED'];
+
+function schedulingBlockedMessage(blocked) {
+  const names = blocked.map((a) => `${a.applicant?.name || a.applicationNumber} (${STATUS_LABELS[a.status] || a.status})`).join(', ');
+  return `An interview cannot be scheduled for: ${names}. Only candidates who are submitted, under review, shortlisted, waitlisted or already scheduled can be invited.`;
+}
+
+/** Move an application to INTERVIEW_SCHEDULED, recording an implicit shortlisting step when needed. */
+async function advanceToInterviewScheduled(tx, app, userId, comment) {
+  if (app.status === 'INTERVIEW_SCHEDULED') return;
+  if (['SUBMITTED', 'UNDER_REVIEW', 'WAITLISTED'].includes(app.status)) {
+    await tx.applicationStatusHistory.create({
+      data: {
+        applicationId: app.id,
+        previousStatus: app.status,
+        newStatus: 'SHORTLISTED',
+        changedByUserId: userId,
+        comment: 'Shortlisted automatically when an interview was arranged.'
+      }
+    });
+  }
+  const claimed = await tx.application.updateMany({
+    where: { id: app.id, status: app.status },
+    data: { status: 'INTERVIEW_SCHEDULED' }
+  });
+  if (claimed.count !== 1) throw new Error('The application status changed while scheduling. Please refresh and try again.');
+  await tx.applicationStatusHistory.create({
+    data: {
+      applicationId: app.id,
+      previousStatus: ['SUBMITTED', 'UNDER_REVIEW', 'WAITLISTED'].includes(app.status) ? 'SHORTLISTED' : app.status,
+      newStatus: 'INTERVIEW_SCHEDULED',
+      changedByUserId: userId,
+      comment
+    }
+  });
 }
 
 async function createInterview(req, res) {
@@ -215,9 +256,19 @@ async function createInterview(req, res) {
         jobId: jobId
       },
       include: {
-        applicant: { include: { user: true } }
+        applicant: { include: { user: { select: { id: true, email: true } } } }
       }
     });
+
+    // Every selected candidate needs an application for this vacancy that is still in the running.
+    const missing = selectedCandidateIds.filter((id) => !candidateApplications.some((a) => a.applicantId === id));
+    if (missing.length > 0) {
+      return res.status(400).json({ error: 'One or more selected candidates have not applied for this vacancy.' });
+    }
+    const blocked = candidateApplications.filter((a) => !SCHEDULABLE_STATUSES.includes(a.status));
+    if (blocked.length > 0) {
+      return res.status(400).json({ error: schedulingBlockedMessage(blocked) });
+    }
 
     // Create Interview record in database
     const primaryCandidateId = selectedCandidateIds[0];
@@ -262,22 +313,12 @@ async function createInterview(req, res) {
           }
         });
 
-        // Update application status to INTERVIEW_SCHEDULED
+        // Update application status to INTERVIEW_SCHEDULED (with history)
         if (app) {
-          await tx.application.update({
-            where: { id: app.id },
-            data: { status: 'INTERVIEW_SCHEDULED' }
-          });
-
-          await tx.applicationStatusHistory.create({
-            data: {
-              applicationId: app.id,
-              previousStatus: app.status,
-              newStatus: 'INTERVIEW_SCHEDULED',
-              changedByUserId: req.user.id,
-              comment: `Interview scheduled on ${new Date(targetDate).toLocaleDateString('en-IN')} at ${targetStartTime} via meeting link.`
-            }
-          });
+          await advanceToInterviewScheduled(
+            tx, app, req.user.id,
+            `Interview scheduled on ${new Date(targetDate).toLocaleDateString('en-IN')} at ${targetStartTime}${targetZoomLink ? ' via meeting link' : ''}.`
+          );
         }
       }
 
@@ -302,7 +343,7 @@ async function createInterview(req, res) {
       try {
         const candidateRecord = await prisma.applicant.findUnique({
           where: { id: cId },
-          include: { user: true }
+          include: { user: { select: { id: true, email: true } } }
         });
         const app = candidateApplications.find(a => a.applicantId === cId);
         const contact = resolveCandidateContact(candidateRecord, app);
@@ -506,10 +547,10 @@ async function getAllInterviews(req, res) {
         where,
         include: {
           job: true,
-          candidate: { include: { user: true } },
+          candidate: { include: { user: { select: { id: true, email: true } } } },
           application: {
             include: {
-              applicant: { include: { user: true } }
+              applicant: { include: { user: { select: { id: true, email: true } } } }
             }
           },
           panel: true,
@@ -520,7 +561,7 @@ async function getAllInterviews(req, res) {
           },
           candidates: {
             include: {
-              candidate: { include: { user: true } },
+              candidate: { include: { user: { select: { id: true, email: true } } } },
               application: true
             }
           }
@@ -536,7 +577,7 @@ async function getAllInterviews(req, res) {
           where,
           include: {
             job: true,
-            candidate: { include: { user: true } },
+            candidate: { include: { user: { select: { id: true, email: true } } } },
             application: true,
             panel: true
           },
@@ -678,12 +719,12 @@ async function getInterviewById(req, res) {
     const interview = await prisma.interview.findUnique({
       where: { id },
       include: {
-        candidate: { include: { user: true } },
+        candidate: { include: { user: { select: { id: true, email: true } } } },
         job: true,
         application: true,
         candidates: {
           include: {
-            candidate: { include: { user: true } },
+            candidate: { include: { user: { select: { id: true, email: true } } } },
             application: true
           }
         },
@@ -727,7 +768,7 @@ async function rescheduleInterview(req, res) {
         job: true,
         candidates: {
           include: {
-            candidate: { include: { user: true } },
+            candidate: { include: { user: { select: { id: true, email: true } } } },
             application: true
           }
         }
@@ -821,7 +862,7 @@ async function cancelInterview(req, res) {
         job: true,
         candidates: {
           include: {
-            candidate: { include: { user: true } },
+            candidate: { include: { user: { select: { id: true, email: true } } } },
             application: true
           }
         }
@@ -893,7 +934,7 @@ async function resendInterviewEmail(req, res) {
         job: true,
         candidates: {
           include: {
-            candidate: { include: { user: true } },
+            candidate: { include: { user: { select: { id: true, email: true } } } },
             application: true
           }
         }
@@ -1059,13 +1100,16 @@ async function scheduleInterviewWithPanel(req, res) {
     const application = await prisma.application.findUnique({
       where: { id: applicationId },
       include: {
-        applicant: { include: { user: true } },
+        applicant: { include: { user: { select: { id: true, email: true } } } },
         job: true
       }
     });
 
     if (!application) {
       return res.status(404).json({ error: 'Application record not found.' });
+    }
+    if (!SCHEDULABLE_STATUSES.includes(application.status)) {
+      return res.status(400).json({ error: schedulingBlockedMessage([application]) });
     }
 
     const panel = await prisma.interviewPanel.findUnique({
@@ -1191,22 +1235,11 @@ async function scheduleInterviewWithPanel(req, res) {
         });
       }
 
-      // Update application status to INTERVIEW_SCHEDULED
-      await tx.application.update({
-        where: { id: application.id },
-        data: { status: 'INTERVIEW_SCHEDULED' }
-      });
-
-      // Log Status History
-      await tx.applicationStatusHistory.create({
-        data: {
-          applicationId: application.id,
-          previousStatus: application.status,
-          newStatus: 'INTERVIEW_SCHEDULED',
-          changedByUserId: req.user.id,
-          comment: `Scheduled for interview with ${panel.name} on ${scheduledDateObj.toLocaleDateString('en-IN')} at ${timeStr}${effectiveJoinUrl ? ' via Zoom.' : '.'}`
-        }
-      });
+      // Update application status to INTERVIEW_SCHEDULED and log the history
+      await advanceToInterviewScheduled(
+        tx, application, req.user.id,
+        `Scheduled for interview with ${panel.name} on ${scheduledDateObj.toLocaleDateString('en-IN')} at ${timeStr}${effectiveJoinUrl ? ' via Zoom.' : '.'}`
+      );
 
       return currentInterview;
     });

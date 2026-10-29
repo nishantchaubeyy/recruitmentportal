@@ -318,11 +318,16 @@ function PositionsExplorer({ category = 'teaching', title, subtitle }) {
   return (
     <section className="pos-section" id="open-positions" data-cat={pageCat}>
       <style>{`
+        /* The whole explorer is a visible card: border + shadow, with padding so nothing touches the edge */
         .pos-section {
           background: #ffffff;
-          padding: 40px 0;
+          border: 1px solid #e2e5ea;
+          border-radius: 14px;
+          box-shadow: 0 6px 24px rgba(15, 23, 42, 0.10), 0 1px 3px rgba(15, 23, 42, 0.06);
+          padding: 40px 40px 44px;
           font-family: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
           width: 100%;
+          box-sizing: border-box;
         }
 
         .pos-wrap {
@@ -411,7 +416,7 @@ function PositionsExplorer({ category = 'teaching', title, subtitle }) {
           border: 1px solid #e5e5e5;
           border-radius: 8px;
           padding: 36px 40px;
-          box-shadow: 0 8px 30px rgba(0, 0, 0, 0.06);
+          box-shadow: 0 8px 26px rgba(15, 23, 42, 0.10), 0 1px 3px rgba(15, 23, 42, 0.05);
           min-height: 420px;
           opacity: 0;
           transform: translateX(20px);
@@ -512,14 +517,29 @@ function PositionsExplorer({ category = 'teaching', title, subtitle }) {
           border-color: #54121d;
         }
 
+        .pos-item { box-shadow: 0 2px 6px rgba(84, 18, 29, 0.18); }
+        .pos-item:hover { box-shadow: 0 4px 12px rgba(84, 18, 29, 0.28); }
+
         @media (max-width: 900px) {
+          .pos-section { padding: 28px 24px 32px; }
           .pos-grid {
             grid-template-columns: 1fr;
           }
           .pos-panel {
             position: static;
             min-height: auto;
+            padding: 28px 26px;
           }
+        }
+
+        @media (max-width: 480px) {
+          .pos-section { padding: 20px 14px 24px; border-radius: 12px; }
+          .pos-title { font-size: 30px; }
+          .pos-sub { font-size: 0.82rem; margin-bottom: 20px; }
+          .pos-item { padding: 16px 18px; font-size: 14px; }
+          .pos-panel { padding: 22px 18px; }
+          .pos-panel h3 { font-size: 22px; }
+          .pos-apply { display: block; text-align: center; padding: 13px 20px; }
         }
       `}</style>
 

@@ -314,24 +314,40 @@ body {
   color: #d9a43c;
 }
 
-/* Mobile hamburger toggle */
+/* Mobile hamburger toggle (hidden on desktop; shown together with the collapsed menu at <= 900px) */
 .navbar-mobile-toggle {
   display: none;
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 8px;
+  align-items: center;
+  justify-content: center;
   flex-direction: column;
   gap: 5px;
-  z-index: 1001;
+  width: 44px;
+  height: 44px;
+  margin-right: -8px; /* optical alignment: the bars line up with the page gutter */
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  flex-shrink: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+.navbar-mobile-toggle:focus-visible {
+  outline: 2px solid #d9a43c;
+  outline-offset: 2px;
 }
 .hamburger-bar {
   display: block;
   width: 24px;
-  height: 2px;
+  height: 2.5px;
+  border-radius: 2px;
   background-color: #d9a43c;
-  transition: all 0.3s ease;
+  transition: transform 0.25s ease, opacity 0.2s ease;
 }
+/* Three bars become a cross when the menu is open */
+.hamburger-bar.open:nth-child(1) { transform: translateY(7.5px) rotate(45deg); }
+.hamburger-bar.open:nth-child(2) { opacity: 0; }
+.hamburger-bar.open:nth-child(3) { transform: translateY(-7.5px) rotate(-45deg); }
 
 /* ── Tablet (≤ 1024px) ── */
 @media (max-width: 1024px) {
@@ -341,10 +357,10 @@ body {
   .site-header nav { gap: 28px; }
 }
 
-/* ── Mobile (≤ 768px) ── */
-@media (max-width: 768px) {
-  .site-header .nav-inner { padding: 0 16px; height: 66px; }
-  .site-header .brand .navbar-logo-img { width: 150px; }
+/* ── Collapsed menu (≤ 900px): logo on the left, hamburger on the right, links in a drop-down ── */
+@media (max-width: 900px) {
+  .site-header .nav-inner { padding: 0 20px; height: 70px; position: relative; }
+  .site-header .brand .navbar-logo-img { width: 160px; }
 
   .navbar-mobile-toggle { display: flex; }
 
@@ -353,15 +369,44 @@ body {
   .site-header nav.mobile-open {
     display: flex;
     position: absolute;
-    top: 66px;
+    top: 100%;
     left: 0;
     right: 0;
-    background: #721b28;
     flex-direction: column;
-    padding: 20px;
-    gap: 16px;
-    box-shadow: 0 10px 20px rgba(0,0,0,0.25);
+    align-items: stretch;
+    gap: 4px;
+    padding: 12px 20px 20px;
+    background: #721b28;
+    border-top: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.25);
+    max-height: calc(100vh - 70px);
+    overflow-y: auto;
   }
+  /* Large, evenly spaced tap targets */
+  .site-header nav.mobile-open a,
+  .site-header nav.mobile-open .nav-login-btn,
+  .site-header nav.mobile-open .nav-logout-btn {
+    display: flex;
+    align-items: center;
+    min-height: 46px;
+    padding: 0 4px;
+    font-size: 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  }
+  .site-header nav.mobile-open .nav-logout-btn {
+    justify-content: center;
+    margin-top: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.4);
+  }
+  .site-header nav.mobile-open .nav-login-btn { border-bottom: none; }
+  .site-header .nav-login-btn:after { display: none; }
+}
+
+/* ── Small phones (≤ 480px) ── */
+@media (max-width: 480px) {
+  .site-header .nav-inner { padding: 0 16px; height: 62px; }
+  .site-header .brand .navbar-logo-img { width: 138px; }
+  .site-header nav.mobile-open { padding: 8px 16px 16px; max-height: calc(100vh - 62px); }
 }
 
 .navbar-brand-link {
@@ -631,63 +676,6 @@ body {
 .btn-logout:hover {
   background: #f1f5f9;
   color: var(--dypiu-text-main);
-}
-
-/* Mobile Toggle Hamburger */
-.navbar-mobile-toggle {
-  display: none;
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  padding: 8px;
-  flex-direction: column;
-  gap: 5px;
-}
-
-.hamburger-bar {
-  width: 24px;
-  height: 2.5px;
-  background-color: #d9a43c;
-  border-radius: 2px;
-  transition: all 0.3s ease;
-}
-
-@media (max-width: 992px) {
-  .navbar-mobile-toggle {
-    display: flex;
-  }
-  
-  .navbar-content {
-    display: none;
-    position: absolute;
-    top: 100%;
-    left: 0;
-    right: 0;
-    background: #ffffff;
-    border-bottom: 1px solid var(--dypiu-border);
-    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-    flex-direction: column;
-    padding: 20px;
-    margin-left: 0;
-    gap: 15px;
-    align-items: stretch;
-  }
-
-  .navbar-content.is-active {
-    display: flex;
-  }
-
-  .navbar-nav-main {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .navbar-actions {
-    flex-direction: column;
-    align-items: stretch;
-    border-top: 1px solid var(--dypiu-border);
-    padding-top: 15px;
-  }
 }
 
 /* ==========================================================================
@@ -2491,16 +2479,15 @@ footer.footer-dypiu {
     justify-content: space-between !important;
     align-items: flex-start !important;
     gap: 6px !important;
-    overflow-x: auto !important;
     padding-bottom: 6px !important;
-    -webkit-overflow-scrolling: touch;
     width: 100% !important;
     box-sizing: border-box !important;
   }
 
+  /* All seven steps share the width, so none is hidden behind a scrollbar */
   .app-step-item {
-    flex: 0 0 auto !important;
-    min-width: 44px !important;
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
   }
 
   .app-step-item-circle {
@@ -2513,6 +2500,15 @@ footer.footer-dypiu {
     font-size: 0.65rem !important;
     margin-top: 4px !important;
     white-space: nowrap !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  /* On phones only the current step keeps its label (the heading above also names it) */
+  @media (max-width: 480px) {
+    .app-step-item:not(.is-current) .app-step-item-label { display: none !important; }
+    .app-step-item.is-current .app-step-item-label { overflow: visible !important; }
   }
 
   /* 4. Form Body Container Card */
@@ -2604,6 +2600,11 @@ footer.footer-dypiu {
    PAGE BACKGROUND WATERMARK (TEACHING & NON-TEACHING POSITIONS)
    ========================================================================== */
 
+/* Phones: give the positions card a slimmer outer gutter so it keeps its width */
+@media (max-width: 480px) {
+  .pos-page-container { padding: 20px 12px 30px !important; }
+}
+
 .page-watermark-wrapper {
   position: relative;
   overflow-x: hidden;
@@ -2621,9 +2622,37 @@ footer.footer-dypiu {
    CAREERS & OPEN POSITIONS TIGHTENING OVERRIDES
    ========================================================================== */
 
+/* One page gutter: the wrapper supplies the side padding, so "Careers" lines up with "Current Openings" */
 .careers-section,
 .careers-category-section {
-  padding: 24px 20px 20px !important;
+  padding: 24px 0 20px !important;
+}
+.careers-category-wrapper,
+.open-positions-section {
+  padding-left: 24px !important;
+  padding-right: 24px !important;
+}
+/* The footer uses the same gutter as the page content above it */
+.footer-dypiu .footer-content {
+  padding-left: 24px !important;
+  padding-right: 24px !important;
+}
+@media (max-width: 480px) {
+  .footer-dypiu .footer-content {
+    padding: 36px 16px 28px !important;
+    gap: 28px !important;
+  }
+  .section-header-row .section-title { font-size: 26px !important; line-height: 1.2 !important; }
+  .careers-category-wrapper,
+  .open-positions-section {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+  .careers-card,
+  .careers-card-box {
+    padding: 20px 16px !important;
+  }
+  .careers-title { font-size: 32px !important; }
 }
 
 .careers-header-row {

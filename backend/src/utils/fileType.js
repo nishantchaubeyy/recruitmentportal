@@ -18,6 +18,14 @@ function detectFileType(buffer) {
   if (buffer.slice(0, 4).toString('latin1') === 'RIFF' && buffer.slice(8, 12).toString('latin1') === 'WEBP') {
     return { mime: 'image/webp', ext: '.webp' };
   }
+  // Word: legacy .doc (OLE2 container) and .docx (zip containing word/ parts).
+  if (buffer.slice(0, 8).equals(Buffer.from([0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1]))) {
+    return { mime: 'application/msword', ext: '.doc' };
+  }
+  if (buffer[0] === 0x50 && buffer[1] === 0x4b && buffer[2] === 0x03 && buffer[3] === 0x04
+      && buffer.slice(0, 8192).toString('latin1').includes('word/')) {
+    return { mime: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', ext: '.docx' };
+  }
   return null;
 }
 

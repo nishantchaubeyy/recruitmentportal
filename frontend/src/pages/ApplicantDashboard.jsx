@@ -53,9 +53,9 @@ function ApplicantDashboard() {
 
   useEffect(() => {
     let isMounted = true;
-    async function fetchData() {
+    async function fetchData(background = false) {
       try {
-        setLoading(true);
+        if (!background) setLoading(true);
         const [appsData, interviewsData, docsData, notifData] = await Promise.all([
           apiRequest('/applications/my').catch(() => []),
           apiRequest('/interviews/my').catch(() => []),
@@ -77,7 +77,17 @@ function ApplicantDashboard() {
       }
     }
     fetchData();
-    return () => { isMounted = false; };
+
+    // Status changes made by HR show up without a manual reload: poll while the tab is visible
+    // and refresh as soon as the applicant returns to it.
+    const timer = setInterval(() => { if (!document.hidden) fetchData(true); }, 60000);
+    const onVisible = () => { if (!document.hidden) fetchData(true); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      isMounted = false;
+      clearInterval(timer);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
   }, []);
 
   const handleMarkAsRead = async (id) => {

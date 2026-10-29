@@ -2,6 +2,41 @@ import React, { useState, useEffect, useContext, useRef, useMemo } from 'react';
 import { useSearchParams, useParams, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { apiRequest } from '../utils/api';
+import {
+  QUALIFICATION_LEVELS, QUALIFICATION_LEVEL_KEYS, PHD_STATUSES, PHD_BLANK, PHD_LABELS,
+  qualificationRule, blankQualification, normaliseQualification, applyQualificationEdit,
+  validateQualifications, cleanQualifications, phdFieldsFor, buildPhd, validatePhd,
+  showsResearchOutputs, validateCount, normaliseExam, validateExam,
+  validatePersonal, validateContact, validateExperience
+} from '../utils/formRules';
+
+// How each Ph.D. field is drawn; which ones appear (and are required) comes from phdFieldsFor() in formRules.js.
+const PHD_FIELD_UI = {
+  phdUniversity: { placeholder: 'University / institute where the Ph.D. is done' },
+  phdDepartment: { placeholder: 'e.g. Department of Computer Science' },
+  phdSpecialization: { placeholder: 'e.g. Machine Learning' },
+  phdCity: { placeholder: 'City' },
+  phdCountry: { placeholder: 'Country' },
+  phdMode: { options: ['Full-Time', 'Part-Time'] },
+  phdUgcRecognised: { options: ['Yes', 'No'] },
+  phdFellowship: { options: ['None', 'UGC-JRF', 'UGC-SRF', 'CSIR', 'ICSSR', 'Institutional', 'Other'] },
+  phdRegistrationYear: { year: true, placeholder: 'e.g. 2019' },
+  phdThesisTitle: { wide: true, placeholder: 'Title of the thesis' },
+  phdSupervisor: { placeholder: 'Name of the guide' },
+  phdSupervisorDesignation: { placeholder: 'e.g. Professor' },
+  phdExpectedYear: { year: true, placeholder: 'e.g. 2027' },
+  phdSubmissionDate: { date: true },
+  phdVivaDate: { date: true },
+  phdYear: { year: true, placeholder: 'e.g. 2024' },
+  phdCertificateNo: { placeholder: 'Certificate number' }
+};
+
+const PHD_GROUPS = [
+  { title: 'Where the Ph.D. is / was done', keys: ['phdUniversity', 'phdDepartment', 'phdCity', 'phdCountry', 'phdMode', 'phdUgcRecognised', 'phdFellowship'] },
+  { title: 'Research', keys: ['phdSpecialization', 'phdThesisTitle', 'phdSupervisor', 'phdSupervisorDesignation'] },
+  { title: 'Timeline', keys: ['phdRegistrationYear', 'phdExpectedYear', 'phdSubmissionDate', 'phdVivaDate', 'phdYear', 'phdCertificateNo'] }
+];
+
 
 const TEACHING_SCHOOLS = [
   'School of Computer Science Engineering & Applications',
@@ -211,7 +246,7 @@ function ApplicationForm() {
   // STEP 1: Post & Personal Info
   const [selectedFaculty, setSelectedFaculty] = useState(urlFaculty || 'School of Computer Science Engineering & Applications');
   const [postAppliedFor, setPostAppliedFor] = useState('');
-  const [title, setTitle] = useState('Dr.');
+  const [title, setTitle] = useState('');
   const [firstName, setFirstName] = useState(user?.name?.split(' ')[0] || '');
   const [middleName, setMiddleName] = useState('');
   const [lastName, setLastName] = useState(user?.name?.split(' ').slice(1).join(' ') || '');
@@ -220,12 +255,13 @@ function ApplicationForm() {
   const [dobYear, setDobYear] = useState('');
   const [dob, setDob] = useState('');
   const [age, setAge] = useState('');
-  const [gender, setGender] = useState('Male');
-  const [maritalStatus, setMaritalStatus] = useState('Married');
+  const [gender, setGender] = useState('');
+  const [maritalStatus, setMaritalStatus] = useState('');
 
   // STEP 2: Contact Information
   const [email, setEmail] = useState(user?.email || '');
   const [emailVerified, setEmailVerified] = useState(Boolean(user));
+  const [verificationToken, setVerificationToken] = useState('');
   const [otpSent, setOtpSent] = useState(false);
   const [otpInput, setOtpInput] = useState('');
   const [sendingOtp, setSendingOtp] = useState(false);
@@ -237,16 +273,16 @@ function ApplicationForm() {
   const [mobile, setMobile] = useState(user?.mobile || '');
   const [alternateMobile, setAlternateMobile] = useState('');
   const [address, setAddress] = useState('');
-  const [city, setCity] = useState('Pune');
-  const [state, setState] = useState('Maharashtra');
+  const [city, setCity] = useState('');
+  const [state, setState] = useState('');
   const [country, setCountry] = useState('India');
   const [pinCode, setPinCode] = useState('');
 
   // STEP 3: Academic Qualifications
   const [qualifications, setQualifications] = useState([
-    { qualificationDegree: 'SSC', degreeName: 'SSC', instituteName: '', specialization: 'General', passingYear: '', cgpa: '', studyMode: 'Full-Time' },
-    { qualificationDegree: 'HSC', degreeName: 'HSC', instituteName: '', specialization: 'Science', passingYear: '', cgpa: '', studyMode: 'Full-Time' },
-    { qualificationDegree: "Bachelor's", degreeName: '', instituteName: '', specialization: '', passingYear: '', cgpa: '', studyMode: 'Full-Time' }
+    blankQualification('SSC'),
+    blankQualification('HSC'),
+    blankQualification("Bachelor's")
   ]);
   const [subjectAppliedFor, setSubjectAppliedFor] = useState('');
 
@@ -257,24 +293,31 @@ function ApplicationForm() {
   ]);
 
   // STEP 5: Ph.D. & Research Information
+  // Only the fields that apply to the chosen Ph.D. status are shown and sent (see utils/formRules.js).
   const [phdStatus, setPhdStatus] = useState('');
-  const [phdSpecialization, setPhdSpecialization] = useState('');
-  const [phdUniversity, setPhdUniversity] = useState('');
-  const [phdYear, setPhdYear] = useState('');
-  const [scopusCount, setScopusCount] = useState('0');
+  const [phd, setPhd] = useState({ ...PHD_BLANK });
+  const setPhdField = (key, value) => {
+    setPhd((prev) => ({ ...prev, [key]: value }));
+    triggerAutosave();
+  };
+  const handlePhdStatusChange = (value) => {
+    setPhdStatus(value);
+    // "Not Applicable" (or nothing) means there is no Ph.D. to describe: drop anything typed earlier.
+    if (!phdFieldsFor(value).visible.length) setPhd({ ...PHD_BLANK });
+    triggerAutosave();
+  };
+  const [scopusCount, setScopusCount] = useState('');
   const [scopusId, setScopusId] = useState('');
-  const [conferencePaper, setConferencePaper] = useState('No');
-  const [wosCount, setWosCount] = useState('0');
+  const [conferencePaper, setConferencePaper] = useState('');
+  const [wosCount, setWosCount] = useState('');
   const [wosId, setWosId] = useState('');
   const [net, setNet] = useState({ cleared: 'No', year: '' });
   const [setExam, setSetExam] = useState({ cleared: 'No', year: '' });
   const [slet, setSlet] = useState({ cleared: 'No', year: '' });
   const [gate, setGate] = useState({ cleared: 'No', year: '' });
 
-  // Publications table (PhD)
+  // Other publications (books, patents, ...)
   const [publications, setPublications] = useState([
-    { type: 'Journal Articles (Scopus)', count: '' },
-    { type: 'Conference Papers', count: '' },
     { type: 'Book Chapters', count: '' },
     { type: 'Patents', count: '' }
   ]);
@@ -441,6 +484,41 @@ function ApplicationForm() {
     }
   };
 
+  // Teaching vs non-teaching decides which sections apply (publications and NET/SET/GATE are teaching-only).
+  const jobType = useMemo(() => {
+    if (loadedVacancy?.type) return loadedVacancy.type;
+    const selected = (selectedFaculty || '').trim().toLowerCase();
+    const school = academicStructure?.find((s) => s.name.trim().toLowerCase() === selected);
+    if (school?.type) return school.type;
+    if (urlType === 'NON_TEACHING') return 'NON_TEACHING';
+    return nonTeachingDivisions.some((nt) => nt.trim().toLowerCase() === selected) ? 'NON_TEACHING' : 'TEACHING';
+  }, [loadedVacancy, selectedFaculty, academicStructure, urlType, nonTeachingDivisions]);
+  const showOutputs = showsResearchOutputs(jobType);
+
+  /** The Ph.D. / research block as it is stored: hidden or not-applicable fields are never included. */
+  const buildResearch = () => {
+    const out = buildPhd(phdStatus, phd);
+    if (showOutputs) {
+      const scopus = Number(scopusCount || 0);
+      const wos = Number(wosCount || 0);
+      Object.assign(out, {
+        scopusCount: String(scopus),
+        scopusId: scopus > 0 ? scopusId.trim() : '',
+        wosCount: String(wos),
+        wosId: wos > 0 ? wosId.trim() : '',
+        conferencePaper: String(Number(conferencePaper || 0)),
+        publications: publications
+          .filter((p) => p.type.trim() && Number(p.count) > 0)
+          .map((p) => ({ type: p.type.trim(), count: Number(p.count) })),
+        net: normaliseExam(net),
+        setExam: normaliseExam(setExam),
+        slet: normaliseExam(slet),
+        gate: normaliseExam(gate)
+      });
+    }
+    return out;
+  };
+
   // Load Vacancy details if jobId provided
   useEffect(() => {
     if (activeJobId) {
@@ -528,12 +606,7 @@ function ApplicationForm() {
           if (existing.qualifications) {
             const q = typeof existing.qualifications === 'string' ? JSON.parse(existing.qualifications) : existing.qualifications;
             if (Array.isArray(q) && q.length > 0) {
-              const sanitizedQ = q.map(item => {
-                let degName = item.degreeName;
-                if (item.qualificationDegree === 'SSC') degName = 'SSC';
-                else if (item.qualificationDegree === 'HSC') degName = 'HSC';
-                return { ...item, degreeName: degName };
-              });
+              const sanitizedQ = q.map(normaliseQualification);
               setQualifications(sanitizedQ);
             }
           }
@@ -554,13 +627,24 @@ function ApplicationForm() {
                 : (existing.researchDetails || existing.phdDetails);
               if (r) {
                 if (r.phdStatus) setPhdStatus(r.phdStatus);
-                if (r.phdSpecialization || r.phdSubject) setPhdSpecialization(r.phdSpecialization || r.phdSubject);
-                if (r.phdUniversity) setPhdUniversity(r.phdUniversity);
-                if (r.phdYear) setPhdYear(r.phdYear);
-                if (r.scopusCount) setScopusCount(r.scopusCount);
+                setPhd((prev) => {
+                  const next = { ...prev };
+                  Object.keys(PHD_BLANK).forEach((k) => { if (r[k]) next[k] = String(r[k]); });
+                  if (!next.phdSpecialization && r.phdSubject) next.phdSpecialization = String(r.phdSubject);
+                  return next;
+                });
+                if (r.scopusCount && r.scopusCount !== '0') setScopusCount(String(r.scopusCount));
                 if (r.scopusId) setScopusId(r.scopusId);
-                if (r.wosCount) setWosCount(r.wosCount);
+                if (r.wosCount && r.wosCount !== '0') setWosCount(String(r.wosCount));
                 if (r.wosId) setWosId(r.wosId);
+                if (/^\d+$/.test(String(r.conferencePaper ?? '')) && r.conferencePaper !== '0') setConferencePaper(String(r.conferencePaper));
+                if (Array.isArray(r.publications) && r.publications.length) {
+                  setPublications(r.publications.map((p) => ({ type: p.type || '', count: String(p.count ?? '') })));
+                }
+                if (r.net) setNet(normaliseExam(r.net));
+                if (r.setExam) setSetExam(normaliseExam(r.setExam));
+                if (r.slet) setSlet(normaliseExam(r.slet));
+                if (r.gate) setGate(normaliseExam(r.gate));
               }
             } catch (err) {}
           }
@@ -587,8 +671,8 @@ function ApplicationForm() {
           personalInfo: { title: title !== 'Select' ? title : '', firstName, middleName, lastName, dob, age, gender, maritalStatus, email, alternateEmail },
           contactDetails: { mobile, alternateMobile, address, city, state, country, pinCode },
           qualifications,
-          phdDetails: { phdStatus, phdSpecialization, phdSubject: phdSpecialization, phdUniversity, phdYear, scopusCount, scopusId, conferencePaper, wosCount, wosId, net, setExam, slet, gate },
-          researchDetails: { phdStatus, phdSpecialization, phdSubject: phdSpecialization, phdUniversity, phdYear, scopusCount, scopusId, conferencePaper, wosCount, wosId, net, setExam, slet, gate },
+          phdDetails: buildResearch(),
+          researchDetails: buildResearch(),
           workExperience: isFresher ? [] : experiences,
           experience: {
             experienceType: isFresher ? 'fresher' : 'experienced',
@@ -611,121 +695,45 @@ function ApplicationForm() {
     }, 800);
   };
 
+  const hasResumeDoc = () =>
+    Boolean(resumeFile) || (Array.isArray(uploadedDocsList) && uploadedDocsList.some((d) => d.documentType === 'resume'));
+
+  /** First problem on a step, or null. The same rules run on "Next" and again on the final submit. */
+  const stepError = (step) => {
+    if (step === 1) {
+      return validatePersonal({ postAppliedFor, title, firstName, lastName, dob, gender, maritalStatus });
+    }
+    if (step === 2) {
+      if (!email || !email.includes('@')) return 'A valid e-mail address is required.';
+      if (!emailVerified) return 'Please verify your e-mail address with the OTP before continuing.';
+      return validateContact({ mobile, alternateMobile, pinCode, city, state });
+    }
+    if (step === 3) return validateQualifications(qualifications);
+    if (step === 4) return isFresher ? null : validateExperience(experiences);
+    if (step === 5) {
+      const phdProblem = validatePhd(phdStatus, phd, { requireStatus: jobType === 'TEACHING' });
+      if (phdProblem) return phdProblem;
+      if (!showOutputs) return null;
+      return validateCount(scopusCount, 'The Scopus publication count')
+        || validateCount(wosCount, 'The Web of Science count')
+        || validateCount(conferencePaper, 'The conference paper count')
+        || validateExam('UGC-NET', net) || validateExam('SET', setExam)
+        || validateExam('SLET', slet) || validateExam('GATE', gate);
+    }
+    if (step === 6) {
+      return hasResumeDoc() ? null : 'Uploading your Resume / CV (PDF / Word, max 5MB) is mandatory before proceeding.';
+    }
+    return null;
+  };
+
   // Step Navigation Helpers
   const handleNextStep = () => {
     setError('');
 
-    // Step-wise Validations
-    if (currentStep === 1) {
-      if (!postAppliedFor) {
-        setError('Please select Post Applied For.');
-        return;
-      }
-      if (!firstName || !lastName) {
-        setError('First Name and Last Name are required.');
-        return;
-      }
-      if (!dob) {
-        setError('Date of Birth is mandatory.');
-        return;
-      }
-    }
-
-    if (currentStep === 2) {
-      if (!email || !email.includes('@')) {
-        setError('Valid Email ID is required.');
-        return;
-      }
-      if (!emailVerified) {
-        setError('Please verify your email address via OTP before proceeding to the next step.');
-        return;
-      }
-      if (!mobile || mobile.length !== 10) {
-        setError('Invalid Mobile Number: Mobile number must be exactly 10 digits.');
-        return;
-      }
-      if (alternateMobile && alternateMobile.length !== 10) {
-        setError('Invalid Alternate Mobile Number: Alternate mobile number must be exactly 10 digits.');
-        return;
-      }
-      if (pinCode && pinCode.length !== 6) {
-        setError('Invalid PIN Code: PIN code must be exactly 6 digits.');
-        return;
-      }
-      if (!city || !state) {
-        setError('City and State are required.');
-        return;
-      }
-    }
-
-    if (currentStep === 3) {
-      for (let i = 0; i < qualifications.length; i++) {
-        const q = qualifications[i];
-        const hasEntry = q.degreeName || q.instituteName || q.specialization || q.passingYear || q.cgpa;
-        if (hasEntry) {
-          if (!q.degreeName || !q.instituteName || !q.passingYear || !q.cgpa) {
-            setError(`Academic qualification entry #${i + 1} (${q.qualificationDegree || 'Row'}) is incomplete. All fields are required once an academic entry is added.`);
-            return;
-          }
-
-          // Passing year: only numerical digits, valid 4-digit year
-          const yearStr = String(q.passingYear).trim();
-          if (!/^\d{4}$/.test(yearStr)) {
-            setError(`Invalid Passing Year in qualification #${i + 1}. Must be a 4-digit numerical year (e.g. 2020).`);
-            return;
-          }
-          const yrNum = parseInt(yearStr, 10);
-          const maxYr = new Date().getFullYear() + 2;
-          if (yrNum < 1950 || yrNum > maxYr) {
-            setError(`Invalid Passing Year in qualification #${i + 1}. Year must be between 1950 and ${maxYr}.`);
-            return;
-          }
-
-          // CGPA / %: valid decimal number between 0.00 and 100.00
-          const cgpaStr = String(q.cgpa).trim();
-          const cgpaNum = parseFloat(cgpaStr);
-          const decParts = cgpaStr.split('.');
-          if (isNaN(cgpaNum) || cgpaNum < 0 || cgpaNum > 100 || (decParts.length > 1 && decParts[1].length > 2)) {
-            setError(`Invalid CGPA / Percentage in qualification #${i + 1}. Must be a valid decimal number between 0.00 and 100.00 (e.g. 9.54 for CGPA or 85.50 for Percentage).`);
-            return;
-          }
-        }
-      }
-    }
-
-    if (currentStep === 4 && !isFresher) {
-      const hasValidExp = experiences.some(e => e.organization && e.designation);
-      if (!hasValidExp) {
-        setError('Please fill in your Organization and Designation details, or select "FRESHER".');
-        return;
-      }
-    }
-
-    if (currentStep === 5) {
-      // If a PhD status is selected (not empty / Not Applicable), all PhD fields are mandatory
-      const phdActive = phdStatus && phdStatus !== 'Not Applicable';
-      if (phdActive) {
-        if (!phdSpecialization.trim()) {
-          setError('Ph.D. Subject / Field is required when Ph.D. Status is selected.');
-          return;
-        }
-        if (!phdUniversity.trim()) {
-          setError('Ph.D. University / Institute is required when Ph.D. Status is selected.');
-          return;
-        }
-        if (!phdYear.trim()) {
-          setError('Year of Ph.D. Award / Enrollment is required when Ph.D. Status is selected.');
-          return;
-        }
-      }
-    }
-
-    if (currentStep === 6) {
-      const hasResume = Boolean(resumeFile) || (Array.isArray(uploadedDocsList) && uploadedDocsList.some(d => d.documentType === 'resume'));
-      if (!hasResume) {
-        setError('Uploading your Resume / CV (PDF / Word, max 5MB) is mandatory before proceeding.');
-        return;
-      }
+    const problem = stepError(currentStep);
+    if (problem) {
+      setError(problem);
+      return;
     }
 
     const next = Math.min(7, currentStep + 1);
@@ -747,6 +755,7 @@ function ApplicationForm() {
     setEmail(newVal);
     if (!user) {
       setEmailVerified(false);
+      setVerificationToken('');
       setOtpSent(false);
       setOtpInput('');
       setOtpMessage('');
@@ -783,10 +792,11 @@ function ApplicationForm() {
     setError('');
     setVerifyingOtp(true);
     try {
-      await apiRequest('/auth/verify-otp', {
+      const verified = await apiRequest('/auth/verify-otp', {
         method: 'POST',
         body: JSON.stringify({ email: email.toLowerCase().trim(), otp: otpInput.trim() })
       });
+      setVerificationToken(verified.verificationToken || '');
       setEmailVerified(true);
       setOtpSent(false);
       setOtpMessage('✓ Email verified successfully!');
@@ -797,59 +807,17 @@ function ApplicationForm() {
     }
   };
 
-  // Qualification Row Helpers
+  // Qualification Row Helpers (what each level asks for lives in utils/formRules.js)
   const handleAddQualification = () => {
-    setQualifications([
-      ...qualifications,
-      { qualificationDegree: 'Select', degreeName: '', instituteName: '', specialization: '', passingYear: '', cgpa: '', studyMode: 'Full-Time' }
-    ]);
+    setQualifications([...qualifications, blankQualification('')]);
   };
   const handleRemoveQualification = (idx) => {
     if (qualifications.length <= 1) return;
     setQualifications(qualifications.filter((_, i) => i !== idx));
+    triggerAutosave();
   };
   const handleQualChange = (idx, field, val) => {
-    const copy = [...qualifications];
-    if (field === 'qualificationDegree') {
-      copy[idx].qualificationDegree = val;
-      if (val === 'SSC') {
-        copy[idx].degreeName = 'SSC';
-      } else if (val === 'HSC') {
-        copy[idx].degreeName = 'HSC';
-      } else if (copy[idx].degreeName === 'SSC' || copy[idx].degreeName === 'HSC') {
-        copy[idx].degreeName = '';
-      }
-    } else if (field === 'degreeName') {
-      if (copy[idx].qualificationDegree === 'SSC') {
-        copy[idx].degreeName = 'SSC';
-      } else if (copy[idx].qualificationDegree === 'HSC') {
-        copy[idx].degreeName = 'HSC';
-      } else {
-        copy[idx].degreeName = val;
-      }
-    } else if (field === 'passingYear') {
-      // Only numericals allowed, no letters or symbols, max 4 digits
-      const clean = val.replace(/\D/g, '').slice(0, 4);
-      copy[idx].passingYear = clean;
-    } else if (field === 'cgpa') {
-      // Decimal / percentage only: digits and at most one decimal point
-      let clean = val.replace(/[^0-9.]/g, '');
-      const parts = clean.split('.');
-      if (parts.length > 2) {
-        clean = parts[0] + '.' + parts.slice(1).join('');
-      }
-      if (parts.length > 1) {
-        clean = parts[0] + '.' + parts[1].slice(0, 2);
-      }
-      const numVal = parseFloat(clean);
-      if (!isNaN(numVal) && numVal > 100) {
-        clean = '100';
-      }
-      copy[idx].cgpa = clean;
-    } else {
-      copy[idx][field] = val;
-    }
-    setQualifications(copy);
+    setQualifications((prev) => prev.map((q, i) => (i === idx ? applyQualificationEdit(q, field, val) : q)));
     triggerAutosave();
   };
 
@@ -865,9 +833,12 @@ function ApplicationForm() {
     setExperiences(experiences.filter((_, i) => i !== idx));
   };
   const handleExpChange = (idx, field, val) => {
-    const copy = [...experiences];
-    copy[idx][field] = val;
-    setExperiences(copy);
+    setExperiences((prev) => prev.map((row, i) => {
+      if (i !== idx) return row;
+      const next = { ...row, [field]: val };
+      if (field === 'isCurrent' && val) next.toDate = '';
+      return next;
+    }));
     triggerAutosave();
   };
 
@@ -969,7 +940,17 @@ function ApplicationForm() {
       return;
     }
 
-    const hasResume = Boolean(resumeFile) || (Array.isArray(uploadedDocsList) && uploadedDocsList.some(d => d.documentType === 'resume'));
+    for (let step = 1; step <= 6; step += 1) {
+      const problem = stepError(step);
+      if (problem) {
+        setCurrentStep(step);
+        setError(`Step ${step}: ${problem}`);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+      }
+    }
+
+    const hasResume = hasResumeDoc();
     if (!hasResume) {
       setError('Resume / CV is mandatory. Please return to Step 6 and upload your Resume / CV (PDF format).');
       return;
@@ -988,9 +969,9 @@ function ApplicationForm() {
         subjectAppliedFor,
         personalInfo: { title: title !== 'Select' ? title : '', firstName, middleName, lastName, dob, age, gender, maritalStatus, email, alternateEmail },
         contactDetails: { mobile, alternateMobile, address, city, state, country, pinCode, email },
-        qualifications,
-        phdDetails: { phdStatus, phdSpecialization, phdSubject: phdSpecialization, phdUniversity, phdYear, scopusCount, scopusId, conferencePaper, wosCount, wosId, net, setExam, slet, gate },
-          researchDetails: { phdStatus, phdSpecialization, phdSubject: phdSpecialization, phdUniversity, phdYear, scopusCount, scopusId, conferencePaper, wosCount, wosId, net, setExam, slet, gate },
+        qualifications: cleanQualifications(qualifications),
+        phdDetails: buildResearch(),
+        researchDetails: buildResearch(),
         workExperience: isFresher ? [] : experiences,
         experience: {
           experienceType: isFresher ? 'fresher' : 'experienced',
@@ -999,6 +980,7 @@ function ApplicationForm() {
         },
         declaration: true,
         emailVerified: true,
+        verificationToken,
         uploadedDocsList
       };
 
@@ -1025,7 +1007,6 @@ function ApplicationForm() {
           position: postAppliedFor || selectedFaculty,
           status: 'SUBMITTED',
           isNewUser: Boolean(submitRes.isNewUser),
-          credentials: submitRes.credentials || null,
           isInterest
         }
       });
@@ -1138,7 +1119,7 @@ function ApplicationForm() {
             return (
               <div
                 key={s.id}
-                className="app-step-item"
+                className={`app-step-item${isCurrent ? ' is-current' : ''}`}
                 onClick={() => {
                   if (s.id <= currentStep) {
                     setCurrentStep(s.id);
@@ -1310,6 +1291,7 @@ function ApplicationForm() {
               <div className="form-group">
                 <label style={{ fontWeight: 700, fontSize: '0.85rem' }}>Gender <span className="required">*</span></label>
                 <select value={gender} onChange={(e) => setGender(e.target.value)} required>
+                  <option value="" disabled>-- Select --</option>
                   <option value="Male">Male</option>
                   <option value="Female">Female</option>
                   <option value="Other">Other</option>
@@ -1319,6 +1301,7 @@ function ApplicationForm() {
               <div className="form-group">
                 <label style={{ fontWeight: 700, fontSize: '0.85rem' }}>Marital Status <span className="required">*</span></label>
                 <select value={maritalStatus} onChange={(e) => setMaritalStatus(e.target.value)} required>
+                  <option value="" disabled>-- Select --</option>
                   <option value="Married">Married</option>
                   <option value="Unmarried">Unmarried</option>
                 </select>
@@ -1494,6 +1477,7 @@ function ApplicationForm() {
               <div className="form-group">
                 <label style={{ fontWeight: 700, fontSize: '0.85rem' }}>State <span className="required">*</span></label>
                 <select value={state} onChange={(e) => setState(e.target.value)} required>
+                  <option value="" disabled>-- Select State --</option>
                   {INDIAN_STATES.map((s) => <option key={s} value={s}>{s}</option>)}
                 </select>
               </div>
@@ -1532,86 +1516,83 @@ function ApplicationForm() {
               STEP 3 — Academic Qualifications
             </h3>
 
+            <p style={{ margin: '0 0 14px', fontSize: '0.84rem', color: '#475569' }}>
+              Add each qualification you hold. The fields change with the level you choose. Your Ph.D. is entered separately in Step 5.
+            </p>
+
             {qualifications.map((q, idx) => {
-              const isLockedDegree = q.qualificationDegree === 'SSC' || q.qualificationDegree === 'HSC';
+              const rule = qualificationRule(q.qualificationDegree);
+              const spec = rule.specialization;
+              const chosen = Boolean(q.qualificationDegree);
+              const star = <span style={{ color: '#DC2626', marginLeft: 3 }}>*</span>;
               return (
                 <div key={idx} style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', padding: '16px', marginBottom: '16px', borderRadius: '10px' }}>
-                  <div className="app-qual-grid" style={{ display: 'grid', gridTemplateColumns: '130px 1fr 1fr 1fr 90px 90px 110px', gap: '10px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: '12px' }}>
                     <div className="form-group" style={{ marginBottom: 0 }}>
-                      <label style={{ fontSize: '11px', fontWeight: 700 }}>Type</label>
+                      <label style={{ fontSize: '11px', fontWeight: 700 }}>Level{star}</label>
                       <select value={q.qualificationDegree} onChange={(e) => handleQualChange(idx, 'qualificationDegree', e.target.value)}>
-                        <option value="SSC">SSC (10th)</option>
-                        <option value="HSC">HSC (12th)</option>
-                        <option value="Diploma">Diploma</option>
-                        <option value="Bachelor's">Bachelor's</option>
-                        <option value="Master's">Master's</option>
-                        <option value="Ph.D.">Ph.D.</option>
-                        <option value="Other">Other</option>
+                        <option value="">-- Select level --</option>
+                        {!QUALIFICATION_LEVEL_KEYS.includes(q.qualificationDegree) && q.qualificationDegree && (
+                          <option value={q.qualificationDegree}>{q.qualificationDegree}</option>
+                        )}
+                        {QUALIFICATION_LEVEL_KEYS.map((key) => (
+                          <option key={key} value={key}>{QUALIFICATION_LEVELS[key].label}</option>
+                        ))}
                       </select>
                     </div>
 
-                    <div className="form-group" style={{ marginBottom: 0 }}>
-                      <label style={{ fontSize: '11px', fontWeight: 700 }}>Degree Name</label>
-                      <input
-                        type="text"
-                        placeholder={isLockedDegree ? '' : "e.g. B.Tech / MBA"}
-                        value={isLockedDegree ? (q.qualificationDegree === 'SSC' ? 'SSC' : 'HSC') : q.degreeName}
-                        readOnly={isLockedDegree}
-                        tabIndex={isLockedDegree ? -1 : 0}
-                        onChange={(e) => handleQualChange(idx, 'degreeName', e.target.value)}
-                        style={isLockedDegree ? {
-                          backgroundColor: '#f1f5f9',
-                          color: '#0f172a',
-                          fontWeight: 700,
-                          cursor: 'not-allowed',
-                          border: '1px solid #cbd5e1'
-                        } : {}}
-                        title={isLockedDegree ? `Degree name is fixed as ${q.qualificationDegree} and cannot be changed` : undefined}
-                      />
-                    </div>
+                    {chosen && !rule.nameFixed && (
+                      <div className="form-group" style={{ marginBottom: 0 }}>
+                        <label style={{ fontSize: '11px', fontWeight: 700 }}>{rule.nameLabel}{star}</label>
+                        <input type="text" placeholder={rule.namePlaceholder} value={q.degreeName} onChange={(e) => handleQualChange(idx, 'degreeName', e.target.value)} />
+                      </div>
+                    )}
 
-                    <div className="form-group" style={{ marginBottom: 0 }}>
-                      <label style={{ fontSize: '11px', fontWeight: 700 }}>University / Board</label>
-                      <input type="text" placeholder="University" value={q.instituteName} onChange={(e) => handleQualChange(idx, 'instituteName', e.target.value)} />
-                    </div>
+                    {chosen && (
+                      <div className="form-group" style={{ marginBottom: 0 }}>
+                        <label style={{ fontSize: '11px', fontWeight: 700 }}>{rule.instituteLabel}{star}</label>
+                        <input type="text" placeholder={rule.institutePlaceholder} value={q.instituteName} onChange={(e) => handleQualChange(idx, 'instituteName', e.target.value)} />
+                      </div>
+                    )}
 
-                    <div className="form-group" style={{ marginBottom: 0 }}>
-                      <label style={{ fontSize: '11px', fontWeight: 700 }}>Specialization</label>
-                      <input type="text" placeholder="Specialization" value={q.specialization} onChange={(e) => handleQualChange(idx, 'specialization', e.target.value)} />
-                    </div>
+                    {chosen && spec && (
+                      <div className="form-group" style={{ marginBottom: 0 }}>
+                        <label style={{ fontSize: '11px', fontWeight: 700 }}>{spec.label}{spec.required && star}</label>
+                        {spec.options ? (
+                          <select value={q.specialization} onChange={(e) => handleQualChange(idx, 'specialization', e.target.value)}>
+                            <option value="">-- Select {spec.label.toLowerCase()} --</option>
+                            {spec.options.map((o) => <option key={o} value={o}>{o}</option>)}
+                          </select>
+                        ) : (
+                          <input type="text" placeholder={spec.placeholder} value={q.specialization} onChange={(e) => handleQualChange(idx, 'specialization', e.target.value)} />
+                        )}
+                      </div>
+                    )}
 
-                    <div className="form-group" style={{ marginBottom: 0 }}>
-                      <label style={{ fontSize: '11px', fontWeight: 700 }}>Year</label>
-                      <input
-                        type="text"
-                        inputMode="numeric"
-                        pattern="[0-9]*"
-                        maxLength={4}
-                        placeholder="Year"
-                        value={q.passingYear}
-                        onChange={(e) => handleQualChange(idx, 'passingYear', e.target.value)}
-                      />
-                    </div>
+                    {chosen && (
+                      <>
+                        <div className="form-group" style={{ marginBottom: 0 }}>
+                          <label style={{ fontSize: '11px', fontWeight: 700 }}>Year of passing{star}</label>
+                          <input type="text" inputMode="numeric" pattern="[0-9]*" maxLength={4} placeholder="e.g. 2018" value={q.passingYear} onChange={(e) => handleQualChange(idx, 'passingYear', e.target.value)} />
+                        </div>
 
-                    <div className="form-group" style={{ marginBottom: 0 }}>
-                      <label style={{ fontSize: '11px', fontWeight: 700 }}>CGPA / %</label>
-                      <input
-                        type="text"
-                        inputMode="decimal"
-                        placeholder="e.g. 9.54"
-                        value={q.cgpa}
-                        onChange={(e) => handleQualChange(idx, 'cgpa', e.target.value)}
-                      />
-                    </div>
+                        <div className="form-group" style={{ marginBottom: 0 }}>
+                          <label style={{ fontSize: '11px', fontWeight: 700 }}>{rule.resultLabel}{star}</label>
+                          <input type="text" inputMode="decimal" placeholder="e.g. 85.50" value={q.cgpa} onChange={(e) => handleQualChange(idx, 'cgpa', e.target.value)} />
+                        </div>
+                      </>
+                    )}
 
-                    <div className="form-group" style={{ marginBottom: 0 }}>
-                      <label style={{ fontSize: '11px', fontWeight: 700 }}>Mode</label>
-                      <select value={q.studyMode} onChange={(e) => handleQualChange(idx, 'studyMode', e.target.value)}>
-                        <option value="Full-Time">Full-Time</option>
-                        <option value="Part-Time">Part-Time</option>
-                        <option value="Distance">Distance</option>
-                      </select>
-                    </div>
+                    {chosen && rule.mode && (
+                      <div className="form-group" style={{ marginBottom: 0 }}>
+                        <label style={{ fontSize: '11px', fontWeight: 700 }}>Mode of study</label>
+                        <select value={q.studyMode || 'Full-Time'} onChange={(e) => handleQualChange(idx, 'studyMode', e.target.value)}>
+                          <option value="Full-Time">Full-Time</option>
+                          <option value="Part-Time">Part-Time</option>
+                          <option value="Distance">Distance</option>
+                        </select>
+                      </div>
+                    )}
                   </div>
                 </div>
               );
@@ -1728,6 +1709,10 @@ function ApplicationForm() {
                       <div className="form-group" style={{ marginBottom: 0 }}>
                         <label style={{ fontWeight: 700, fontSize: '0.82rem' }}>To Date</label>
                         <input type="date" disabled={exp.isCurrent} value={exp.isCurrent ? '' : exp.toDate} onChange={(e) => handleExpChange(idx, 'toDate', e.target.value)} />
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '6px', fontSize: '0.8rem', fontWeight: 600, color: '#475569' }}>
+                          <input type="checkbox" checked={Boolean(exp.isCurrent)} onChange={(ev) => handleExpChange(idx, 'isCurrent', ev.target.checked)} />
+                          I currently work here
+                        </label>
                       </div>
                     </div>
                   </div>
@@ -1755,139 +1740,142 @@ function ApplicationForm() {
               STEP 5 — Research & Professional Information
             </h3>
 
-            {/* PhD Status Row */}
-            <div className="app-form-grid-4col" style={{ display: 'grid', gridTemplateColumns: '1fr 1.3fr 1.5fr 1fr', gap: '15px', marginBottom: '18px' }}>
-              <div className="form-group">
-                <label style={{ fontWeight: 700, fontSize: '0.85rem' }}>Ph.D. Status</label>
-                <select value={phdStatus} onChange={(e) => setPhdStatus(e.target.value)}>
-                  <option value="">-- Select --</option>
-                  <option value="Awarded">Awarded</option>
-                  <option value="Thesis Submitted">Thesis Submitted</option>
-                  <option value="Pursuing">Pursuing</option>
-                  <option value="Not Applicable">Not Applicable</option>
-                </select>
-              </div>
-
-              <div className="form-group">
-                <label style={{ fontWeight: 700, fontSize: '0.85rem' }}>
-                  Ph.D. Subject / Field
-                  {phdStatus && phdStatus !== 'Not Applicable' && <span style={{ color: '#DC2626', marginLeft: 4 }}>*</span>}
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. Computer Science, Law, Physics"
-                  value={phdSpecialization}
-                  onChange={(e) => setPhdSpecialization(e.target.value)}
-                  required={!!(phdStatus && phdStatus !== 'Not Applicable')}
-                />
-              </div>
-
-              <div className="form-group">
-                <label style={{ fontWeight: 700, fontSize: '0.85rem' }}>
-                  Ph.D. University / Institute
-                  {phdStatus && phdStatus !== 'Not Applicable' && <span style={{ color: '#DC2626', marginLeft: 4 }}>*</span>}
-                </label>
-                <input
-                  type="text"
-                  placeholder="University / Institute"
-                  value={phdUniversity}
-                  onChange={(e) => setPhdUniversity(e.target.value)}
-                  required={!!(phdStatus && phdStatus !== 'Not Applicable')}
-                />
-              </div>
-
-              <div className="form-group">
-                <label style={{ fontWeight: 700, fontSize: '0.85rem' }}>
-                  Year of Award / Enrollment
-                  {phdStatus && phdStatus !== 'Not Applicable' && <span style={{ color: '#DC2626', marginLeft: 4 }}>*</span>}
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. 2022"
-                  value={phdYear}
-                  onChange={(e) => setPhdYear(e.target.value)}
-                  required={!!(phdStatus && phdStatus !== 'Not Applicable')}
-                />
-              </div>
+            {/* Ph.D. status: everything below it depends on the answer */}
+            <div className="form-group" style={{ maxWidth: '340px', marginBottom: '18px' }}>
+              <label style={{ fontWeight: 700, fontSize: '0.85rem' }}>
+                Ph.D. Status
+                {jobType === 'TEACHING' && <span style={{ color: '#DC2626', marginLeft: 4 }}>*</span>}
+              </label>
+              <select value={phdStatus} onChange={(e) => handlePhdStatusChange(e.target.value)}>
+                <option value="">-- Select --</option>
+                {PHD_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+              </select>
+              {phdStatus === 'Not Applicable' && (
+                <small style={{ color: '#64748b' }}>No Ph.D. details are needed.</small>
+              )}
             </div>
 
-            {/* Scopus / WoS row */}
-            <div className="app-form-grid-3col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '15px', marginBottom: '18px' }}>
-              <div className="form-group">
-                <label style={{ fontWeight: 700, fontSize: '0.85rem' }}>Scopus Publications Count</label>
-                <input type="number" min="0" value={scopusCount} onChange={(e) => setScopusCount(e.target.value)} />
+            {phdFieldsFor(phdStatus).visible.length > 0 && (
+              <div style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px', marginBottom: '20px' }}>
+                {PHD_GROUPS.map((group) => {
+                  const keys = group.keys.filter((k) => phdFieldsFor(phdStatus).visible.includes(k));
+                  if (keys.length === 0) return null;
+                  return (
+                    <div key={group.title} style={{ marginBottom: '14px' }}>
+                      <div style={{ fontWeight: 800, fontSize: '0.8rem', color: '#721b28', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '8px' }}>
+                        {group.title}
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '12px' }}>
+                        {keys.map((key) => {
+                          const ui = PHD_FIELD_UI[key] || {};
+                          const required = phdFieldsFor(phdStatus).required.includes(key);
+                          let label = PHD_LABELS[key];
+                          if (key === 'phdThesisTitle' && phdStatus === 'Pursuing') label = 'Working Thesis Title';
+                          return (
+                            <div key={key} className="form-group" style={{ marginBottom: 0, gridColumn: ui.wide ? '1 / -1' : undefined }}>
+                              <label style={{ fontSize: '0.78rem', fontWeight: 700 }}>
+                                {label}{required && <span style={{ color: '#DC2626', marginLeft: 3 }}>*</span>}
+                              </label>
+                              {ui.options ? (
+                                <select value={phd[key]} onChange={(e) => setPhdField(key, e.target.value)}>
+                                  <option value="">-- Select --</option>
+                                  {ui.options.map((o) => <option key={o} value={o}>{o}</option>)}
+                                </select>
+                              ) : ui.date ? (
+                                <input type="date" max={new Date().toISOString().slice(0, 10)} value={phd[key]} onChange={(e) => setPhdField(key, e.target.value)} />
+                              ) : (
+                                <input
+                                  type="text"
+                                  inputMode={ui.year ? 'numeric' : undefined}
+                                  maxLength={ui.year ? 4 : 200}
+                                  placeholder={ui.placeholder || ''}
+                                  value={phd[key]}
+                                  onChange={(e) => setPhdField(key, ui.year ? e.target.value.replace(/\D/g, '').slice(0, 4) : e.target.value)}
+                                />
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-              <div className="form-group">
-                <label style={{ fontWeight: 700, fontSize: '0.85rem' }}>Scopus Author ID</label>
-                <input type="text" placeholder="Scopus ID" value={scopusId} onChange={(e) => setScopusId(e.target.value)} />
-              </div>
-              <div className="form-group">
-                <label style={{ fontWeight: 700, fontSize: '0.85rem' }}>Web of Science (WoS) Count</label>
-                <input type="number" min="0" value={wosCount} onChange={(e) => setWosCount(e.target.value)} />
-              </div>
-            </div>
+            )}
 
-            {/* Publications Table */}
-            <div style={{ marginBottom: '18px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                <label style={{ fontWeight: 800, fontSize: '0.88rem', color: '#721b28' }}>
-                  📚 Publications / Research Details
-                  {phdStatus && phdStatus !== 'Not Applicable' && <span style={{ color: '#DC2626', marginLeft: 4 }}>*</span>}
-                </label>
-                <button
-                  type="button"
-                  onClick={handleAddPubRow}
-                  style={{ backgroundColor: '#721b28', color: '#fff', border: 'none', padding: '5px 14px', borderRadius: '6px', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer' }}
-                >
-                  + Add Row
-                </button>
-              </div>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
-                <thead>
-                  <tr style={{ backgroundColor: '#fdf3e7', borderBottom: '2px solid #d9a43c' }}>
-                    <th style={{ padding: '8px 12px', textAlign: 'left', fontWeight: 800, color: '#721b28', width: '60%' }}>Type</th>
-                    <th style={{ padding: '8px 12px', textAlign: 'left', fontWeight: 800, color: '#721b28', width: '25%' }}>Count</th>
-                    <th style={{ padding: '8px 4px', width: '15%' }}></th>
-                  </tr>
-                </thead>
-                <tbody>
+            {!showOutputs && (
+              <p style={{ fontSize: '0.84rem', color: '#475569' }}>
+                Research publications and the national eligibility tests (NET / SET / GATE) are not asked for non-teaching posts.
+              </p>
+            )}
+
+            {showOutputs && (
+              <>
+                <div style={{ fontWeight: 800, fontSize: '0.88rem', color: '#721b28', marginBottom: '8px' }}>📚 Research publications</div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px', marginBottom: '18px' }}>
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label style={{ fontWeight: 700, fontSize: '0.82rem' }}>Scopus-indexed publications</label>
+                    <input type="text" inputMode="numeric" placeholder="0" value={scopusCount} onChange={(e) => setScopusCount(e.target.value.replace(/\D/g, '').slice(0, 4))} />
+                  </div>
+                  {Number(scopusCount) > 0 && (
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label style={{ fontWeight: 700, fontSize: '0.82rem' }}>Scopus Author ID</label>
+                      <input type="text" placeholder="Scopus Author ID" value={scopusId} onChange={(e) => setScopusId(e.target.value)} />
+                    </div>
+                  )}
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label style={{ fontWeight: 700, fontSize: '0.82rem' }}>Web of Science papers</label>
+                    <input type="text" inputMode="numeric" placeholder="0" value={wosCount} onChange={(e) => setWosCount(e.target.value.replace(/\D/g, '').slice(0, 4))} />
+                  </div>
+                  {Number(wosCount) > 0 && (
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label style={{ fontWeight: 700, fontSize: '0.82rem' }}>WoS ResearcherID</label>
+                      <input type="text" placeholder="ResearcherID" value={wosId} onChange={(e) => setWosId(e.target.value)} />
+                    </div>
+                  )}
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label style={{ fontWeight: 700, fontSize: '0.82rem' }}>Conference papers</label>
+                    <input type="text" inputMode="numeric" placeholder="0" value={conferencePaper} onChange={(e) => setConferencePaper(e.target.value.replace(/\D/g, '').slice(0, 4))} />
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: '20px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <label style={{ fontWeight: 700, fontSize: '0.82rem', color: '#334155' }}>Other publications (books, patents, ...)</label>
+                    <button type="button" onClick={handleAddPubRow} style={{ backgroundColor: '#721b28', color: '#fff', border: 'none', padding: '5px 14px', borderRadius: '6px', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer' }}>
+                      + Add Row
+                    </button>
+                  </div>
                   {publications.map((pub, idx) => (
-                    <tr key={idx} style={{ borderBottom: '1px solid #e2e8f0', backgroundColor: idx % 2 === 0 ? '#fff' : '#fafafa' }}>
-                      <td style={{ padding: '6px 8px' }}>
-                        <input
-                          type="text"
-                          value={pub.type}
-                          onChange={(e) => handlePubChange(idx, 'type', e.target.value)}
-                          placeholder="e.g. Journal Articles (Scopus)"
-                          style={{ width: '100%', padding: '6px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.83rem' }}
-                        />
-                      </td>
-                      <td style={{ padding: '6px 8px' }}>
-                        <input
-                          type="number"
-                          min="0"
-                          value={pub.count}
-                          onChange={(e) => handlePubChange(idx, 'count', e.target.value)}
-                          placeholder="0"
-                          style={{ width: '80px', padding: '6px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.83rem' }}
-                        />
-                      </td>
-                      <td style={{ padding: '6px 4px', textAlign: 'center' }}>
-                        {publications.length > 1 && (
-                          <button
-                            type="button"
-                            onClick={() => handleRemovePubRow(idx)}
-                            style={{ background: 'none', border: '1px solid #fca5a5', color: '#dc2626', borderRadius: '5px', padding: '3px 8px', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 700 }}
-                          >
-                            ✕
-                          </button>
-                        )}
-                      </td>
-                    </tr>
+                    <div key={idx} style={{ display: 'flex', gap: '8px', marginBottom: '6px' }}>
+                      <input type="text" value={pub.type} onChange={(e) => handlePubChange(idx, 'type', e.target.value)} placeholder="e.g. Patents" style={{ flex: 1, padding: '6px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.83rem' }} />
+                      <input type="text" inputMode="numeric" value={pub.count} onChange={(e) => handlePubChange(idx, 'count', e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="0" style={{ width: '80px', padding: '6px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.83rem' }} />
+                      {publications.length > 1 && (
+                        <button type="button" onClick={() => handleRemovePubRow(idx)} style={{ background: 'none', border: '1px solid #fca5a5', color: '#dc2626', borderRadius: '5px', padding: '3px 8px', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 700 }}>✕</button>
+                      )}
+                    </div>
                   ))}
-                </tbody>
-              </table>
-            </div>
+                </div>
+
+                <div style={{ fontWeight: 800, fontSize: '0.88rem', color: '#721b28', marginBottom: '8px' }}>🎓 National eligibility tests</div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: '14px', marginBottom: '8px' }}>
+                  {[['UGC-NET / JRF', net, setNet], ['SET', setExam, setSetExam], ['SLET', slet, setSlet], ['GATE', gate, setGate]].map(([label, value, setter]) => (
+                    <div key={label} className="form-group" style={{ marginBottom: 0 }}>
+                      <label style={{ fontWeight: 700, fontSize: '0.82rem' }}>{label} cleared?</label>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <select value={value.cleared} onChange={(e) => { setter(e.target.value === 'Yes' ? { cleared: 'Yes', year: value.year } : { cleared: 'No', year: '' }); triggerAutosave(); }}>
+                          <option value="No">No</option>
+                          <option value="Yes">Yes</option>
+                        </select>
+                        {value.cleared === 'Yes' && (
+                          <input type="text" inputMode="numeric" maxLength={4} placeholder="Year" style={{ maxWidth: '90px' }} value={value.year} onChange={(e) => { setter({ cleared: 'Yes', year: e.target.value.replace(/\D/g, '').slice(0, 4) }); triggerAutosave(); }} />
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         )}
 

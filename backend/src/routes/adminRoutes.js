@@ -5,9 +5,13 @@ const auditController = require('../controllers/auditController');
 const panelController = require('../controllers/panelController');
 const interviewController = require('../controllers/interviewController');
 const applicationController = require('../controllers/applicationController');
-const { authenticate, authorize, requireSuperAdmin } = require('../middleware/authMiddleware');
+const { authenticate, authorize, requireAdmin, requireSuperAdmin } = require('../middleware/authMiddleware');
+const { getEmailProviderStatus } = require('../services/emailService');
 
 const adminOnly = authorize('SUPER_ADMIN', 'HR_ADMIN', 'ADMIN');
+
+// Is outgoing e-mail configured on this server? (HR screens warn when it is not)
+router.get('/email/status', authenticate, requireAdmin, (req, res) => res.json(getEmailProviderStatus()));
 
 // Super Admin & HR Admin User Management
 router.get('/users', authenticate, adminOnly, userController.getAllUsers);

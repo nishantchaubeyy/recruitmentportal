@@ -478,3 +478,21 @@ model CandidateDocument {
   @@index([verificationStatus])
 }
 
+/// Every outgoing e-mail attempt (status updates, interviews, documents ...) so HR can see what
+/// was delivered, what failed and what was skipped because no mail provider is configured.
+model EmailLog {
+  id         String   @id @default(uuid())
+  toEmail    String
+  subject    String
+  kind       String   @default("GENERAL") // APPLICATION_STATUS, INTERVIEW, DOCUMENT_REQUEST, OTP, SUBMISSION, GENERAL
+  status     String   // SENT, FAILED, SKIPPED
+  provider   String?  // zeptomail-api, smtp, none
+  error      String?
+  entityType String?
+  entityId   String?
+  createdAt  DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@index([status])
+  @@index([createdAt])
+}

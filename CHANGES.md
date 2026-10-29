@@ -37,3 +37,25 @@ This document summarizes the 21 logic and wiring issues identified during the sy
 - **Prisma Client**: `npm run prisma:generate` executed cleanly.
 - **Frontend Oxlint**: `oxlint` reported `0` errors across 41 frontend files.
 - **Frontend Production Build**: `npm run build` completed successfully (`dist/` generated).
+
+---
+
+## Forms, status changes and e-mail (follow-up round)
+
+### Dynamic application form
+- `frontend/src/utils/formRules.js` holds the rules: which fields exist for each qualification level and Ph.D. status, what is required, and how rows are cleaned. The form, the "Next" buttons and the final submit all use it, and `backend/test/forms.test.js` tests it against the server rules.
+- **Ph.D.** "Not Applicable" (or nothing chosen) hides every Ph.D. field and sends none of them. Awarded / Thesis Submitted / Pursuing each show their own fields: institution, department, city and country, research area, thesis title, supervisor, registration year, and then expected year, submission date, viva date and award year as they apply.
+- **Qualifications**: SSC asks for a *board* (no stream); HSC asks for board and *stream*; Diploma, Bachelor's, Master's and Other ask for the degree name, university, specialization and mode of study. Switching a row's level clears the fields that no longer apply. Ph.D. is entered in Step 5 only.
+- **Teaching vs non-teaching**: publications and NET / SET / SLET / GATE appear for teaching posts only; the Ph.D. status is mandatory for teaching posts only. Scopus / WoS IDs appear once a count above zero is entered; an exam year appears once an exam is marked cleared.
+- No silent defaults: title, gender, marital status, city and state start empty and must be chosen. Age must be at least 18, the mobile number must be a valid Indian number, work experience needs dates (or "I currently work here").
+- Every step is validated again on the final submit, and the server now checks the qualification list as well (`backend/src/utils/qualifications.js`).
+- The dossier PDF no longer prints "Full-Time" for school levels or research lines for non-teaching posts.
+
+### Status changes and e-mail
+- The HR status dropdown only offers moves the server allows, with the reason shown beside the others ("only after the interview is scheduled", "HR admin only"). Scheduling an interview goes through the *Schedule Interview* button, which changes the status and invites the candidate in one step.
+- After every change HR sees what the candidate was told: sent, **not sent because no e-mail provider is configured**, or failed with the reason. The application page lists the e-mails sent (table `EmailLog`) and has a **Resend current status e-mail** button.
+- Candidates see a progress timeline and a "what happens next" note on their application page. It refreshes every minute and when the tab becomes visible again; the dashboard does the same. HR's remarks and the staff member's identity are not sent to candidates.
+- **E-mail provider**: credentials are read from the server environment only (never from the database or the repository). On the production server that is `/opt/dypiu-recruitment/.env`; locally it is `backend/.env`. Set either `ZEPTOMAIL_TOKEN` (+ `ZEPTOMAIL_FROM_EMAIL`) or `SMTP_HOST` / `SMTP_USER` / `SMTP_PASS`; see `backend/.env.example`. Without one, the portal still works but tells HR that no e-mail went out. `GET /api/admin/email/status` reports whether a provider is configured.
+- Upgrade note: this round adds the `EmailLog` table. Run `npm run db:setup` (or apply `prisma/migrations/20261029000000_email_log`) before deploying.
+- `npm test` in `backend/` runs the whole suite.
+

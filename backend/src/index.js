@@ -70,6 +70,8 @@ app.use('/api/auth/send-otp', limiter(60 * MIN, 12, 'Too many verification reque
 app.use('/api/auth/verify-otp', limiter(15 * MIN, 30, 'Too many verification attempts. Please try again later.'));
 app.use('/api/auth/forgot-password', limiter(60 * MIN, 10, 'Too many reset requests. Please try again later.'));
 app.use('/api/auth/reset-password', limiter(15 * MIN, 20, 'Too many reset attempts. Please try again later.'));
+// Guest submissions carry base64 documents - keep them tightly rate limited.
+app.post(/^\/api\/applications\/(?:[^/]+\/)?submit$/, limiter(60 * MIN, 20, 'Too many submissions from this network. Please try again later.'));
 app.use('/api/auth/refresh', limiter(15 * MIN, 120, 'Too many session refresh attempts.'));
 
 // Body parser middleware - allows recruitment posters, rich descriptions, and application payloads

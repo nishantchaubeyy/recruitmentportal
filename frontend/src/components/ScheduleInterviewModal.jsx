@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { apiRequest } from '../utils/api';
 
+// Interviews can be arranged from these statuses only (mirrors SCHEDULABLE_STATUSES on the server).
+const SCHEDULABLE = ['SUBMITTED', 'UNDER_REVIEW', 'SHORTLISTED', 'WAITLISTED', 'INTERVIEW_SCHEDULED'];
+
 function ScheduleInterviewModal({ application, isOpen, onClose, onSuccess }) {
   const [panels, setPanels] = useState([]);
   const [loadingPanels, setLoadingPanels] = useState(false);
@@ -28,6 +31,9 @@ function ScheduleInterviewModal({ application, isOpen, onClose, onSuccess }) {
 
   useEffect(() => {
     if (isOpen) {
+      // Start from a clean slate so a previous choice is never submitted by accident.
+      setSelectedPanelId('');
+      setSelectedPanelistIds([]);
       fetchPanels();
       setError('');
       setMeetingNotice('');
@@ -46,11 +52,6 @@ function ScheduleInterviewModal({ application, isOpen, onClose, onSuccess }) {
       const data = await apiRequest('/admin/panels');
       const list = Array.isArray(data) ? data : [];
       setPanels(list);
-      if (list.length > 0) {
-        setSelectedPanelId(list[0].id);
-        const activeMembers = (list[0].members || []).filter(m => m.isActive);
-        setSelectedPanelistIds(activeMembers.map(m => m.id));
-      }
     } catch (err) {
       setError('Failed to load interview panels. Please verify panels are set up.');
     } finally {
@@ -61,11 +62,9 @@ function ScheduleInterviewModal({ application, isOpen, onClose, onSuccess }) {
   async function fetchAvailableApplications() {
     try {
       const res = await apiRequest('/applications?limit=200');
-      const list = Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : []);
-      setAvailableApplications(list);
-      if (list.length > 0 && !selectedAppId) {
-        setSelectedAppId(list[0].id);
-      }
+      const all = Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : []);
+      // Only candidates an interview can actually be arranged for; never pre-select one.
+      setAvailableApplications(all.filter((a) => SCHEDULABLE.includes(a.status)));
     } catch (err) {
       console.warn('Could not load applications for interview selector:', err.message);
     }
@@ -112,6 +111,10 @@ function ScheduleInterviewModal({ application, isOpen, onClose, onSuccess }) {
       setError('Please select a valid candidate application.');
       return;
     }
+    if (currentApp?.status && !SCHEDULABLE.includes(currentApp.status)) {
+      setError('An interview cannot be scheduled for an application in its current status.');
+      return;
+    }
     if (!selectedPanelId) {
       setError('Please select an interview panel.');
       return;
@@ -130,9 +133,18 @@ function ScheduleInterviewModal({ application, isOpen, onClose, onSuccess }) {
       setError('');
       setMeetingNotice('');
 
-      // Build scheduledAt date object (IST to UTC)
-      const scheduledDateTime = new Date(`${interviewDate}T${interviewTime.includes(':') && interviewTime.length === 5 ? interviewTime + ':00' : interviewTime}`);
-      const validDate = isNaN(scheduledDateTime.getTime()) ? new Date(interviewDate) : scheduledDateTime;
+      // The form is in IST; send an unambiguous instant.
+      const validDate = new Date(`${interviewDate}T${interviewTime}:00+05:30`);
+      if (Number.isNaN(validDate.getTime())) {
+        setError('The interview date or time is not valid.');
+        setSubmitting(false);
+        return;
+      }
+      if (validDate.getTime() <= Date.now()) {
+        setError('The interview must be scheduled for a future date and time.');
+        setSubmitting(false);
+        return;
+      }
 
       const payload = {
         applicationId: effectiveAppId,
@@ -794,6 +806,7 @@ function ScheduleInterviewModal({ application, isOpen, onClose, onSuccess }) {
                     onChange={(e) => handlePanelChange(e.target.value)}
                     required
                   >
+                    <option value="">-- Select an interview panel --</option>
                     {panels.map((p) => (
                       <option key={p.id} value={p.id}>
                         {p.name} ({p.code}) &mdash; {p.description || 'Standard Panel'}

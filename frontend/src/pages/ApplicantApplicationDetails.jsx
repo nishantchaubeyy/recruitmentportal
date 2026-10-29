@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { apiRequest, API_URL } from '../utils/api';
 import { statusLabel, statusBadgeClass } from '../utils/status';
+import { phdFieldsFor, PHD_LABELS } from '../utils/formRules';
 
 // Safe JSON parser
 const parseField = (field, fallback) => {
@@ -17,18 +18,34 @@ function ApplicantApplicationDetails() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
+  const [refreshedAt, setRefreshedAt] = useState(null);
+
   useEffect(() => {
+    let active = true;
     async function fetchDetails() {
       try {
         const data = await apiRequest(`/applications/${id}`);
+        if (!active) return;
         setApp(data);
+        setError('');
+        setRefreshedAt(new Date());
       } catch (err) {
-        setError(err.message);
+        // A failed background refresh must not replace a page that is already showing.
+        if (active) setError((current) => current || err.message);
       } finally {
-        setLoading(false);
+        if (active) setLoading(false);
       }
     }
     fetchDetails();
+
+    const timer = setInterval(() => { if (!document.hidden) fetchDetails(); }, 60000);
+    const onVisible = () => { if (!document.hidden) fetchDetails(); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      active = false;
+      clearInterval(timer);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
   }, [id]);
 
   if (loading) {
@@ -39,7 +56,7 @@ function ApplicantApplicationDetails() {
     );
   }
 
-  if (error || !app) {
+  if (!app) {
     return (
       <div style={{ backgroundColor: '#F9FAFB', minHeight: '80vh', padding: '60px 20px' }}>
         <div style={{ maxWidth: '900px', margin: '0 auto', backgroundColor: '#FFFFFF', border: '1px solid #E5E7EB', padding: '32px', borderRadius: '12px', textAlign: 'center' }}>
@@ -70,6 +87,22 @@ function ApplicantApplicationDetails() {
 
   const documents = Array.isArray(app.documents) ? app.documents : [];
 
+  // Oldest first would hide the current state at the bottom; newest first reads like a status feed.
+  const timeline = [...(Array.isArray(app.statusHistory) ? app.statusHistory : [])]
+    .sort((a, b) => new Date(b.changedAt) - new Date(a.changedAt));
+
+  // Only the Ph.D. fields that apply to the stored status are shown.
+  const phdEntries = phdFieldsFor(research.phdStatus).visible
+    .filter((key) => String(research[key] ?? '').trim() !== '')
+    .map((key) => [PHD_LABELS[key], research[key]]);
+  const hasOutputs = research.scopusCount !== undefined || research.net !== undefined;
+  const showResearch = jobCategory === 'TEACHING' || phdEntries.length > 0;
+  const examText = (value) => {
+    const cleared = value && typeof value === 'object' ? value.cleared === 'Yes' || value.cleared === true : value === 'Yes' || value === true;
+    if (!cleared) return 'Not cleared';
+    return value && value.year ? `Cleared (${value.year}) ✓` : 'Cleared ✓';
+  };
+
   const handleDownloadFile = async (e, docId, filename) => {
     e.preventDefault();
     const token = localStorage.getItem('token');
@@ -97,9 +130,9 @@ function ApplicantApplicationDetails() {
     { num: 2, title: 'Contact & Address Information', desc: 'Communication channels, phone numbers and residential address' },
     { num: 3, title: 'Academic Qualifications', desc: 'Degrees, diplomas, university records and percentage/CGPA' },
     { num: 4, title: 'Professional Work Experience', desc: 'Employment history, designations, organizations and tenure' },
-    ...(jobCategory === 'TEACHING' ? [{ num: 5, title: 'Research & Academic Credentials', desc: 'Ph.D. background, publications, Scopus, WoS and national exams' }] : []),
-    { num: jobCategory === 'TEACHING' ? 6 : 5, title: 'Application Documents & Attachments', desc: 'Resume / CV, certificates and supporting files submitted' },
-    { num: jobCategory === 'TEACHING' ? 7 : 6, title: 'Declaration & Submission Details', desc: 'Final declaration, candidate verification and application timestamp' }
+    ...(showResearch ? [{ num: 5, title: 'Research & Academic Credentials', desc: 'Ph.D. background, publications, Scopus, WoS and national exams' }] : []),
+    { num: showResearch ? 6 : 5, title: 'Application Documents & Attachments', desc: 'Resume / CV, certificates and supporting files submitted' },
+    { num: showResearch ? 7 : 6, title: 'Declaration & Submission Details', desc: 'Final declaration, candidate verification and application timestamp' }
   ];
 
   return (
@@ -201,6 +234,43 @@ function ApplicantApplicationDetails() {
           </div>
         </div>
 
+        {/* ── WHERE YOUR APPLICATION STANDS ── */}
+        <div style={cardStyle}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: '8px', marginBottom: '14px' }}>
+            <h3 style={stageTitleStyle}>Application Progress</h3>
+            <span style={{ fontSize: '0.74rem', color: '#6B7280' }}>
+              {refreshedAt ? `Updated ${refreshedAt.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })} · refreshes automatically` : ''}
+            </span>
+          </div>
+
+          {app.nextStep && (
+            <div style={{ padding: '12px 16px', backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '8px', fontSize: '0.88rem', color: '#374151', marginBottom: '16px', lineHeight: 1.5 }}>
+              <strong>What happens next:</strong> {app.nextStep}
+            </div>
+          )}
+
+          {timeline.length === 0 ? (
+            <p style={{ margin: 0, color: '#6B7280', fontSize: '0.86rem' }}>No updates yet.</p>
+          ) : (
+            <ol style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+              {timeline.map((entry, index) => (
+                <li key={entry.id || `${entry.newStatus}-${entry.changedAt}`} style={{ display: 'flex', gap: '12px', paddingBottom: index === timeline.length - 1 ? 0 : '14px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    <span style={{ width: '12px', height: '12px', borderRadius: '50%', marginTop: '4px', backgroundColor: index === 0 ? '#7B1F2B' : '#D1D5DB' }} />
+                    {index !== timeline.length - 1 && <span style={{ flex: 1, width: '2px', backgroundColor: '#E5E7EB', marginTop: '4px' }} />}
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: index === 0 ? 800 : 600, color: '#111827', fontSize: '0.9rem' }}>{statusLabel(entry.newStatus)}</div>
+                    <div style={{ fontSize: '0.76rem', color: '#6B7280' }}>
+                      {entry.changedAt ? new Date(entry.changedAt).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          )}
+        </div>
+
         {/* ── STAGES PROGRESS BAR ── */}
         <div style={{
           backgroundColor: '#FFFFFF',
@@ -287,14 +357,6 @@ function ApplicantApplicationDetails() {
               <span style={fieldValueStyle}>{personal.maritalStatus || 'N/A'}</span>
             </div>
             <div style={fieldItemStyle}>
-              <span style={fieldLabelStyle}>Category / Caste</span>
-              <span style={fieldValueStyle}>{personal.category || 'Open / General'}</span>
-            </div>
-            <div style={fieldItemStyle}>
-              <span style={fieldLabelStyle}>Nationality</span>
-              <span style={fieldValueStyle}>{personal.nationality || 'Indian'}</span>
-            </div>
-            <div style={fieldItemStyle}>
               <span style={fieldLabelStyle}>Post Applied For</span>
               <span style={fieldValueStyle}>{positionTitle}</span>
             </div>
@@ -339,11 +401,11 @@ function ApplicantApplicationDetails() {
             </div>
             <div style={fieldItemStyle}>
               <span style={fieldLabelStyle}>City / District</span>
-              <span style={fieldValueStyle}>{contact.city || 'Pune'}</span>
+              <span style={fieldValueStyle}>{contact.city || 'N/A'}</span>
             </div>
             <div style={fieldItemStyle}>
               <span style={fieldLabelStyle}>State</span>
-              <span style={fieldValueStyle}>{contact.state || 'Maharashtra'}</span>
+              <span style={fieldValueStyle}>{contact.state || 'N/A'}</span>
             </div>
             <div style={fieldItemStyle}>
               <span style={fieldLabelStyle}>PIN Code</span>
@@ -351,7 +413,7 @@ function ApplicantApplicationDetails() {
             </div>
             <div style={fieldItemStyle}>
               <span style={fieldLabelStyle}>Full Residential Address</span>
-              <span style={fieldValueStyle}>{contact.address || 'Address recorded on file'}</span>
+              <span style={fieldValueStyle}>{contact.address || '—'}</span>
             </div>
           </div>
         </div>
@@ -393,10 +455,10 @@ function ApplicantApplicationDetails() {
                       <td style={{ ...tdStyle, fontWeight: 700, color: '#111827' }}>{q.qualificationDegree || q.degreeLevel || 'Graduation'}</td>
                       <td style={tdStyle}>{q.degreeName || 'N/A'}</td>
                       <td style={tdStyle}>{q.instituteName || q.university || 'N/A'}</td>
-                      <td style={tdStyle}>{q.specialization || 'General'}</td>
+                      <td style={tdStyle}>{q.specialization || '—'}</td>
                       <td style={{ ...tdStyle, textAlign: 'center' }}>{q.passingYear || q.year || 'N/A'}</td>
                       <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: '#111827' }}>{q.percentage || q.cgpa || 'N/A'}</td>
-                      <td style={tdStyle}>{q.studyMode || 'Full-Time'}</td>
+                      <td style={tdStyle}>{q.studyMode || '—'}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -457,7 +519,7 @@ function ApplicantApplicationDetails() {
         {/* ============================================================== */}
         {/* STAGE 5: RESEARCH & PH.D. PROFILE (TEACHING) */}
         {/* ============================================================== */}
-        {jobCategory === 'TEACHING' && (
+        {showResearch && (
           <div style={cardStyle}>
             <div style={cardHeaderStyle}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -475,54 +537,58 @@ function ApplicantApplicationDetails() {
                 <span style={fieldLabelStyle}>Ph.D. Status</span>
                 <span style={fieldValueStyle}>{research.phdStatus || 'N/A'}</span>
               </div>
-              <div style={fieldItemStyle}>
-                <span style={fieldLabelStyle}>Ph.D. Subject / Field</span>
-                <span style={fieldValueStyle}>{research.phdSpecialization || research.phdSubject || '—'}</span>
-              </div>
-              <div style={fieldItemStyle}>
-                <span style={fieldLabelStyle}>Ph.D. University</span>
-                <span style={fieldValueStyle}>{research.phdUniversity || '—'}</span>
-              </div>
-              <div style={fieldItemStyle}>
-                <span style={fieldLabelStyle}>Ph.D. Award Year</span>
-                <span style={fieldValueStyle}>{research.phdYear || '—'}</span>
-              </div>
-              <div style={fieldItemStyle}>
-                <span style={fieldLabelStyle}>Scopus Publications</span>
-                <span style={fieldValueStyle}>{research.scopusCount || 0}</span>
-              </div>
-              <div style={fieldItemStyle}>
-                <span style={fieldLabelStyle}>Scopus Author ID</span>
-                <span style={fieldValueStyle}>{research.scopusId || '—'}</span>
-              </div>
-              <div style={fieldItemStyle}>
-                <span style={fieldLabelStyle}>Web of Science (WoS)</span>
-                <span style={fieldValueStyle}>{research.wosCount || research.webOfScienceCount || 0}</span>
-              </div>
-              <div style={fieldItemStyle}>
-                <span style={fieldLabelStyle}>Web of Science ID</span>
-                <span style={fieldValueStyle}>{research.wosId || '—'}</span>
-              </div>
-              <div style={fieldItemStyle}>
-                <span style={fieldLabelStyle}>Conference Papers</span>
-                <span style={fieldValueStyle}>{research.conferencePaper || 0}</span>
-              </div>
+              {phdEntries.map(([label, value]) => (
+                <div key={label} style={fieldItemStyle}>
+                  <span style={fieldLabelStyle}>{label}</span>
+                  <span style={fieldValueStyle}>{value}</span>
+                </div>
+              ))}
+              {hasOutputs && (
+                <>
+                  <div style={fieldItemStyle}>
+                    <span style={fieldLabelStyle}>Scopus Publications</span>
+                    <span style={fieldValueStyle}>{research.scopusCount || 0}</span>
+                  </div>
+                  {research.scopusId && (
+                    <div style={fieldItemStyle}>
+                      <span style={fieldLabelStyle}>Scopus Author ID</span>
+                      <span style={fieldValueStyle}>{research.scopusId}</span>
+                    </div>
+                  )}
+                  <div style={fieldItemStyle}>
+                    <span style={fieldLabelStyle}>Web of Science (WoS)</span>
+                    <span style={fieldValueStyle}>{research.wosCount || 0}</span>
+                  </div>
+                  {research.wosId && (
+                    <div style={fieldItemStyle}>
+                      <span style={fieldLabelStyle}>Web of Science ID</span>
+                      <span style={fieldValueStyle}>{research.wosId}</span>
+                    </div>
+                  )}
+                  <div style={fieldItemStyle}>
+                    <span style={fieldLabelStyle}>Conference Papers</span>
+                    <span style={fieldValueStyle}>{/^\d+$/.test(String(research.conferencePaper ?? '')) ? research.conferencePaper : 0}</span>
+                  </div>
+                  {Array.isArray(research.publications) && research.publications.map((p) => (
+                    <div key={p.type} style={fieldItemStyle}>
+                      <span style={fieldLabelStyle}>{p.type}</span>
+                      <span style={fieldValueStyle}>{p.count}</span>
+                    </div>
+                  ))}
+                </>
+              )}
             </div>
 
-            <div style={{ marginTop: '16px', padding: '12px 16px', backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '8px', fontSize: '0.84rem', display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
-              <div>
-                <span style={{ color: '#6B7280', marginRight: '6px' }}>UGC-NET:</span>
-                <strong style={{ color: '#111827' }}>{research.net === 'Yes' || research.netCleared ? 'Cleared ✓' : 'Not Cleared'}</strong>
+            {hasOutputs && (
+              <div style={{ marginTop: '16px', padding: '12px 16px', backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '8px', fontSize: '0.84rem', display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
+                {[['UGC-NET / JRF', research.net], ['SET', research.setExam], ['SLET', research.slet], ['GATE', research.gate]].map(([label, value]) => (
+                  <div key={label}>
+                    <span style={{ color: '#6B7280', marginRight: '6px' }}>{label}:</span>
+                    <strong style={{ color: '#111827' }}>{examText(value)}</strong>
+                  </div>
+                ))}
               </div>
-              <div>
-                <span style={{ color: '#6B7280', marginRight: '6px' }}>SET / SLET:</span>
-                <strong style={{ color: '#111827' }}>{research.setExam === 'Yes' || research.setCleared ? 'Cleared ✓' : 'Not Cleared'}</strong>
-              </div>
-              <div>
-                <span style={{ color: '#6B7280', marginRight: '6px' }}>GATE:</span>
-                <strong style={{ color: '#111827' }}>{research.gate === 'Yes' || research.gateCleared ? 'Cleared ✓' : 'Not Cleared'}</strong>
-              </div>
-            </div>
+            )}
           </div>
         )}
 
@@ -532,9 +598,9 @@ function ApplicantApplicationDetails() {
         <div style={cardStyle}>
           <div style={cardHeaderStyle}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div style={stageBadgeStyle}>{jobCategory === 'TEACHING' ? 6 : 5}</div>
+              <div style={stageBadgeStyle}>{showResearch ? 6 : 5}</div>
               <div>
-                <h3 style={stageTitleStyle}>Stage {jobCategory === 'TEACHING' ? 6 : 5}: Attached Documents</h3>
+                <h3 style={stageTitleStyle}>Stage {showResearch ? 6 : 5}: Attached Documents</h3>
                 <p style={stageDescStyle}>Resume, curriculum vitae and certificates uploaded with this application</p>
               </div>
             </div>
@@ -600,9 +666,9 @@ function ApplicantApplicationDetails() {
         <div style={cardStyle}>
           <div style={cardHeaderStyle}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div style={stageBadgeStyle}>{jobCategory === 'TEACHING' ? 7 : 6}</div>
+              <div style={stageBadgeStyle}>{showResearch ? 7 : 6}</div>
               <div>
-                <h3 style={stageTitleStyle}>Stage {jobCategory === 'TEACHING' ? 7 : 6}: Declaration & Submission Details</h3>
+                <h3 style={stageTitleStyle}>Stage {showResearch ? 7 : 6}: Declaration & Submission Details</h3>
                 <p style={stageDescStyle}>Candidate verification of authenticity and official filing timestamp</p>
               </div>
             </div>
