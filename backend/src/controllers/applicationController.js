@@ -589,23 +589,40 @@ async function withdrawApplication(req, res) {
  */
 async function getMyApplications(req, res) {
   try {
-    let applicantId = req.user?.applicantId;
-    if (!applicantId) {
-      const applicant = await prisma.applicant.findFirst({ where: { userId: req.user.id } });
-      applicantId = applicant?.id;
-    }
-    if (!applicantId) {
-      return res.json([]);
+    const userId = req.user.id;
+    const userEmail = (req.user.email || '').toLowerCase().trim();
+
+    // Collect all applicant records for this user ID or email
+    const applicants = await prisma.applicant.findMany({
+      where: {
+        OR: [
+          { userId },
+          { user: { email: userEmail } }
+        ]
+      },
+      select: { id: true }
+    });
+
+    const applicantIds = applicants.map(a => a.id);
+    if (req.user.applicantId && !applicantIds.includes(req.user.applicantId)) {
+      applicantIds.push(req.user.applicantId);
     }
 
     const applications = await prisma.application.findMany({
-      where: { applicantId },
+      where: {
+        OR: [
+          { applicantId: { in: applicantIds } },
+          { applicant: { userId } },
+          { applicant: { user: { email: userEmail } } }
+        ]
+      },
       include: {
         job: true,
         documents: { select: ownDocumentSelect }
       },
       orderBy: { updatedAt: 'desc' }
     });
+
     // Screening remarks are internal to HR.
     return res.json(applications.map(({ screeningRemarks, ...rest }) => rest));
   } catch (error) {

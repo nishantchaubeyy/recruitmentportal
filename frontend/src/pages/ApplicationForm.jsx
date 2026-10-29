@@ -220,6 +220,7 @@ function ApplicationForm() {
 
   // STEP 5: Ph.D. & Research Information
   const [phdStatus, setPhdStatus] = useState('');
+  const [phdSpecialization, setPhdSpecialization] = useState('');
   const [phdUniversity, setPhdUniversity] = useState('');
   const [phdYear, setPhdYear] = useState('');
   const [scopusCount, setScopusCount] = useState('0');
@@ -507,6 +508,24 @@ function ApplicationForm() {
           if (existing.documents) {
             setUploadedDocsList(existing.documents);
           }
+
+          if (existing.researchDetails || existing.phdDetails) {
+            try {
+              const r = typeof existing.researchDetails === 'string'
+                ? JSON.parse(existing.researchDetails)
+                : (existing.researchDetails || existing.phdDetails);
+              if (r) {
+                if (r.phdStatus) setPhdStatus(r.phdStatus);
+                if (r.phdSpecialization || r.phdSubject) setPhdSpecialization(r.phdSpecialization || r.phdSubject);
+                if (r.phdUniversity) setPhdUniversity(r.phdUniversity);
+                if (r.phdYear) setPhdYear(r.phdYear);
+                if (r.scopusCount) setScopusCount(r.scopusCount);
+                if (r.scopusId) setScopusId(r.scopusId);
+                if (r.wosCount) setWosCount(r.wosCount);
+                if (r.wosId) setWosId(r.wosId);
+              }
+            } catch (err) {}
+          }
         }
       } catch (err) {
         console.warn('Notice: Draft restoration fallback:', err.message);
@@ -530,7 +549,8 @@ function ApplicationForm() {
           personalInfo: { title: title !== 'Select' ? title : '', firstName, middleName, lastName, dob, age, gender, maritalStatus, email, alternateEmail },
           contactDetails: { mobile, alternateMobile, address, city, state, country, pinCode },
           qualifications,
-          phdDetails: { phdStatus, phdUniversity, phdYear, scopusCount, scopusId, conferencePaper, wosCount, wosId, net, setExam, slet, gate },
+          phdDetails: { phdStatus, phdSpecialization, phdSubject: phdSpecialization, phdUniversity, phdYear, scopusCount, scopusId, conferencePaper, wosCount, wosId, net, setExam, slet, gate },
+          researchDetails: { phdStatus, phdSpecialization, phdSubject: phdSpecialization, phdUniversity, phdYear, scopusCount, scopusId, conferencePaper, wosCount, wosId, net, setExam, slet, gate },
           workExperience: isFresher ? [] : experiences,
           experience: {
             experienceType: isFresher ? 'fresher' : 'experienced',
@@ -647,6 +667,10 @@ function ApplicationForm() {
       // If a PhD status is selected (not empty / Not Applicable), all PhD fields are mandatory
       const phdActive = phdStatus && phdStatus !== 'Not Applicable';
       if (phdActive) {
+        if (!phdSpecialization.trim()) {
+          setError('Ph.D. Subject / Field is required when Ph.D. Status is selected.');
+          return;
+        }
         if (!phdUniversity.trim()) {
           setError('Ph.D. University / Institute is required when Ph.D. Status is selected.');
           return;
@@ -927,7 +951,8 @@ function ApplicationForm() {
         personalInfo: { title: title !== 'Select' ? title : '', firstName, middleName, lastName, dob, age, gender, maritalStatus, email, alternateEmail },
         contactDetails: { mobile, alternateMobile, address, city, state, country, pinCode, email },
         qualifications,
-        phdDetails: { phdStatus, phdUniversity, phdYear, scopusCount, scopusId, conferencePaper, wosCount, wosId, net, setExam, slet, gate },
+        phdDetails: { phdStatus, phdSpecialization, phdSubject: phdSpecialization, phdUniversity, phdYear, scopusCount, scopusId, conferencePaper, wosCount, wosId, net, setExam, slet, gate },
+          researchDetails: { phdStatus, phdSpecialization, phdSubject: phdSpecialization, phdUniversity, phdYear, scopusCount, scopusId, conferencePaper, wosCount, wosId, net, setExam, slet, gate },
         workExperience: isFresher ? [] : experiences,
         experience: {
           experienceType: isFresher ? 'fresher' : 'experienced',
@@ -1695,7 +1720,7 @@ function ApplicationForm() {
             </h3>
 
             {/* PhD Status Row */}
-            <div className="app-form-grid-3col" style={{ display: 'grid', gridTemplateColumns: '1fr 2fr 1fr', gap: '15px', marginBottom: '18px' }}>
+            <div className="app-form-grid-4col" style={{ display: 'grid', gridTemplateColumns: '1fr 1.3fr 1.5fr 1fr', gap: '15px', marginBottom: '18px' }}>
               <div className="form-group">
                 <label style={{ fontWeight: 700, fontSize: '0.85rem' }}>Ph.D. Status</label>
                 <select value={phdStatus} onChange={(e) => setPhdStatus(e.target.value)}>
@@ -1705,6 +1730,20 @@ function ApplicationForm() {
                   <option value="Pursuing">Pursuing</option>
                   <option value="Not Applicable">Not Applicable</option>
                 </select>
+              </div>
+
+              <div className="form-group">
+                <label style={{ fontWeight: 700, fontSize: '0.85rem' }}>
+                  Ph.D. Subject / Field
+                  {phdStatus && phdStatus !== 'Not Applicable' && <span style={{ color: '#DC2626', marginLeft: 4 }}>*</span>}
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Computer Science, Law, Physics"
+                  value={phdSpecialization}
+                  onChange={(e) => setPhdSpecialization(e.target.value)}
+                  required={!!(phdStatus && phdStatus !== 'Not Applicable')}
+                />
               </div>
 
               <div className="form-group">

@@ -87,41 +87,14 @@ function ApplicationSuccess() {
 
         <hr style={{ border: 'none', borderTop: '1px solid #E5E7EB', margin: '0 0 28px 0' }} />
 
-        {/* Candidate Portal Login Credentials Card */}
-        {state.credentials ? (
-          <div style={{ backgroundColor: '#FFFBEB', border: '1.5px solid #FCD34D', borderRadius: '10px', padding: '22px 24px', marginBottom: '28px', textAlign: 'left' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
-              <span style={{ fontSize: '1.3rem' }}>🔐</span>
-              <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#92400E' }}>
-                Your Recruitment Portal Login Credentials
-              </h3>
-            </div>
-            <p style={{ margin: '0 0 16px 0', fontSize: '0.88rem', color: '#78350F', lineHeight: 1.5 }}>
-              An account has been created for you to track your application status. You can login using this email and auto-generated password:
-            </p>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px', backgroundColor: '#FFFFFF', padding: '16px', borderRadius: '8px', border: '1px solid #FDE68A' }}>
-              <div>
-                <span style={{ fontSize: '0.74rem', textTransform: 'uppercase', color: '#6B7280', fontWeight: 700, display: 'block', marginBottom: '3px' }}>Login Email</span>
-                <strong style={{ fontSize: '0.96rem', color: '#111827', wordBreak: 'break-all' }}>{state.credentials.email}</strong>
-              </div>
-              <div>
-                <span style={{ fontSize: '0.74rem', textTransform: 'uppercase', color: '#6B7280', fontWeight: 700, display: 'block', marginBottom: '3px' }}>Auto-Generated Password</span>
-                <code style={{ fontSize: '1.1rem', color: '#8B1235', fontWeight: 800, backgroundColor: '#FDF2F8', padding: '3px 10px', borderRadius: '6px', letterSpacing: '0.06em', fontFamily: 'monospace' }}>
-                  {state.credentials.password}
-                </code>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div style={{ backgroundColor: '#fef2f2', border: '1px solid #fecaca', borderRadius: '6px', padding: '14px 18px', marginBottom: '28px', textAlign: 'left' }}>
-            <p style={{ margin: '0 0 6px 0', fontSize: '0.9rem', color: '#721b28', fontWeight: 700 }}>
-              📧 Confirmation & Login Credentials Emailed
-            </p>
-            <p style={{ margin: 0, fontSize: '0.85rem', color: '#0f172a', lineHeight: '1.5' }}>
-              A confirmation email containing your complete application dossier has been sent. Your portal login credentials have also been created and sent to your email so you can check your application status at any time.
-            </p>
-          </div>
-        )}
+                <div style={{ backgroundColor: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', padding: '18px 22px', marginBottom: '28px', textAlign: 'left' }}>
+          <p style={{ margin: '0 0 6px 0', fontSize: '0.94rem', color: '#721b28', fontWeight: 700 }}>
+            📧 Confirmation &amp; Login Credentials Sent via Email
+          </p>
+          <p style={{ margin: 0, fontSize: '0.88rem', color: '#0f172a', lineHeight: '1.6' }}>
+            A confirmation email containing your complete official application dossier PDF has been sent. Your portal login credentials (login email &amp; auto-generated password) have also been securely dispatched directly to your registered email address.
+          </p>
+        </div>
 
         <p style={{ fontSize: '0.875rem', color: '#4B5563', marginBottom: '32px', lineHeight: '1.6' }}>
           {isInterest

@@ -221,8 +221,9 @@ function DossierPrintDocument({ app }) {
             04. RESEARCH & PROFESSIONAL PROFILE
           </div>
           <div style={{ borderTop: '1px solid #111111', paddingTop: '8px' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px 12px', fontSize: '9pt', marginBottom: '8px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '8px 12px', fontSize: '9pt', marginBottom: '8px' }}>
               <div><span style={{ color: '#475569', fontSize: '8pt', display: 'block' }}>Ph.D. Status</span><strong>{research.phdStatus || 'N/A'}</strong></div>
+              <div><span style={{ color: '#475569', fontSize: '8pt', display: 'block' }}>Ph.D. Subject / Field</span><strong>{research.phdSpecialization || research.phdSubject || '—'}</strong></div>
               <div><span style={{ color: '#475569', fontSize: '8pt', display: 'block' }}>Ph.D. University</span><strong>{research.phdUniversity || '—'}</strong></div>
               <div><span style={{ color: '#475569', fontSize: '8pt', display: 'block' }}>Ph.D. Year</span><strong>{research.phdYear || '—'}</strong></div>
               <div><span style={{ color: '#475569', fontSize: '8pt', display: 'block' }}>Conference Papers</span><strong>{research.conferencePaper || 0}</strong></div>

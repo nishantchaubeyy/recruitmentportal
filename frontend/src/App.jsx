@@ -45,6 +45,38 @@ import CommitteeDashboard from './pages/CommitteeDashboard';
 /**
  * Route protector for Applicants.
  */
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error, errorInfo) {
+    console.error('Portal ErrorBoundary caught an error:', error, errorInfo);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ maxWidth: '860px', margin: '40px auto', padding: '30px', background: '#ffffff', borderRadius: '12px', border: '1px solid #fee2e2', textAlign: 'center' }}>
+          <h3 style={{ color: '#991b1b', margin: '0 0 10px 0', fontSize: '1.25rem', fontWeight: 800 }}>Portal Dashboard Update</h3>
+          <p style={{ color: '#4b5563', fontSize: '0.9rem', marginBottom: '20px' }}>
+            We encountered a temporary display issue loading this section.
+          </p>
+          <button
+            onClick={() => { this.setState({ hasError: false }); window.location.reload(); }}
+            style={{ backgroundColor: '#721b28', color: '#ffffff', border: 'none', padding: '10px 22px', borderRadius: '8px', fontWeight: 700, cursor: 'pointer', fontSize: '0.88rem' }}
+          >
+            Reload Dashboard
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 function ApplicantRoute({ children }) {
   const { user, loading } = useContext(AuthContext);
   const location = useLocation();
@@ -55,7 +87,11 @@ function ApplicantRoute({ children }) {
   return (
     <>
       <Header />
-      <main style={{ minHeight: '80vh', paddingBottom: '40px' }}>{children}</main>
+      <main style={{ minHeight: '80vh', paddingBottom: '40px' }}>
+        <ErrorBoundary>
+          {children}
+        </ErrorBoundary>
+      </main>
       <Footer />
     </>
   );

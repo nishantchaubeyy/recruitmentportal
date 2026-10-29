@@ -514,10 +514,11 @@ function buildApplicationFormDossierHtml(app, options = {}) {
       </div>
       <table style="width: 100%; font-size: 12px; border-collapse: collapse; margin-bottom: 8px;">
         <tr>
-          <td style="padding: 4px 0; width: 25%;"><span style="color: #64748b; font-size: 10px; display: block;">Ph.D. Status</span><strong>${research.phdStatus || 'N/A'}</strong></td>
+          <td style="padding: 4px 0; width: 20%;"><span style="color: #64748b; font-size: 10px; display: block;">Ph.D. Status</span><strong>${research.phdStatus || 'N/A'}</strong></td>
+          <td style="padding: 4px 0; width: 25%;"><span style="color: #64748b; font-size: 10px; display: block;">Ph.D. Subject / Field</span><strong>${research.phdSpecialization || research.phdSubject || '—'}</strong></td>
           <td style="padding: 4px 0; width: 25%;"><span style="color: #64748b; font-size: 10px; display: block;">Ph.D. University</span><strong>${research.phdUniversity || '—'}</strong></td>
-          <td style="padding: 4px 0; width: 25%;"><span style="color: #64748b; font-size: 10px; display: block;">Ph.D. Year</span><strong>${research.phdYear || '—'}</strong></td>
-          <td style="padding: 4px 0; width: 25%;"><span style="color: #64748b; font-size: 10px; display: block;">Conference Papers</span><strong>${research.conferencePaper || 0}</strong></td>
+          <td style="padding: 4px 0; width: 15%;"><span style="color: #64748b; font-size: 10px; display: block;">Ph.D. Year</span><strong>${research.phdYear || '—'}</strong></td>
+          <td style="padding: 4px 0; width: 15%;"><span style="color: #64748b; font-size: 10px; display: block;">Conference Papers</span><strong>${research.conferencePaper || 0}</strong></td>
         </tr>
         <tr>
           <td style="padding: 4px 0;"><span style="color: #64748b; font-size: 10px; display: block;">Scopus Publications</span><strong>${research.scopusCount || 0}</strong></td>

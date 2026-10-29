@@ -476,6 +476,10 @@ function ApplicantApplicationDetails() {
                 <span style={fieldValueStyle}>{research.phdStatus || 'N/A'}</span>
               </div>
               <div style={fieldItemStyle}>
+                <span style={fieldLabelStyle}>Ph.D. Subject / Field</span>
+                <span style={fieldValueStyle}>{research.phdSpecialization || research.phdSubject || '—'}</span>
+              </div>
+              <div style={fieldItemStyle}>
                 <span style={fieldLabelStyle}>Ph.D. University</span>
                 <span style={fieldValueStyle}>{research.phdUniversity || '—'}</span>
               </div>

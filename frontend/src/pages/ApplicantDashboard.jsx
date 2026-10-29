@@ -83,8 +83,12 @@ function ApplicantDashboard() {
   const getStatusBadgeClass = statusBadgeClass;
 
   // Active Document Requests strictly requested by HR needing action
-  const pendingDocRequests = docRequests.filter(r => ['PENDING', 'PARTIALLY_UPLOADED', 'REJECTED'].includes(r.status));
-  const upcomingInterviews = interviews.filter(i => i.status !== 'CANCELLED');
+  const pendingDocRequests = (Array.isArray(docRequests) ? docRequests : []).filter(
+    r => r && typeof r === 'object' && ['PENDING', 'PARTIALLY_UPLOADED', 'REJECTED'].includes(r.status)
+  );
+  const upcomingInterviews = (Array.isArray(interviews) ? interviews : []).filter(
+    i => i && typeof i === 'object' && i.status !== 'CANCELLED'
+  );
 
   return (
     <div className="ad-page">
@@ -213,9 +217,9 @@ function ApplicantDashboard() {
           <div className="ad-notif-card">
             <div className="ad-notif-title">Notifications &amp; status updates</div>
             {notifications.slice(0, 5).map((n) => (
-              <div key={n.id} className="ad-notif-item">
+              <div key={n.id || Math.random()} className="ad-notif-item">
                 <p>
-                  <span>{n.title}:</span> {n.message}
+                  <span>{n.title || 'Notice'}:</span> {n.content || n.message || 'Notification received.'}
                 </p>
                 {!n.isRead && (
                   <button
@@ -268,9 +272,18 @@ function ApplicantDashboard() {
         ) : (
           <div>
             {applications.map((app) => {
+              if (!app) return null;
               const isDraft = app.status === APPLICATION_STATUS.DRAFT;
               const currentStep = app.currentStep || 1;
               const completionPct = app.completionPercentage || Math.round((currentStep / 7) * 100);
+
+              let personal = {};
+              try {
+                personal = typeof app.personalInfo === 'string' ? JSON.parse(app.personalInfo) : (app.personalInfo || {});
+              } catch (e) {}
+
+              const positionTitle = app.job?.position || personal.postAppliedFor || 'Faculty Position';
+              const departmentName = app.job?.department || app.job?.school?.name || personal.faculty || 'D Y Patil International University';
 
               return (
                 <div key={app.id} className="ad-app-card">
@@ -285,11 +298,11 @@ function ApplicantDashboard() {
                     </div>
 
                     <h4 className="ad-app-pos">
-                      {app.job?.position || app.personalInfo?.postAppliedFor || 'Faculty Position'}
+                      {positionTitle}
                     </h4>
 
                     <div className="ad-app-dept">
-                      {app.job?.department || app.job?.school?.name || app.personalInfo?.faculty || 'D Y Patil International University'}
+                      {departmentName}
                     </div>
 
                     <div className="ad-app-date">
@@ -327,7 +340,7 @@ function ApplicantDashboard() {
                         >
                           View Application
                         </button>
-                        {pendingDocRequests.some(r => r.applicationId === app.id || r.candidateId === (app.applicantId || app.applicant?.id)) && (
+                        {pendingDocRequests.some(r => r && (r.applicationId === app.id || r.candidateId === (app.applicantId || app.applicant?.id))) && (
                           <button
                             type="button"
                             className="ad-btn ad-btn-dark ad-btn-sm"

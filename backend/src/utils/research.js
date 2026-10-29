@@ -37,9 +37,10 @@ function phdRows(research = {}) {
 
   const place = [research.phdCity, research.phdCountry].filter(Boolean).join(', ');
   rows.push(
+    ['Ph.D. Subject / Field', research.phdSpecialization || research.phdSubject],
     ['University / Institute', research.phdUniversity],
     ['Department / Centre', research.phdDepartment],
-    ['Research Area', research.phdSpecialization],
+    ['Research Area', research.phdSpecialization || research.phdSubject],
     ['Location', place],
     ['Mode of Study', research.phdMode],
     ['UGC-recognised University', research.phdUgcRecognised],

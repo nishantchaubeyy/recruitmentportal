@@ -549,6 +549,10 @@ function AdminReviewApplication() {
                 <span style={{ fontSize: '0.92rem', fontWeight: 700, color: '#171717' }}>{research.phdStatus || 'N/A'}</span>
               </div>
               <div>
+                <span style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', color: '#64748b', display: 'block', marginBottom: '3px' }}>Ph.D. Subject / Field</span>
+                <span style={{ fontSize: '0.92rem', fontWeight: 700, color: '#171717' }}>{research.phdSpecialization || research.phdSubject || 'N/A'}</span>
+              </div>
+              <div>
                 <span style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', color: '#64748b', display: 'block', marginBottom: '3px' }}>University & Year</span>
                 <span style={{ fontSize: '0.92rem', fontWeight: 700, color: '#171717' }}>{research.phdUniversity ? `${research.phdUniversity} (${research.phdYear || ''})` : 'N/A'}</span>
               </div>

@@ -275,16 +275,35 @@ async function getAllDocumentRequests(req, res) {
 async function getMyDocumentRequests(req, res) {
   try {
     const userId = req.user.id;
-    const applicant = await prisma.applicant.findUnique({
-      where: { userId }
+    const userEmail = (req.user.email || '').toLowerCase().trim();
+
+    const applicants = await prisma.applicant.findMany({
+      where: {
+        OR: [
+          { userId },
+          { user: { email: userEmail } }
+        ]
+      },
+      select: { id: true }
     });
 
-    if (!applicant) {
+    const candidateIds = applicants.map(a => a.id);
+    if (req.user.applicantId && !candidateIds.includes(req.user.applicantId)) {
+      candidateIds.push(req.user.applicantId);
+    }
+
+    if (candidateIds.length === 0) {
       return res.json([]);
     }
 
     const requests = await prisma.documentRequest.findMany({
-      where: { candidateId: applicant.id },
+      where: {
+        OR: [
+          { candidateId: { in: candidateIds } },
+          { candidate: { userId } },
+          { candidate: { user: { email: userEmail } } }
+        ]
+      },
       include: {
         application: {
           include: { job: true }
