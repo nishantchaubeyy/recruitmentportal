@@ -965,7 +965,7 @@ function ApplicationForm() {
       const payload = {
         jobId: targetJobId,
         faculty: selectedFaculty,
-        postAppliedFor: postAppliedFor || 'Faculty Position',
+        postAppliedFor,
         subjectAppliedFor,
         personalInfo: { title: title !== 'Select' ? title : '', firstName, middleName, lastName, dob, age, gender, maritalStatus, email, alternateEmail },
         contactDetails: { mobile, alternateMobile, address, city, state, country, pinCode, email },
@@ -997,7 +997,7 @@ function ApplicationForm() {
         });
       }
 
-      const finalAppNumber = submitRes.applicationNumber || 'DYPIU-2026-000001';
+      const finalAppNumber = submitRes.applicationNumber || '';
       const returnedAppId = submitRes.applicationId || draftAppId || 'new';
       const isInterest = Boolean(submitRes.isInterest);
 
@@ -1951,7 +1951,7 @@ function ApplicationForm() {
               
               <div className="app-form-grid-2col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', fontSize: '0.86rem', color: '#334155' }}>
                 <div><strong>Candidate Name:</strong> {title} {firstName} {middleName} {lastName}</div>
-                <div><strong>Post Applied:</strong> {postAppliedFor || 'Faculty Position'}</div>
+                <div><strong>Post Applied:</strong> {postAppliedFor || '—'}</div>
                 <div><strong>School / Faculty:</strong> {selectedFaculty}</div>
                 <div><strong>Date of Birth:</strong> {dob} ({age})</div>
                 <div><strong>Email:</strong> {email}</div>

@@ -493,7 +493,7 @@ async function mockSubmitApplication(id, body = {}) {
 
   const year = new Date().getFullYear();
   const submittedCount = applications.filter((a) => a.status !== 'DRAFT').length;
-  const appNumber = `APP-${year}-${String(submittedCount + 1).padStart(6, '0')}`;
+  const appNumber = `DYPIU-${year}-${String(submittedCount + 1).padStart(6, '0')}`;
 
   applications[idx].applicationNumber = appNumber;
   applications[idx].status = 'SUBMITTED';

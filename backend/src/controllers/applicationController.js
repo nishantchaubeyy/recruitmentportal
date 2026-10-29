@@ -94,15 +94,26 @@ async function findJob(jobRef) {
   return prisma.job.findFirst({ where: { OR: [{ id: jobRef }, { vacancyNumber: jobRef }] } });
 }
 
-/** Sequential, race-safe application number: APP-YYYY-000001. */
+/**
+ * Sequential, race-safe application number: DYPIU-YYYY-000001.
+ * Numbers issued before the DYPIU- prefix was introduced (APP-YYYY-...) are kept as they are and the sequence
+ * simply continues from the highest of either format, so no number is ever repeated.
+ */
+const APPLICATION_NUMBER_PREFIX = 'DYPIU';
 async function nextApplicationNumber(tx) {
-  const prefix = `APP-${new Date().getFullYear()}-`;
-  const last = await tx.application.findFirst({
-    where: { applicationNumber: { startsWith: prefix } },
+  const year = new Date().getFullYear();
+  const prefix = `${APPLICATION_NUMBER_PREFIX}-${year}-`;
+  const legacyPrefix = `APP-${year}-`;
+  const recent = await tx.application.findMany({
+    where: { OR: [{ applicationNumber: { startsWith: prefix } }, { applicationNumber: { startsWith: legacyPrefix } }] },
     orderBy: { applicationNumber: 'desc' },
+    take: 50,
     select: { applicationNumber: true }
   });
-  const lastSeq = last ? parseInt(last.applicationNumber.slice(prefix.length), 10) || 0 : 0;
+  const lastSeq = recent.reduce((max, row) => {
+    const seq = parseInt(String(row.applicationNumber).split('-').pop(), 10);
+    return Number.isFinite(seq) ? Math.max(max, seq) : max;
+  }, 0);
   return `${prefix}${String(lastSeq + 1).padStart(6, '0')}`;
 }
 
@@ -648,7 +659,9 @@ async function getMyApplications(req, res) {
  * GET /applications - screening list for HR, own applications for applicants.
  */
 async function getAllApplications(req, res) {
-  const { status, type, department, jobId, search } = req.query;
+  const { status, type, department, jobId, schoolId, position, candidateName, applicationId } = req.query;
+  // The screening page sends its free-text box as `q`; older callers used `search`.
+  const search = req.query.q !== undefined ? req.query.q : req.query.search;
   const sortBy = ['createdAt', 'updatedAt', 'submittedAt', 'status'].includes(req.query.sortBy) ? req.query.sortBy : 'createdAt';
   const sortOrder = String(req.query.sortOrder).toLowerCase() === 'asc' ? 'asc' : 'desc';
   const pageNum = Math.max(parseInt(req.query.page, 10) || 1, 1);
@@ -667,7 +680,13 @@ async function getAllApplications(req, res) {
     } else {
       where.status = { not: APPLICATION_STATUS.DRAFT };
     }
-    if (type === 'TEACHING' || type === 'NON_TEACHING') where.job = { ...where.job, type };
+    if (['TEACHING', 'NON_TEACHING', 'CUSTOM'].includes(type)) where.job = { ...where.job, type };
+    if (schoolId) where.job = { ...where.job, schoolId: String(schoolId) };
+    if (position) where.job = { ...where.job, position: { equals: String(position).slice(0, 200), mode: 'insensitive' } };
+    const nameTerm = searchTerm(candidateName);
+    if (nameTerm) where.applicant = { name: { contains: nameTerm, mode: 'insensitive' } };
+    const numberTerm = searchTerm(applicationId);
+    if (numberTerm) where.applicationNumber = { contains: numberTerm, mode: 'insensitive' };
     if (department) where.job = { ...where.job, department: { contains: searchTerm(department), mode: 'insensitive' } };
     if (jobId) where.jobId = String(jobId);
   } else {
@@ -680,6 +699,7 @@ async function getAllApplications(req, res) {
     where.OR = [
       { applicationNumber: { contains: term, mode: 'insensitive' } },
       { applicant: { name: { contains: term, mode: 'insensitive' } } },
+      { applicant: { user: { email: { contains: term, mode: 'insensitive' } } } },
       { job: { position: { contains: term, mode: 'insensitive' } } }
     ];
   }

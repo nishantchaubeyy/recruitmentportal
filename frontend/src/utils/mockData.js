@@ -97,7 +97,7 @@ export const MOCK_JOBS = [
 export const MOCK_APPLICATIONS = [
   {
     id: 'app-001',
-    applicationNumber: 'APP-2026-000001',
+    applicationNumber: 'DYPIU-2026-000001',
     jobId: 'job-001',
     applicantId: 'applicant-001',
     status: 'UNDER_REVIEW',
@@ -167,7 +167,7 @@ export const MOCK_APPLICATIONS = [
   },
   {
     id: 'app-002',
-    applicationNumber: 'APP-2026-000002',
+    applicationNumber: 'DYPIU-2026-000002',
     jobId: 'job-003',
     applicantId: 'applicant-002',
     status: 'SUBMITTED',
@@ -196,7 +196,7 @@ export const MOCK_APPLICATIONS = [
   },
   {
     id: 'app-003',
-    applicationNumber: 'APP-2026-000003',
+    applicationNumber: 'DYPIU-2026-000003',
     jobId: 'job-002',
     applicantId: 'applicant-003',
     status: 'SHORTLISTED',
@@ -227,7 +227,7 @@ export const MOCK_APPLICATIONS = [
   },
   {
     id: 'app-004',
-    applicationNumber: 'APP-2026-000004',
+    applicationNumber: 'DYPIU-2026-000004',
     jobId: 'job-004',
     applicantId: 'applicant-004',
     status: 'INTERVIEW_SCHEDULED',
@@ -260,7 +260,7 @@ export const MOCK_APPLICATIONS = [
 export const MOCK_NOTIFICATIONS = [
   {
     id: 'notif-001',
-    content: 'Your application APP-2026-000001 for "Assistant Professor - Computer Science" has been updated to: Under Review.',
+    content: 'Your application DYPIU-2026-000001 for "Assistant Professor - Computer Science" has been updated to: Under Review.',
     isRead: false,
     createdAt: '2026-08-22T09:00:00.000Z'
   }

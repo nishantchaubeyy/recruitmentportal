@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { apiRequest } from '../utils/api';
+import { fetchApplicationsByStatus } from '../utils/applicationsApi';
 
 // Interviews can be arranged from these statuses only (mirrors SCHEDULABLE_STATUSES on the server).
 const SCHEDULABLE = ['SUBMITTED', 'UNDER_REVIEW', 'SHORTLISTED', 'WAITLISTED', 'INTERVIEW_SCHEDULED'];
@@ -61,10 +62,8 @@ function ScheduleInterviewModal({ application, isOpen, onClose, onSuccess }) {
 
   async function fetchAvailableApplications() {
     try {
-      const res = await apiRequest('/applications?limit=200');
-      const all = Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : []);
-      // Only candidates an interview can actually be arranged for; never pre-select one.
-      setAvailableApplications(all.filter((a) => SCHEDULABLE.includes(a.status)));
+      // Only candidates an interview can actually be arranged for, across all pages; never pre-select one.
+      setAvailableApplications(await fetchApplicationsByStatus(SCHEDULABLE));
     } catch (err) {
       console.warn('Could not load applications for interview selector:', err.message);
     }
@@ -180,7 +179,7 @@ function ScheduleInterviewModal({ application, isOpen, onClose, onSuccess }) {
   const candidateName = currentApp?.applicant?.name ||
     `${currentApp?.personalInfo?.firstName || ''} ${currentApp?.personalInfo?.lastName || ''}`.trim() ||
     'Candidate';
-  const positionTitle = currentApp?.job?.position || currentApp?.personalInfo?.postAppliedFor || 'Faculty Position';
+  const positionTitle = currentApp?.job?.position || currentApp?.personalInfo?.postAppliedFor || 'Position not specified';
   const candidateEmail = currentApp?.applicant?.user?.email || currentApp?.personalInfo?.email || 'N/A';
   const appNumber = currentApp?.applicationNumber || currentApp?.id || '';
 

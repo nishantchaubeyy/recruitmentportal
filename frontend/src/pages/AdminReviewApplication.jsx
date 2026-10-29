@@ -2,10 +2,12 @@ import React, { useContext, useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { apiRequest, API_URL } from '../utils/api';
 import { AuthContext } from '../context/AuthContext';
-import { HR_STATUS_OPTIONS, statusLabel, statusOptionState } from '../utils/status';
+import { HR_STATUS_OPTIONS, statusLabel, statusOptionState, APPLICATION_STATUS } from '../utils/status';
 import DossierPrintDocument from '../components/DossierPrintDocument';
 import { viewCandidateDocument, downloadCandidateDocument } from '../utils/pdfHelper';
 import ScheduleInterviewModal from '../components/ScheduleInterviewModal';
+import DocumentRequestPanel from '../components/DocumentRequestPanel';
+import { DOCUMENT_REQUEST_STATUSES } from '../utils/documentChecklist';
 
 function AdminReviewApplication() {
   const { id } = useParams();
@@ -24,6 +26,7 @@ function AdminReviewApplication() {
   const [provider, setProvider] = useState(null);
   const [emailLogs, setEmailLogs] = useState([]);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [showDocumentPanel, setShowDocumentPanel] = useState(false);
 
   const fetchApplicationDetails = async () => {
     try {
@@ -168,7 +171,7 @@ function AdminReviewApplication() {
   const candidateName = formattedFullName || app.applicant?.name || 'Candidate';
   const candidateEmail = app.applicant?.user?.email || personal.email || contact.email || 'N/A';
   const candidateMobile = app.applicant?.mobile || contact.mobile || 'N/A';
-  const positionTitle = app.job?.position || personal.postAppliedFor || 'Faculty Position';
+  const positionTitle = app.job?.position || personal.postAppliedFor || 'Position not specified';
   const departmentName = app.job?.department || personal.faculty || 'Department';
   const jobCategory = app.job?.type || (personal.faculty?.includes('NON-TEACHING') ? 'NON_TEACHING' : 'TEACHING');
 
@@ -283,7 +286,7 @@ function AdminReviewApplication() {
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', fontSize: '0.84rem', color: '#475569' }}>
                 <div>
                   <span style={{ fontWeight: 600, color: '#64748b', textTransform: 'uppercase', fontSize: '0.72rem', display: 'block' }}>Application ID</span>
-                  <span style={{ fontWeight: 700, color: '#171717' }}>{app.applicationNumber || 'APP-2026-000001'}</span>
+                  <span style={{ fontWeight: 700, color: '#171717' }}>{app.applicationNumber || '—'}</span>
                 </div>
                 <div>
                   <span style={{ fontWeight: 600, color: '#64748b', textTransform: 'uppercase', fontSize: '0.72rem', display: 'block' }}>Application Date</span>
@@ -308,7 +311,7 @@ function AdminReviewApplication() {
                 APPLICATION STATUS
               </div>
               <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#111111', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                {statusLabel(app.status) || 'Application Submitted'}
+                {statusLabel(app.status)}
               </div>
             </div>
 
@@ -322,23 +325,34 @@ function AdminReviewApplication() {
               HR / ADMINISTRATIVE REVIEW PANEL
             </div>
             <div style={{ display: 'flex', gap: '8px' }}>
-              <Link
-                to="/admin/documents"
-                style={{
-                  backgroundColor: '#721B28',
-                  color: '#ffffff',
-                  padding: '6px 14px',
-                  borderRadius: '4px',
-                  fontSize: '0.78rem',
-                  fontWeight: 700,
-                  textDecoration: 'none',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px'
-                }}
-              >
-                <span>📑 Request Original Documents</span>
-              </Link>
+              {DOCUMENT_REQUEST_STATUSES.includes(app.status) ? (
+                <button
+                  type="button"
+                  onClick={() => setShowDocumentPanel(true)}
+                  style={{
+                    backgroundColor: app.status === APPLICATION_STATUS.SELECTED ? '#166534' : '#721B28',
+                    color: '#ffffff',
+                    padding: '6px 14px',
+                    borderRadius: '4px',
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    border: 'none',
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px'
+                  }}
+                >
+                  <span>📑 Request Documents{app.status === APPLICATION_STATUS.SELECTED ? ' from Selected Candidate' : ''}</span>
+                </button>
+              ) : (
+                <span
+                  title="Documents can be requested once the application is shortlisted or further along."
+                  style={{ fontSize: '0.74rem', color: '#64748b', alignSelf: 'center' }}
+                >
+                  Document requests open at Shortlisted
+                </span>
+              )}
               <button
                 type="button"
                 onClick={() => setShowScheduleModal(true)}
@@ -517,11 +531,11 @@ function AdminReviewApplication() {
             </div>
             <div>
               <span style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', color: '#64748b', display: 'block', marginBottom: '3px' }}>State</span>
-              <span style={{ fontSize: '0.92rem', fontWeight: 700, color: '#171717' }}>{contact.state || 'Maharashtra'}</span>
+              <span style={{ fontSize: '0.92rem', fontWeight: 700, color: '#171717' }}>{contact.state || '—'}</span>
             </div>
             <div>
               <span style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', color: '#64748b', display: 'block', marginBottom: '3px' }}>City</span>
-              <span style={{ fontSize: '0.92rem', fontWeight: 700, color: '#171717' }}>{contact.city || 'Pune'}</span>
+              <span style={{ fontSize: '0.92rem', fontWeight: 700, color: '#171717' }}>{contact.city || '—'}</span>
             </div>
           </div>
         </section>
@@ -726,6 +740,15 @@ function AdminReviewApplication() {
       <div className="print-only">
         <DossierPrintDocument app={app} />
       </div>
+
+      {/* REQUEST DOCUMENTS (prefilled from this application) */}
+      {showDocumentPanel && (
+        <DocumentRequestPanel
+          application={app}
+          onClose={() => setShowDocumentPanel(false)}
+          onSent={(res) => setStatusSuccess(res.message)}
+        />
+      )}
 
       {/* SCHEDULE INTERVIEW WITH PANEL MODAL */}
       <ScheduleInterviewModal

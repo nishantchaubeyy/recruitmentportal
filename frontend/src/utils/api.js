@@ -72,14 +72,18 @@ async function apiRequest(endpoint, options = {}) {
   return data;
 }
 
-/**
- * Opens a protected file (sent only with the Authorization header, never a URL token) in a new tab.
- */
-export async function openFile(endpoint) {
+/** Fetches a protected file with the Authorization header (never a URL token) and returns { blob, filename }. */
+async function fetchProtectedFile(endpoint) {
   const token = localStorage.getItem('token');
   const response = await fetch(`${API_URL}${endpoint}`, {
     headers: token ? { Authorization: `Bearer ${token}` } : {}
   });
+  if (response.status === 401 && token) {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    window.location.href = `${import.meta.env.BASE_URL}login`;
+    throw new Error('Session expired. Please log in again.');
+  }
   if (!response.ok) {
     let message = `Could not open the file (${response.status}).`;
     try {
@@ -88,10 +92,33 @@ export async function openFile(endpoint) {
     } catch { /* not JSON */ }
     throw new Error(message);
   }
-  const url = URL.createObjectURL(await response.blob());
-  const win = window.open(url, '_blank', 'noopener');
-  if (!win) window.location.assign(url);
+  const disposition = response.headers.get('content-disposition') || '';
+  const match = /filename\*?=(?:UTF-8'')?"?([^";]+)"?/i.exec(disposition);
+  return { blob: await response.blob(), filename: match ? decodeURIComponent(match[1]) : '' };
+}
+
+/** Opens a protected file (PDF / image) in a new tab. */
+export async function openFile(endpoint) {
+  const { blob } = await fetchProtectedFile(endpoint);
+  const url = URL.createObjectURL(blob);
+  // 'noopener' in the features string makes window.open return null even on success, so detach manually.
+  const win = window.open(url, '_blank');
+  if (win) win.opener = null;
+  else window.location.assign(url); // pop-up blocked
   setTimeout(() => URL.revokeObjectURL(url), 60000);
+}
+
+/** Saves a protected file to disk. The server's filename wins over `fallbackName`. */
+export async function downloadFile(endpoint, fallbackName = 'download') {
+  const { blob, filename } = await fetchProtectedFile(endpoint);
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename || fallbackName;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
 }
 
 /**

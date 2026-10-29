@@ -143,7 +143,7 @@ function ApplicantDashboard() {
   const candidateFullName = [displayTitle, personal.firstName, personal.middleName, personal.lastName].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim() || selectedApp?.applicant?.name || 'Applicant';
   const candidateEmail = personal.email || contact.email || selectedApp?.applicant?.user?.email || 'N/A';
   const candidateMobile = contact.mobile || personal.mobile || selectedApp?.applicant?.mobile || 'N/A';
-  const positionTitle = selectedApp?.job?.position || personal.postAppliedFor || 'Faculty Position';
+  const positionTitle = selectedApp?.job?.position || personal.postAppliedFor || 'Position not specified';
   const departmentName = selectedApp?.job?.department || selectedApp?.job?.school?.name || personal.faculty || 'D Y Patil International University';
   const isTeaching = selectedApp?.job?.type === 'TEACHING' || (personal.faculty && !personal.faculty.includes('NON-TEACHING'));
   const isDraft = selectedApp?.status === APPLICATION_STATUS.DRAFT;
@@ -226,7 +226,7 @@ function ApplicantDashboard() {
             const formattedTime = interview.time || (parsedDate && !isNaN(parsedDate.getTime())
               ? parsedDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
               : 'As communicated');
-            const pos = interview.application?.job?.position || interview.job?.position || 'Faculty Position';
+            const pos = interview.application?.job?.position || interview.job?.position || 'Position not specified';
             const dept = interview.application?.job?.department || interview.job?.department || 'D Y Patil International University';
             const panelName = interview.panel?.name || interview.interviewerName || 'Recruitment Cell Panel';
 
@@ -379,7 +379,7 @@ function ApplicantDashboard() {
                   Application Status
                 </div>
                 <span className={`status-badge ${statusBadgeClass(selectedApp.status)}`} style={{ fontSize: '0.85rem', padding: '5px 14px' }}>
-                  {statusLabel(selectedApp.status) || 'Application Submitted'}
+                  {statusLabel(selectedApp.status)}
                 </span>
               </div>
             </div>
@@ -529,11 +529,11 @@ function ApplicantDashboard() {
                 </div>
                 <div style={fieldItemStyle}>
                   <span style={fieldLabelStyle}>City / District</span>
-                  <span style={fieldValueStyle}>{contact.city || 'Pune'}</span>
+                  <span style={fieldValueStyle}>{contact.city || '—'}</span>
                 </div>
                 <div style={fieldItemStyle}>
                   <span style={fieldLabelStyle}>State</span>
-                  <span style={fieldValueStyle}>{contact.state || 'Maharashtra'}</span>
+                  <span style={fieldValueStyle}>{contact.state || '—'}</span>
                 </div>
                 <div style={fieldItemStyle}>
                   <span style={fieldLabelStyle}>PIN Code</span>
@@ -803,7 +803,7 @@ function ApplicantDashboard() {
                 </div>
                 <div>
                   <span style={{ color: '#64748b', fontSize: '0.74rem', display: 'block', fontWeight: 600 }}>Official Application Number</span>
-                  <strong style={{ color: '#0f172a' }}>{selectedApp.applicationNumber || 'APP-2026'}</strong>
+                  <strong style={{ color: '#0f172a' }}>{selectedApp.applicationNumber || '—'}</strong>
                 </div>
               </div>
             </div>

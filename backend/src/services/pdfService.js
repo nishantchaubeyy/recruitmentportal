@@ -43,33 +43,39 @@ const COLORS = {
 };
 
 // A4 geometry (points)
-const PAGE = { left: 40, width: 515, top: 40, bottom: 790 };
+const PAGE = { left: 36, width: 523, top: 32, bottom: 796 };
+
+class PageOverflow extends Error {}
 
 /**
- * Generates the official application dossier as a PDF Buffer.
+ * Draws the dossier at a given scale (1 = base sizes) and resolves with the PDF buffer.
+ * When `allowExtraPages` is false the attempt is abandoned (PageOverflow) as soon as the content would
+ * spill onto a second page, so the caller can retry slightly smaller.
  *
- * Layout notes: every cell is measured with heightOfString before it is drawn, so long
- * labels/values wrap inside their own column instead of overlapping their neighbour, and rows
- * grow to fit. Pages are buffered so "Page X of Y" can be stamped at the end.
+ * Layout notes: every cell is measured with heightOfString before it is drawn, so long labels/values wrap
+ * inside their own column and rows grow to fit. Short facts are laid out three label/value pairs per row.
  */
-function generateApplicationPdf(app) {
+function buildPdf(app, S, allowExtraPages) {
   return new Promise((resolve, reject) => {
-    try {
-      const doc = new PDFDocument({
-        size: 'A4',
-        margin: PAGE.left,
-        bufferPages: true,
-        info: {
-          Title: `Application Dossier - ${app.applicationNumber || 'DYPIU'}`,
-          Author: 'D Y Patil International University, Akurdi, Pune',
-          Subject: 'Official Recruitment Application'
-        }
-      });
+    const doc = new PDFDocument({
+      size: 'A4',
+      margin: PAGE.left,
+      bufferPages: true,
+      info: {
+        Title: `Application Form - ${app.applicationNumber || 'DYPIU'}`,
+        Author: 'D Y Patil International University, Akurdi, Pune',
+        Subject: 'Official Recruitment Application'
+      }
+    });
 
-      const buffers = [];
-      doc.on('data', (chunk) => buffers.push(chunk));
-      doc.on('end', () => resolve(Buffer.concat(buffers)));
-      doc.on('error', reject);
+    const buffers = [];
+    doc.on('data', (chunk) => buffers.push(chunk));
+    doc.on('end', () => resolve(Buffer.concat(buffers)));
+    doc.on('error', reject);
+
+    try {
+      const px = (n) => Math.round(n * S * 100) / 100; // scaled size
+      const FONT = px(8);
 
       const personal = safeParseJSON(app.personalInfo);
       const contact = safeParseJSON(app.contactDetails);
@@ -81,9 +87,9 @@ function generateApplicationPdf(app) {
       const title = personal.title && personal.title !== 'Select' ? personal.title : '';
       const applicantName = [title, personal.firstName, personal.middleName, personal.lastName]
         .filter(Boolean).join(' ').trim() || app.applicant?.name || 'Applicant';
-      const postName = app.job?.position || personal.postAppliedFor || 'Faculty Position';
-      const faculty = app.job?.school?.name || app.job?.department || personal.faculty || 'D Y Patil International University';
-      const appNumber = app.applicationNumber || app.id || 'DYPIU-APP';
+      const postName = app.job?.position || personal.postAppliedFor || 'Not specified';
+      const faculty = app.job?.school?.name || app.job?.department || personal.faculty || '—';
+      const appNumber = app.applicationNumber || '—';
       const submitDate = formatDate(app.submittedAt || app.createdAt);
       const email = app.applicant?.user?.email || contact.email || personal.email || '—';
 
@@ -91,18 +97,19 @@ function generateApplicationPdf(app) {
 
       const ensure = (height) => {
         if (y + height > PAGE.bottom) {
+          if (!allowExtraPages) throw new PageOverflow();
           doc.addPage();
           y = PAGE.top;
         }
       };
 
-      const textHeight = (text, width, font = 'Helvetica', size = 8.5) => {
+      const textHeight = (text, width, font = 'Helvetica', size = FONT) => {
         doc.font(font).fontSize(size);
         return doc.heightOfString(String(text ?? ''), { width });
       };
 
-      // ---- Letterhead: official logo, university name and address ------------------------------------------
-      const logoWidth = 140;
+      // ---- Letterhead: logo, university name, then one bar with title / number / date -------------
+      const logoWidth = px(112);
       const logoHeight = Math.round(logoWidth * (149 / 382));
       try {
         doc.image(LOGO_PATH, PAGE.left, y, { width: logoWidth });
@@ -110,97 +117,96 @@ function generateApplicationPdf(app) {
         // A missing logo must never block the application PDF.
         console.warn('[PDF] Logo could not be embedded:', err.message);
       }
-      const textX = PAGE.left + logoWidth + 18;
-      const textW = PAGE.width - logoWidth - 18;
-      doc.moveTo(textX - 9, y + 4).lineTo(textX - 9, y + logoHeight - 4).lineWidth(0.8).strokeColor(COLORS.line).stroke();
-      doc.fillColor(COLORS.navy).font('Helvetica-Bold').fontSize(15)
-        .text('D Y PATIL INTERNATIONAL UNIVERSITY', textX, y + 3, { width: textW, lineBreak: false });
-      doc.fillColor(COLORS.ink).font('Helvetica').fontSize(8.5)
-        .text('Sector 29, Nigdi Pradhikaran, Akurdi, Pune, Maharashtra - 411044', textX, y + 24, { width: textW, lineBreak: false });
-      doc.fillColor(COLORS.muted).font('Helvetica').fontSize(8.5)
-        .text('Recruitment Cell  |  careers@dypiu.ac.in  |  www.dypiu.ac.in', textX, y + 37, { width: textW, lineBreak: false });
-      doc.fillColor(COLORS.maroon).font('Helvetica-BoldOblique').fontSize(8.5)
-        .text('Think  |  Thrive  |  Transform', textX, y + 50, { width: textW, lineBreak: false });
-      y += logoHeight + 6;
+      const textX = PAGE.left + logoWidth + 14;
+      const textW = PAGE.width - logoWidth - 14;
+      doc.moveTo(textX - 7, y + 3).lineTo(textX - 7, y + logoHeight - 3).lineWidth(0.8).strokeColor(COLORS.line).stroke();
+      doc.fillColor(COLORS.navy).font('Helvetica-Bold').fontSize(px(13.5))
+        .text('D Y PATIL INTERNATIONAL UNIVERSITY', textX, y + px(2), { width: textW, lineBreak: false });
+      doc.fillColor(COLORS.ink).font('Helvetica').fontSize(px(7.8))
+        .text('Sector 29, Nigdi Pradhikaran, Akurdi, Pune, Maharashtra - 411044', textX, y + px(20), { width: textW, lineBreak: false });
+      doc.fillColor(COLORS.muted).font('Helvetica').fontSize(px(7.8))
+        .text('Recruitment Cell  |  careers@dypiu.ac.in  |  www.dypiu.ac.in', textX, y + px(31), { width: textW, lineBreak: false });
+      y += logoHeight + px(5);
 
-      doc.rect(PAGE.left, y, PAGE.width, 24).fill(COLORS.maroon);
-      doc.fillColor('#ffffff').font('Helvetica-Bold').fontSize(11)
-        .text('OFFICIAL APPLICATION DOSSIER', PAGE.left, y + 6.5, { align: 'center', width: PAGE.width, characterSpacing: 1, lineBreak: false });
-      y += 32;
-
-      // ---- Meta strip ------------------------------------------------------------------------
-      doc.rect(PAGE.left, y, PAGE.width, 26).fillAndStroke('#f1f5f9', COLORS.line);
-      doc.fillColor(COLORS.navy).fontSize(9).font('Helvetica-Bold')
-        .text(`Application No: ${appNumber}`, PAGE.left + 10, y + 8, { width: 250 });
-      doc.font('Helvetica').fillColor(COLORS.ink)
-        .text(`Date of Submission: ${submitDate}`, PAGE.left + 270, y + 8, { align: 'right', width: 235 });
-      y += 38;
+      const barH = px(20);
+      doc.rect(PAGE.left, y, PAGE.width, barH).fill(COLORS.maroon);
+      doc.fillColor('#ffffff').font('Helvetica-Bold').fontSize(px(9.5))
+        .text('APPLICATION FORM', PAGE.left + 8, y + (barH - px(9.5)) / 2 - 0.5, { characterSpacing: 0.8, lineBreak: false });
+      doc.font('Helvetica').fontSize(px(8))
+        .text(`Application No: ${appNumber}   |   Submitted: ${submitDate}`, PAGE.left + 150, y + (barH - px(8)) / 2 - 0.5, { align: 'right', width: PAGE.width - 158, lineBreak: false });
+      y += barH + px(6);
 
       // ---- Building blocks -------------------------------------------------------------------
+      const SECTION_H = px(14.5);
       const section = (label) => {
-        ensure(40);
-        doc.rect(PAGE.left, y, PAGE.width, 20).fill(COLORS.maroon);
-        doc.fillColor('#ffffff').fontSize(9.5).font('Helvetica-Bold').text(label.toUpperCase(), PAGE.left + 8, y + 5.5);
-        y += 20;
+        ensure(SECTION_H + px(24));
+        doc.rect(PAGE.left, y, PAGE.width, SECTION_H).fill(COLORS.maroon);
+        doc.fillColor('#ffffff').fontSize(px(8.2)).font('Helvetica-Bold')
+          .text(label.toUpperCase(), PAGE.left + 6, y + (SECTION_H - px(8.2)) / 2 - 0.3, { lineBreak: false });
+        y += SECTION_H;
       };
 
-      /**
-       * Two label/value pairs per row. Columns: label 108 | value 149 | label 108 | value 150.
-       * The row is as tall as its tallest wrapped cell.
-       */
-      const COL = { l1: 108, v1: 149, l2: 108, v2: 150 };
-      const rowPairs = (a, b) => {
-        const pad = 5;
-        const cells = [
-          { text: a[0], width: COL.l1, bold: true },
-          { text: a[1] || '—', width: COL.v1 },
-          { text: b ? b[0] : '', width: COL.l2, bold: true },
-          { text: b ? (b[1] || '—') : '', width: COL.v2 }
-        ];
-        const height = Math.max(...cells.map((c) => textHeight(c.text, c.width - pad * 2, c.bold ? 'Helvetica-Bold' : 'Helvetica'))) + pad * 2;
+      const pad = px(2.8);
+      const PER_ROW = 3;
+      const PAIR_W = PAGE.width / PER_ROW;
+      const LABEL_W = PAIR_W * 0.38;
+      const VALUE_W = PAIR_W - LABEL_W;
+
+      /** Up to three label/value pairs per row; the row is as tall as its tallest wrapped cell. */
+      const rowPairs = (row) => {
+        const cells = [];
+        row.forEach((pair, i) => {
+          // A short last row lets its final value use the space the missing pairs would have taken.
+          const spare = i === row.length - 1 ? (PER_ROW - row.length) * PAIR_W : 0;
+          cells.push({ text: pair[0], width: LABEL_W, label: true, filled: true });
+          cells.push({ text: pair[1] || '—', width: VALUE_W + spare, label: false, filled: true });
+        });
+        const height = Math.max(...cells.map((c) => textHeight(c.text, c.width - pad * 2, c.label ? 'Helvetica-Bold' : 'Helvetica'))) + pad * 2;
         ensure(height);
-        doc.rect(PAGE.left, y, PAGE.width, height).stroke(COLORS.line);
         let x = PAGE.left;
-        cells.forEach((c, i) => {
-          if (i % 2 === 0 && c.text !== '') doc.rect(x, y, c.width, height).fillAndStroke(COLORS.soft, COLORS.line);
-          doc.fillColor(i % 2 === 0 ? COLORS.muted : COLORS.ink).font(c.bold ? 'Helvetica-Bold' : 'Helvetica').fontSize(8.5)
-            .text(String(c.text), x + pad, y + pad, { width: c.width - pad * 2 });
+        cells.forEach((c) => {
+          if (c.label && c.filled) doc.rect(x, y, c.width, height).fillAndStroke(COLORS.soft, COLORS.line);
+          else doc.rect(x, y, c.width, height).stroke(COLORS.line);
+          if (c.text !== '') {
+            doc.fillColor(c.label ? COLORS.muted : COLORS.ink).font(c.label ? 'Helvetica-Bold' : 'Helvetica').fontSize(FONT)
+              .text(String(c.text), x + pad, y + pad, { width: c.width - pad * 2 });
+          }
           x += c.width;
         });
         y += height;
       };
 
       const pairs = (list) => {
-        for (let i = 0; i < list.length; i += 2) rowPairs(list[i], list[i + 1]);
+        for (let i = 0; i < list.length; i += PER_ROW) rowPairs(list.slice(i, i + PER_ROW));
       };
 
-      /** Full-width label/value row (addresses, thesis titles). */
+      /** Full-width label/value row (address, thesis title). */
       const rowFull = (label, value) => {
-        const pad = 5;
-        const valueWidth = PAGE.width - COL.l1 - pad * 2;
-        const height = Math.max(textHeight(label, COL.l1 - pad * 2, 'Helvetica-Bold'), textHeight(value || '—', valueWidth)) + pad * 2;
+        const valueWidth = PAGE.width - LABEL_W;
+        const height = Math.max(textHeight(label, LABEL_W - pad * 2, 'Helvetica-Bold'), textHeight(value || '—', valueWidth - pad * 2)) + pad * 2;
         ensure(height);
-        doc.rect(PAGE.left, y, COL.l1, height).fillAndStroke(COLORS.soft, COLORS.line);
-        doc.rect(PAGE.left + COL.l1, y, PAGE.width - COL.l1, height).stroke(COLORS.line);
-        doc.fillColor(COLORS.muted).font('Helvetica-Bold').fontSize(8.5).text(label, PAGE.left + pad, y + pad, { width: COL.l1 - pad * 2 });
-        doc.fillColor(COLORS.ink).font('Helvetica').fontSize(8.5).text(String(value || '—'), PAGE.left + COL.l1 + pad, y + pad, { width: valueWidth });
+        doc.rect(PAGE.left, y, LABEL_W, height).fillAndStroke(COLORS.soft, COLORS.line);
+        doc.rect(PAGE.left + LABEL_W, y, valueWidth, height).stroke(COLORS.line);
+        doc.fillColor(COLORS.muted).font('Helvetica-Bold').fontSize(FONT).text(label, PAGE.left + pad, y + pad, { width: LABEL_W - pad * 2 });
+        doc.fillColor(COLORS.ink).font('Helvetica').fontSize(FONT).text(String(value || '—'), PAGE.left + LABEL_W + pad, y + pad, { width: valueWidth - pad * 2 });
         y += height;
       };
 
-      /** Table with per-column widths; rows wrap and grow. */
-      const table = (columns, rows) => {
-        const pad = 4;
-        const rowHeight = (cells, font) => Math.max(...cells.map((t, i) => textHeight(t, columns[i].width - pad * 2, font))) + pad * 2;
+      /** Table with per-column widths (relative; scaled to the page width); rows wrap and grow. */
+      const table = (rawColumns, rows) => {
+        const total = rawColumns.reduce((sum, c) => sum + c.width, 0);
+        const columns = rawColumns.map((c) => ({ ...c, width: (c.width / total) * PAGE.width }));
+        const cellPad = px(2.4);
         const drawRow = (cells, { head = false } = {}) => {
           const font = head ? 'Helvetica-Bold' : 'Helvetica';
-          const height = rowHeight(cells, font);
+          const height = Math.max(...cells.map((t, i) => textHeight(t, columns[i].width - cellPad * 2, font))) + cellPad * 2;
           ensure(height);
           if (head) doc.rect(PAGE.left, y, PAGE.width, height).fillAndStroke(COLORS.head, COLORS.line);
           else doc.rect(PAGE.left, y, PAGE.width, height).stroke(COLORS.line);
           let x = PAGE.left;
           cells.forEach((t, i) => {
-            doc.fillColor(head ? COLORS.navy : COLORS.ink).font(font).fontSize(8.5)
-              .text(String(t ?? ''), x + pad, y + pad, { width: columns[i].width - pad * 2, align: columns[i].align || 'left' });
+            doc.fillColor(head ? COLORS.navy : COLORS.ink).font(font).fontSize(FONT)
+              .text(String(t ?? ''), x + cellPad, y + cellPad, { width: columns[i].width - cellPad * 2, align: columns[i].align || 'left' });
             x += columns[i].width;
           });
           y += height;
@@ -210,24 +216,24 @@ function generateApplicationPdf(app) {
       };
 
       const note = (text) => {
-        const height = textHeight(text, PAGE.width - 12, 'Helvetica-Oblique') + 10;
+        const height = textHeight(text, PAGE.width - 12, 'Helvetica-Oblique') + pad * 2;
         ensure(height);
         doc.rect(PAGE.left, y, PAGE.width, height).stroke(COLORS.line);
-        doc.fillColor(COLORS.muted).font('Helvetica-Oblique').fontSize(8.5).text(text, PAGE.left + 6, y + 5, { width: PAGE.width - 12 });
+        doc.fillColor(COLORS.muted).font('Helvetica-Oblique').fontSize(FONT).text(text, PAGE.left + 6, y + pad, { width: PAGE.width - 12 });
         y += height;
       };
 
-      const gap = (n = 10) => { y += n; };
+      const gap = (n = 6) => { y += px(n); };
 
       // ---- 1. Post ---------------------------------------------------------------------------
       section('1. Post Applied Details');
       pairs([
         ['Post Applied For', postName],
         ['Faculty / School', faculty],
+        ['Employment Type', app.job?.employmentType],
         ['Vacancy Reference', app.job?.vacancyNumber],
-        ['Employment Type', app.job?.employmentType || 'Full Time']
+        ['Subject / Domain', app.subjectAppliedFor || personal.subjectAppliedFor]
       ]);
-      if (personal.subjectAppliedFor) rowFull('Subject / Specialisation', personal.subjectAppliedFor);
       gap();
 
       // ---- 2. Personal -----------------------------------------------------------------------
@@ -237,8 +243,7 @@ function generateApplicationPdf(app) {
         ['Gender', personal.gender],
         ['Date of Birth', personal.dob ? formatDate(personal.dob) : '—'],
         ['Age', personal.age],
-        ['Marital Status', personal.maritalStatus],
-        ['Nationality', personal.nationality || 'Indian']
+        ['Marital Status', personal.maritalStatus]
       ]);
       gap();
 
@@ -260,12 +265,12 @@ function generateApplicationPdf(app) {
       } else {
         table(
           [
-            { label: 'Degree / Level', width: 70 },
-            { label: 'Title / Name', width: 100 },
-            { label: 'Institute / University', width: 150 },
-            { label: 'Year', width: 40, align: 'center' },
-            { label: 'Mode', width: 70 },
-            { label: 'Score / CGPA', width: 85, align: 'right' }
+            { label: 'Level', width: 62 },
+            { label: 'Degree / Stream', width: 120 },
+            { label: 'Board / University', width: 170 },
+            { label: 'Year', width: 36, align: 'center' },
+            { label: 'Mode', width: 58 },
+            { label: 'Score / CGPA', width: 69, align: 'right' }
           ],
           qualifications.map((q) => [
             q.qualificationDegree || q.degreeLevel || '—',
@@ -317,18 +322,18 @@ function generateApplicationPdf(app) {
       } else {
         table(
           [
-            { label: 'Organization', width: 130 },
-            { label: 'Designation', width: 110 },
-            { label: 'Type', width: 65 },
+            { label: 'Organization', width: 140 },
+            { label: 'Designation', width: 120 },
+            { label: 'Type', width: 60 },
             { label: 'From', width: 55 },
             { label: 'To', width: 55 },
-            { label: 'Salary', width: 50, align: 'right' },
-            { label: 'Notice', width: 50 }
+            { label: 'Salary', width: 45, align: 'right' },
+            { label: 'Notice', width: 40 }
           ],
           experience.map((e) => [
             e.organization || '—',
             e.designation || '—',
-            e.type || e.experienceType || 'Full-Time',
+            e.type || e.experienceType || '—',
             e.fromDate || '—',
             e.isCurrent ? 'Present' : (e.toDate || '—'),
             e.salary || '—',
@@ -356,36 +361,58 @@ function generateApplicationPdf(app) {
           ])
         );
       }
-      gap(14);
+      gap(8);
 
       // ---- Declaration -----------------------------------------------------------------------------------------
       const declaration = 'I hereby declare that all the information provided in this application is true, complete, and correct to the best of my knowledge and belief. I understand that if any information is found false or misrepresented at any stage, my candidature/appointment is liable to be cancelled/terminated without notice.';
-      const declHeight = textHeight(declaration, PAGE.width - 20, 'Helvetica', 8) + 58;
+      const declFont = px(7.2);
+      const declBody = textHeight(declaration, PAGE.width - 16, 'Helvetica', declFont);
+      const declHeight = declBody + px(38);
       ensure(declHeight);
       doc.rect(PAGE.left, y, PAGE.width, declHeight).fillAndStroke(COLORS.soft, COLORS.line);
-      doc.fillColor(COLORS.navy).fontSize(9).font('Helvetica-Bold').text('DECLARATION & CERTIFICATION', PAGE.left + 10, y + 8);
-      doc.fillColor(COLORS.ink).fontSize(8).font('Helvetica').text(declaration, PAGE.left + 10, y + 22, { width: PAGE.width - 20, lineGap: 1.5 });
-      const sigY = y + declHeight - 22;
-      doc.font('Helvetica-Bold').fontSize(8.5).fillColor(COLORS.maroon).text(`Candidate: ${applicantName}`, PAGE.left + 10, sigY, { width: 260 });
-      doc.font('Helvetica').fontSize(8).fillColor(COLORS.muted)
-        .text(`Certified electronically on ${submitDate}`, PAGE.left + 270, sigY, { align: 'right', width: 235 });
+      doc.fillColor(COLORS.navy).fontSize(px(8)).font('Helvetica-Bold').text('DECLARATION & CERTIFICATION', PAGE.left + 8, y + px(6), { lineBreak: false });
+      doc.fillColor(COLORS.ink).fontSize(declFont).font('Helvetica').text(declaration, PAGE.left + 8, y + px(18), { width: PAGE.width - 16 });
+      const sigY = y + declHeight - px(14);
+      doc.font('Helvetica-Bold').fontSize(px(7.8)).fillColor(COLORS.maroon).text(`Candidate: ${applicantName}`, PAGE.left + 8, sigY, { width: 270, lineBreak: false });
+      doc.font('Helvetica').fontSize(px(7.4)).fillColor(COLORS.muted)
+        .text(`Certified electronically on ${submitDate}`, PAGE.left + 278, sigY, { align: 'right', width: 237, lineBreak: false });
 
       // ---- Footer on every page -----------------------------------------------------------------------------------
       const range = doc.bufferedPageRange();
       for (let i = range.start; i < range.start + range.count; i += 1) {
         doc.switchToPage(i);
         doc.page.margins.bottom = 0; // footer sits inside the bottom margin; avoid an automatic page break
-        doc.rect(PAGE.left, 805, PAGE.width, 0.5).fill(COLORS.line);
-        doc.fillColor('#94a3b8').fontSize(7.5).font('Helvetica')
-          .text('D Y Patil International University, Akurdi, Pune — Official Recruitment Portal', PAGE.left, 811, { width: 380, lineBreak: false });
-        doc.text(`Page ${i + 1} of ${range.count}`, PAGE.left + 400, 811, { align: 'right', width: 115, lineBreak: false });
+        doc.rect(PAGE.left, 808, PAGE.width, 0.5).fill(COLORS.line);
+        doc.fillColor('#94a3b8').fontSize(7).font('Helvetica')
+          .text('D Y Patil International University, Akurdi, Pune — Official Recruitment Portal', PAGE.left, 813, { width: 380, lineBreak: false });
+        if (range.count > 1) {
+          doc.text(`Page ${i + 1} of ${range.count}`, PAGE.left + 400, 813, { align: 'right', width: 123, lineBreak: false });
+        }
       }
 
       doc.end();
     } catch (err) {
+      doc.end();
       reject(err);
     }
   });
+}
+
+/**
+ * Generates the application form as a single A4 page. The content is laid out at normal size first and
+ * shrunk step by step until it fits; only an extreme application (dozens of rows) ever spills to a second page.
+ */
+async function generateApplicationPdf(app) {
+  const scales = [1, 0.95, 0.9, 0.85, 0.8, 0.75, 0.7];
+  for (let i = 0; i < scales.length; i += 1) {
+    const last = i === scales.length - 1;
+    try {
+      return await buildPdf(app, scales[i], last);
+    } catch (err) {
+      if (!(err instanceof PageOverflow)) throw err;
+    }
+  }
+  throw new Error('Application PDF could not be generated.');
 }
 
 module.exports = { generateApplicationPdf };

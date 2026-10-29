@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { apiRequest } from '../utils/api';
 import ScheduleInterviewModal from '../components/ScheduleInterviewModal';
+import { fetchAllApplications } from '../utils/applicationsApi';
 import {
   IconCalendar,
   IconSearch,
@@ -80,7 +81,7 @@ function AdminInterviews() {
           interviewFetchError = err.message || 'Failed to retrieve interviews.';
           return [];
         }),
-        apiRequest('/applications?limit=200').catch(() => []),
+        fetchAllApplications().catch(() => []),
         apiRequest('/admin/vacancies').catch(() => []),
         apiRequest('/admin/panels').catch(() => [])
       ]);

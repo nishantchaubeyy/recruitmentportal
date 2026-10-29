@@ -49,8 +49,8 @@ function AdminCreateJob() {
   const [formData, setFormData] = useState({
     vacancyNumber: '',
     type: initialType,
-    customCategory: searchParams.get('type') === 'CUSTOM' ? (searchParams.get('category') || 'Visiting Faculty') : '',
-    customLabel: searchParams.get('type') === 'CUSTOM' ? (searchParams.get('category') || 'Visiting Faculty') : '',
+    customCategory: searchParams.get('type') === 'CUSTOM' ? (searchParams.get('category') || '') : '',
+    customLabel: searchParams.get('type') === 'CUSTOM' ? (searchParams.get('category') || '') : '',
     schoolId: '',
     departmentId: '',
     positionId: '',
@@ -157,7 +157,7 @@ function AdminCreateJob() {
           department: data.department || '',
           employmentType: data.employmentType || 'Full Time',
           numPositions: data.numPositions || 1,
-          location: data.location || 'Pune',
+          location: data.location || '',
           qualification: data.qualification || '',
           experience: data.experience || '',
           skills: data.skills || '',
@@ -262,8 +262,8 @@ function AdminCreateJob() {
         payload.department = deptPart || schPart || 'DYPIU Campus';
       }
       payload.schoolName = schPart;
-      payload.customCategory = formData.customCategory || formData.customLabel || 'Visiting Faculty';
-      payload.customLabel = formData.customCategory || formData.customLabel || 'Visiting Faculty';
+      payload.customCategory = formData.customCategory || formData.customLabel || '';
+      payload.customLabel = formData.customCategory || formData.customLabel || '';
       if (!payload.employmentType) {
         payload.employmentType = 'Contract / Visiting';
       }

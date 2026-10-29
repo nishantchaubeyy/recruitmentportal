@@ -293,7 +293,7 @@ function CustomizedPositions() {
                         <span>{job.numPositions} {job.numPositions === 1 ? 'Opening' : 'Openings'}</span>
                       </div>
                       <div style={metaChipStyle}>
-                        <span>{job.location || 'Pune'}</span>
+                        {job.location && <span>{job.location}</span>}
                       </div>
                     </div>
 

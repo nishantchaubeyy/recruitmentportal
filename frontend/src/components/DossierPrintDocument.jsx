@@ -31,10 +31,10 @@ function DossierPrintDocument({ app }) {
   // Name resolution
   const displayTitle = (personal.title && personal.title !== 'Select' && personal.title !== 'Select Title') ? personal.title : '';
   const fullName = [displayTitle, personal.firstName, personal.middleName, personal.lastName].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim();
-  const candidateName = fullName || app.applicant?.name || 'Candidate Name';
+  const candidateName = fullName || app.applicant?.name || 'Candidate';
 
   // Position & Department
-  const positionTitle = app.job?.position || personal.postAppliedFor || 'Faculty Position';
+  const positionTitle = app.job?.position || personal.postAppliedFor || 'Position not specified';
   const departmentName = app.job?.department || personal.faculty || 'School of Computing';
 
   // Correct submission date resolution
@@ -114,7 +114,7 @@ function DossierPrintDocument({ app }) {
             <div style={{ marginTop: '3px' }}><strong>Post Applied For:</strong> {positionTitle}</div>
           </div>
           <div style={{ textAlign: 'right' }}>
-            <div><strong>Application ID:</strong> {app.applicationNumber || 'APP-2026-000001'}</div>
+            <div><strong>Application ID:</strong> {app.applicationNumber || '—'}</div>
             <div style={{ marginTop: '3px' }}><strong>Application Date:</strong> {formattedAppDate}</div>
           </div>
         </div>
@@ -167,8 +167,8 @@ function DossierPrintDocument({ app }) {
             <div><span style={{ color: '#475569', fontSize: '8pt', display: 'block' }}>Alternate Email</span><strong>{contact.alternateEmail || personal.alternateEmail || '—'}</strong></div>
             <div><span style={{ color: '#475569', fontSize: '8pt', display: 'block' }}>Primary Mobile</span><strong>{candidateMobile}</strong></div>
             <div><span style={{ color: '#475569', fontSize: '8pt', display: 'block' }}>Alternate Mobile</span><strong>{contact.alternateMobile || '—'}</strong></div>
-            <div><span style={{ color: '#475569', fontSize: '8pt', display: 'block' }}>City / District</span><strong>{contact.city || 'Pune'}</strong></div>
-            <div><span style={{ color: '#475569', fontSize: '8pt', display: 'block' }}>State & PIN</span><strong>{contact.state || 'Maharashtra'}{contact.pinCode ? ` - ${contact.pinCode}` : ''}</strong></div>
+            <div><span style={{ color: '#475569', fontSize: '8pt', display: 'block' }}>City / District</span><strong>{contact.city || '—'}</strong></div>
+            <div><span style={{ color: '#475569', fontSize: '8pt', display: 'block' }}>State & PIN</span><strong>{contact.state || '—'}{contact.pinCode ? ` - ${contact.pinCode}` : ''}</strong></div>
             <div style={{ gridColumn: 'span 3' }}>
               <span style={{ color: '#475569', fontSize: '8pt', display: 'block' }}>Full Residential Address</span>
               <strong>{contact.address || 'Address on file with university application dossier.'}</strong>

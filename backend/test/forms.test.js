@@ -134,3 +134,19 @@ test('work experience needs dates unless the job is current', () => {
   assert.match(rules.validateExperience([{ ...row, toDate: '2017-01-01' }]), /before/);
   assert.match(rules.validateExperience([{ organization: '', designation: '', fromDate: '', toDate: '' }]), /at least one/);
 });
+
+test('CSV export quotes values and defuses spreadsheet formulas', async () => {
+  const { toCsv, csvDate } = await import(pathToFileURL(path.join(__dirname, '../../frontend/src/utils/csv.js')).href);
+  const csv = toCsv(
+    [{ header: 'Name', value: (r) => r.name }, { header: 'Note', value: (r) => r.note }],
+    [{ name: 'Rao, Gita', note: 'said "hi"' }, { name: '=HYPERLINK("http://evil")', note: '+1' }, { name: null, note: undefined }]
+  );
+  const lines = csv.split('\r\n');
+  assert.equal(lines[0], '"Name","Note"');
+  assert.equal(lines[1], '"Rao, Gita","said ""hi"""');
+  // Cells that start with = + - @ are prefixed so Excel and Sheets treat them as text.
+  assert.equal(lines[2], `"'=HYPERLINK(""http://evil"")","'+1"`);
+  assert.equal(lines[3], '"",""');
+  assert.equal(csvDate('2026-10-30T08:00:00Z'), '2026-10-30');
+  assert.equal(csvDate(null), '');
+});

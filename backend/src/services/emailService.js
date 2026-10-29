@@ -785,7 +785,8 @@ async function sendDocumentRequestEmail({
   deadline,
   priority = 'NORMAL',
   message,
-  loginUrl
+  loginUrl,
+  meta
 }) {
   const formattedDeadline = deadline
     ? new Date(deadline).toLocaleDateString('en-IN', {
@@ -803,8 +804,8 @@ async function sendDocumentRequestEmail({
 
   const docListHtml = requiredDocuments.map((doc, idx) => `
     <li style="padding: 6px 0; border-bottom: 1px solid #f1f5f9;">
-      <strong>${idx + 1}. ${typeof doc === 'string' ? doc : (doc.documentName || doc.name)}</strong>
-      ${doc.isMandatory !== false ? '<span style="color: #dc2626; font-size: 11px; margin-left: 6px;">[Mandatory]</span>' : ''}
+      <strong>${idx + 1}. ${escapeHtml(typeof doc === 'string' ? doc : (doc.documentName || doc.name))}</strong>
+      ${doc.isMandatory !== false ? '<span style="color: #dc2626; font-size: 11px; margin-left: 6px;">[Mandatory]</span>' : '<span style="color: #64748b; font-size: 11px; margin-left: 6px;">[Optional]</span>'}
     </li>
   `).join('');
 
@@ -824,10 +825,10 @@ async function sendDocumentRequestEmail({
 
       <!-- Content -->
       <div style="padding: 30px; color: #1e293b; line-height: 1.65; font-size: 15px;">
-        <p style="margin-top: 0;">Dear <strong>${candidateName || 'Candidate'}</strong>,</p>
+        <p style="margin-top: 0;">Dear <strong>${escapeHtml(candidateName || 'Candidate')}</strong>,</p>
 
         <p style="color: #334155;">
-          Your application ${applicationNumber ? `<strong>(${applicationNumber})</strong>` : ''} for the position of <strong>${jobTitle || 'Faculty Position'}</strong> has been reviewed by the HR Committee.
+          Your application ${applicationNumber ? `<strong>(${escapeHtml(applicationNumber)})</strong>` : ''} for the position of <strong>${escapeHtml(jobTitle || 'the position you applied for')}</strong> has been reviewed by the HR Committee.
         </p>
 
         <p style="color: #334155;">
@@ -859,7 +860,7 @@ async function sendDocumentRequestEmail({
         ${message ? `
         <div style="background-color: #fffbeb; border-left: 4px solid #f59e0b; padding: 12px 16px; margin: 18px 0; border-radius: 4px;">
           <strong style="color: #92400e; font-size: 12px; text-transform: uppercase;">Message from HR:</strong>
-          <p style="margin: 4px 0 0 0; color: #78350f; font-size: 13.5px;">${message}</p>
+          <p style="margin: 4px 0 0 0; color: #78350f; font-size: 13.5px; white-space: pre-line;">${escapeHtml(message)}</p>
         </div>` : ''}
 
         <!-- Login Call to Action -->
@@ -901,7 +902,8 @@ async function sendDocumentRequestEmail({
     to,
     subject,
     html,
-    text: `Dear ${candidateName}, Original documents are requested for application ${applicationNumber}. Please login to upload them before ${formattedDeadline}. Link: ${portalUrl}`
+    text: `Dear ${candidateName}, Original documents are requested for application ${applicationNumber}. Please login to upload them before ${formattedDeadline}. Link: ${portalUrl}`,
+    meta
   });
 }
 

@@ -1,10 +1,18 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { apiRequest, openFile } from '../utils/api';
 import {
   IconFolder,
   IconCheckCircle,
   IconExternalLink
 } from '../components/icons/AdminIcons';
+
+const ITEM_STATUS_TEXT = {
+  PENDING: 'Not uploaded',
+  UPLOADED: 'Uploaded · awaiting HR review',
+  VERIFIED: 'Verified ✓',
+  REJECTED: 'Rejected · please re-upload'
+};
 
 function ApplicantDocuments() {
   const [requests, setRequests] = useState([]);
@@ -18,9 +26,9 @@ function ApplicantDocuments() {
     fetchMyDocumentRequests();
   }, []);
 
-  async function fetchMyDocumentRequests() {
+  async function fetchMyDocumentRequests({ background = false } = {}) {
     try {
-      setLoading(true);
+      if (!background) setLoading(true);
       setError('');
       const data = await apiRequest('/documents/my');
       setRequests(Array.isArray(data) ? data : []);
@@ -62,7 +70,7 @@ function ApplicantDocuments() {
 
       setUploadProgress(100);
       setSuccess(`Document "${file.name}" uploaded successfully.`);
-      fetchMyDocumentRequests();
+      fetchMyDocumentRequests({ background: true });
     } catch (err) {
       setError(err.message || 'Document upload failed.');
     } finally {
@@ -80,7 +88,7 @@ function ApplicantDocuments() {
         method: 'POST'
       });
       setSuccess(res.message || 'All documents successfully submitted for HR verification.');
-      fetchMyDocumentRequests();
+      fetchMyDocumentRequests({ background: true });
     } catch (err) {
       setError(err.message || 'Failed to submit documents.');
     }
@@ -124,9 +132,8 @@ function ApplicantDocuments() {
           <p style={{ color: '#64748b', fontSize: '0.9rem', maxWidth: '460px', margin: '0 auto 20px auto', lineHeight: 1.5 }}>
             HR has not requested any additional original documents for your application at this stage. You will receive an email notification if documents are required.
           </p>
-          <a
-            href="#/applicant/dashboard"
-            onClick={(e) => { e.preventDefault(); window.location.href = window.location.pathname.replace(/\/documents.*$/, '/dashboard'); }}
+          <Link
+            to="/applicant/dashboard"
             style={{
               display: 'inline-block',
               backgroundColor: '#8B1235',
@@ -139,14 +146,16 @@ function ApplicantDocuments() {
             }}
           >
             &larr; Return to Dashboard
-          </a>
+          </Link>
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           {requests.map((req) => {
             const items = req.items || [];
-            const uploadedCount = items.filter(i => i.documents && i.documents.length > 0).length;
-            const mandatoryMissing = items.filter(i => i.isMandatory && (!i.documents || i.documents.length === 0)).length;
+            // A rejected file does not count: the candidate has to replace it first.
+            const isSatisfied = (i) => i.documents && i.documents.length > 0 && i.status !== 'REJECTED';
+            const uploadedCount = items.filter(isSatisfied).length;
+            const mandatoryMissing = items.filter(i => i.isMandatory && !isSatisfied(i)).length;
             const allMandatoryUploaded = mandatoryMissing === 0;
             const isVerified = req.status === 'VERIFIED';
             const isSubmitted = req.status === 'SUBMITTED';
@@ -190,7 +199,7 @@ function ApplicantDocuments() {
                         </span>
                       )}
                       <span style={{ fontSize: '0.8rem', color: '#64748B', fontWeight: 700 }}>
-                        {req.application?.applicationNumber || 'Application'}
+                        {req.application?.applicationNumber || ''}
                       </span>
                     </div>
 
@@ -198,7 +207,7 @@ function ApplicantDocuments() {
                       Original Document Verification Request
                     </h3>
                     <div style={{ fontSize: '0.88rem', color: '#475569', fontWeight: 600 }}>
-                      Position: <strong>{req.application?.job?.position || 'Applied Faculty Position'}</strong>
+                      {req.application?.job?.position ? <>Position: <strong>{req.application.job.position}</strong></> : null}
                     </div>
                   </div>
 
@@ -223,10 +232,10 @@ function ApplicantDocuments() {
                 <div style={{ marginBottom: '22px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
                     <span>Uploaded: {uploadedCount} of {items.length} documents</span>
-                    <span>{Math.round((uploadedCount / items.length) * 100)}% Complete</span>
+                    <span>{items.length ? Math.round((uploadedCount / items.length) * 100) : 0}% complete</span>
                   </div>
                   <div style={{ height: '8px', backgroundColor: '#F1F5F9', borderRadius: '4px', overflow: 'hidden' }}>
-                    <div style={{ width: `${(uploadedCount / items.length) * 100}%`, height: '100%', backgroundColor: isVerified ? '#059669' : '#8B1235', transition: 'width 0.3s ease' }} />
+                    <div style={{ width: `${items.length ? (uploadedCount / items.length) * 100 : 0}%`, height: '100%', backgroundColor: isVerified ? '#059669' : '#8B1235', transition: 'width 0.3s ease' }} />
                   </div>
                 </div>
 
@@ -248,6 +257,7 @@ function ApplicantDocuments() {
                     const isItemVerified = item.status === 'VERIFIED';
                     const isItemRejected = item.status === 'REJECTED';
                     const isItemUploading = uploadingItem === item.id;
+                    const canUpload = !isVerified && !isSubmitted && !isItemVerified && (!isUploaded || isItemRejected);
 
                     return (
                       <div
@@ -269,11 +279,11 @@ function ApplicantDocuments() {
                             <span style={{ fontSize: '0.94rem', fontWeight: 700, color: '#0F172A' }}>
                               {item.documentName}
                             </span>
-                            {item.isMandatory && (
-                              <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#DC2626', backgroundColor: '#FEE2E2', padding: '2px 6px', borderRadius: '4px' }}>
-                                Mandatory
-                              </span>
-                            )}
+                            <span style={item.isMandatory
+                              ? { fontSize: '0.68rem', fontWeight: 800, color: '#DC2626', backgroundColor: '#FEE2E2', padding: '2px 6px', borderRadius: '4px' }
+                              : { fontSize: '0.68rem', fontWeight: 800, color: '#475569', backgroundColor: '#F1F5F9', padding: '2px 6px', borderRadius: '4px' }}>
+                              {item.isMandatory ? 'Mandatory' : 'Optional'}
+                            </span>
                           </div>
 
                           {/* Rejection Alert Box */}
@@ -307,11 +317,11 @@ function ApplicantDocuments() {
                             backgroundColor: isItemVerified ? '#DEF7EC' : isItemRejected ? '#FDE8E8' : isUploaded ? '#E0E7FF' : '#FEF3C7',
                             color: isItemVerified ? '#03543F' : isItemRejected ? '#9B1C1C' : isUploaded ? '#3730A3' : '#92400E'
                           }}>
-                            {item.status}
+                            {ITEM_STATUS_TEXT[item.status] || item.status}
                           </span>
 
-                          {/* Upload / Re-upload Button */}
-                          {!isItemVerified && (
+                          {/* Upload is offered only when nothing is waiting for HR: a new item, or one HR rejected. */}
+                          {canUpload && (
                             <label
                               style={{
                                 backgroundColor: isItemRejected ? '#DC2626' : '#8B1235',
@@ -330,7 +340,7 @@ function ApplicantDocuments() {
                               }}
                             >
                               <span style={{ color: '#FFE600', fontWeight: 800, letterSpacing: '0.02em' }}>
-                                {isItemUploading ? 'Uploading...' : isItemRejected ? 'Re-upload ⟳' : isUploaded ? 'Replace File ↑' : 'Upload File ↑'}
+                                {isItemUploading ? 'Uploading...' : isItemRejected ? 'Re-upload ⟳' : 'Upload File ↑'}
                               </span>
                               <input
                                 type="file"
@@ -339,6 +349,7 @@ function ApplicantDocuments() {
                                 onChange={(e) => {
                                   if (e.target.files && e.target.files[0]) {
                                     handleFileUpload(req.id, item.id, e.target.files[0]);
+                                    e.target.value = '';
                                   }
                                 }}
                                 style={{ display: 'none' }}
@@ -381,7 +392,7 @@ function ApplicantDocuments() {
                         boxShadow: allMandatoryUploaded && !isSubmitted ? '0 4px 12px rgba(139, 18, 53, 0.25)' : 'none'
                       }}
                     >
-                      {isSubmitted ? 'Submitted for HR Verification ✓' : 'Submit All Documents for Verification &rarr;'}
+                      {isSubmitted ? 'Submitted for HR Verification ✓' : 'Submit All Documents for Verification →'}
                     </button>
                   )}
                 </div>

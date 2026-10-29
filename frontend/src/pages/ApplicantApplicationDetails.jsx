@@ -81,7 +81,7 @@ function ApplicantApplicationDetails() {
   const candidateName = formattedFullName || app.applicant?.name || 'Applicant';
   const candidateEmail = personal.email || contact.email || app.applicant?.user?.email || 'N/A';
   const candidateMobile = contact.mobile || personal.mobile || app.applicant?.mobile || 'N/A';
-  const positionTitle = app.job?.position || personal.postAppliedFor || 'Applied Position';
+  const positionTitle = app.job?.position || personal.postAppliedFor || 'Position not specified';
   const departmentName = app.job?.department || app.job?.school?.name || personal.faculty || 'Department';
   const jobCategory = app.job?.type || (personal.faculty?.includes('NON-TEACHING') ? 'NON_TEACHING' : 'TEACHING');
 
@@ -199,7 +199,7 @@ function ApplicantApplicationDetails() {
                 Current Status
               </div>
               <span className={`status-badge ${statusBadgeClass(app.status)}`} style={{ fontSize: '0.85rem', padding: '4px 12px' }}>
-                {statusLabel(app.status) || 'Application Submitted'}
+                {statusLabel(app.status)}
               </span>
             </div>
           </div>

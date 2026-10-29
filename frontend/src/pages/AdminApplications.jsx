@@ -4,6 +4,8 @@ import { apiRequest, API_URL, IS_MOCK } from '../utils/api';
 import { IconSearch, IconCalendar, IconDownload } from '../components/icons/AdminIcons';
 import { STATUS_TABS, statusLabel, statusBadgeStyle } from '../utils/status';
 import ScheduleInterviewModal from '../components/ScheduleInterviewModal';
+import { fetchAllApplications } from '../utils/applicationsApi';
+import { downloadCsv, csvDate } from '../utils/csv';
 
 function AdminApplications() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -13,6 +15,7 @@ function AdminApplications() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [actionSuccess, setActionSuccess] = useState('');
+  const [exporting, setExporting] = useState(false);
 
   // Dropdown Reference Data
   const [schools, setSchools] = useState([]);
@@ -93,22 +96,24 @@ function AdminApplications() {
     debouncedSearch
   ]);
 
+  // The filters currently applied; the list and the CSV export both use them.
+  function activeFilters() {
+    const params = {};
+    if (currentStatusTab !== 'ALL') params.status = currentStatusTab;
+    if (schoolFilter && schoolFilter !== 'ALL') params.schoolId = schoolFilter;
+    if (positionFilter && positionFilter !== 'ALL') params.position = positionFilter;
+    if (typeFilter && typeFilter !== 'ALL') params.type = typeFilter;
+    if (debouncedName.trim()) params.candidateName = debouncedName.trim();
+    if (debouncedAppId.trim()) params.applicationId = debouncedAppId.trim();
+    if (debouncedSearch.trim()) params.q = debouncedSearch.trim();
+    return params;
+  }
+
   async function fetchApplications(page = 1) {
     try {
       setLoading(true);
       setError('');
-      const query = new URLSearchParams({
-        page: page.toString(),
-        limit: '15'
-      });
-
-      if (currentStatusTab !== 'ALL') query.set('status', currentStatusTab);
-      if (schoolFilter && schoolFilter !== 'ALL') query.set('schoolId', schoolFilter);
-      if (positionFilter && positionFilter !== 'ALL') query.set('position', positionFilter);
-      if (typeFilter && typeFilter !== 'ALL') query.set('type', typeFilter);
-      if (debouncedName.trim()) query.set('candidateName', debouncedName.trim());
-      if (debouncedAppId.trim()) query.set('applicationId', debouncedAppId.trim());
-      if (debouncedSearch.trim()) query.set('q', debouncedSearch.trim());
+      const query = new URLSearchParams({ page: page.toString(), limit: '15', ...activeFilters() });
 
       const res = await apiRequest(`/applications?${query.toString()}`);
       setApplications(res?.data || res || []);
@@ -121,6 +126,40 @@ function AdminApplications() {
       setLoading(false);
     }
   }
+
+  // Every application matching the current filters (not just this page), one row each.
+  const handleExportCsv = async () => {
+    setError('');
+    setExporting(true);
+    try {
+      const rows = await fetchAllApplications(activeFilters());
+      if (rows.length === 0) {
+        setError('There are no applications to export for these filters.');
+        return;
+      }
+      const personal = (app) => {
+        try { return typeof app.personalInfo === 'string' ? JSON.parse(app.personalInfo) : (app.personalInfo || {}); } catch { return {}; }
+      };
+      downloadCsv(`applications-${new Date().toISOString().slice(0, 10)}.csv`, [
+        { header: 'Application No.', value: (a) => a.applicationNumber },
+        { header: 'Candidate', value: (a) => a.applicant?.name || [personal(a).firstName, personal(a).lastName].filter(Boolean).join(' ') },
+        { header: 'E-mail', value: (a) => a.applicant?.user?.email },
+        { header: 'Mobile', value: (a) => a.applicant?.mobile },
+        { header: 'Post', value: (a) => a.job?.position },
+        { header: 'School / Department', value: (a) => a.job?.department },
+        { header: 'Vacancy Type', value: (a) => a.job?.type },
+        { header: 'Status', value: (a) => statusLabel(a.status) },
+        { header: 'Submitted On', value: (a) => csvDate(a.submittedAt || a.createdAt) },
+        { header: 'Last Updated', value: (a) => csvDate(a.updatedAt) }
+      ], rows);
+      setActionSuccess(`Exported ${rows.length} application${rows.length === 1 ? '' : 's'}.`);
+      setTimeout(() => setActionSuccess(''), 5000);
+    } catch (err) {
+      setError(err.message || 'The export failed.');
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const handleStatusTabChange = (status) => {
     if (status === 'ALL') {
@@ -200,14 +239,25 @@ function AdminApplications() {
             Review candidate dossiers, filter by faculty or cadre, schedule panel interviews, and update recruitment status.
           </p>
         </div>
-        {IS_MOCK && (
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
           <button
-            onClick={handleClearApplications}
-            style={clearButtonStyle}
+            type="button"
+            onClick={handleExportCsv}
+            disabled={exporting}
+            title="Download every application matching the current filters as a CSV file"
+            style={{ backgroundColor: '#fff', color: '#0F172A', border: '1px solid #CBD5E1', padding: '9px 16px', borderRadius: '8px', fontWeight: 700, fontSize: '0.84rem', cursor: exporting ? 'wait' : 'pointer', opacity: exporting ? 0.7 : 1 }}
           >
-            Reset / Clear Demo Applications
+            {exporting ? 'Preparing…' : '⬇ Export CSV'}
           </button>
-        )}
+          {IS_MOCK && (
+            <button
+              onClick={handleClearApplications}
+              style={clearButtonStyle}
+            >
+              Reset / Clear Demo Applications
+            </button>
+          )}
+        </div>
       </div>
 
       {error && (
@@ -331,7 +381,7 @@ function AdminApplications() {
             <label style={filterLabelStyle}>Application ID</label>
             <input
               type="text"
-              placeholder="e.g. APP-2026-..."
+              placeholder="e.g. DYPIU-2026-..."
               value={applicationIdFilter}
               onChange={e => setApplicationIdFilter(e.target.value)}
               style={textInputStyle}
@@ -426,7 +476,7 @@ function AdminApplications() {
                         </div>
                       </td>
                       <td style={{ padding: '12px 14px', color: '#475569' }}>
-                        {app.job?.department || app.personalInfo?.faculty || 'DYPIU Campus'}
+                        {app.job?.department || app.personalInfo?.faculty || '—'}
                       </td>
                       <td style={{ padding: '12px 14px', color: '#64748B', whiteSpace: 'nowrap' }}>
                         {new Date(app.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
@@ -441,7 +491,7 @@ function AdminApplications() {
                           color: badge.text,
                           border: `1px solid ${badge.border}`
                         }}>
-                          {statusLabel(app.status) || 'Application Submitted'}
+                          {statusLabel(app.status)}
                         </span>
                       </td>
                       <td style={{ padding: '12px 14px', textAlign: 'center' }}>

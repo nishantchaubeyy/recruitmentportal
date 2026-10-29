@@ -1,14 +1,29 @@
 const path = require('path');
 const fs = require('fs');
-const archiver = require('archiver');
 const prisma = require('../services/prisma');
 const storageService = require('../services/storageService');
 const { logAuditAction } = require('../services/auditService');
 const { isAdminRole } = require('../utils/access');
+const { STATUS_LABELS } = require('../constants/statuses');
 const { cleanString, parseDate, safeFilename } = require('../utils/validate');
 
 const MAX_DOC_ITEMS = 30;
 const MAX_VERSIONS_PER_ITEM = 5;
+
+// Documents can be requested once an application has been shortlisted or beyond.
+const REQUESTABLE_STATUSES = ['SHORTLISTED', 'INTERVIEW_SCHEDULED', 'WAITLISTED', 'SELECTED'];
+
+/** Internal storage paths never leave the server. */
+function withoutFilePaths(request) {
+  if (!request || !Array.isArray(request.items)) return request;
+  return {
+    ...request,
+    items: request.items.map((item) => ({
+      ...item,
+      documents: (item.documents || []).map(({ filePath, ...doc }) => doc)
+    }))
+  };
+}
 
 /** Resolve the requesting applicant's id (null for non-applicants). */
 async function applicantIdOf(req) {
@@ -101,13 +116,19 @@ async function createDocumentRequest(req, res) {
   if (documents.length > MAX_DOC_ITEMS) {
     return res.status(400).json({ error: `At most ${MAX_DOC_ITEMS} documents can be requested at once.` });
   }
+  const seenNames = new Set();
   const cleanDocs = documents
     .map((doc) => ({
       name: cleanString(typeof doc === 'string' ? doc : doc?.name || doc?.documentName, 200),
       type: cleanString(typeof doc === 'string' ? 'CUSTOM' : doc?.type || doc?.documentType || 'CUSTOM', 50),
       isMandatory: typeof doc === 'object' && doc?.isMandatory !== undefined ? Boolean(doc.isMandatory) : true
     }))
-    .filter((doc) => doc.name);
+    .filter((doc) => {
+      const key = doc.name && doc.name.toLowerCase();
+      if (!key || seenNames.has(key)) return false;
+      seenNames.add(key);
+      return true;
+    });
   if (cleanDocs.length === 0) {
     return res.status(400).json({ error: 'Each requested document needs a name.' });
   }
@@ -133,9 +154,17 @@ async function createDocumentRequest(req, res) {
       }
     } else {
       application = await prisma.application.findFirst({
-        where: { applicantId: candidateId },
+        where: { applicantId: candidateId, status: { in: REQUESTABLE_STATUSES } },
         include: { job: true },
         orderBy: { createdAt: 'desc' }
+      });
+    }
+    if (!application) {
+      return res.status(400).json({ error: 'This candidate has no shortlisted, interview-stage, waitlisted or selected application to request documents for.' });
+    }
+    if (!REQUESTABLE_STATUSES.includes(application.status)) {
+      return res.status(400).json({
+        error: `Documents can be requested once an application is shortlisted or further along. This one is "${STATUS_LABELS[application.status] || application.status}".`
       });
     }
 
@@ -170,8 +199,9 @@ async function createDocumentRequest(req, res) {
     const contact = resolveCandidateContact(applicant, application);
     const loginUrl = process.env.LOGIN_URL || 'https://intranet.dypiu.ac.in/recruitment/login';
 
+    let emailOutcome = { status: 'SKIPPED', error: 'The candidate has no e-mail address on file.' };
     if (contact.email) {
-      await sendDocumentRequestEmail({
+      emailOutcome = await sendDocumentRequestEmail({
         to: contact.email,
         candidateName: contact.name,
         applicationNumber: application?.applicationNumber,
@@ -180,9 +210,15 @@ async function createDocumentRequest(req, res) {
         deadline: deadlineDate,
         priority,
         message,
-        loginUrl
-      }).catch(err => {
+        loginUrl,
+        meta: { kind: 'DOCUMENT_REQUEST', entityType: 'DocumentRequest', entityId: request.id }
+      }).then((result) => {
+        if (result && result.success) return { status: 'SENT' };
+        if (result && result.skipped) return { status: 'SKIPPED', error: result.error || 'No e-mail provider is configured on this server.' };
+        return { status: 'FAILED', error: (result && result.error) || 'The e-mail could not be sent.' };
+      }).catch((err) => {
         console.error('Document request email failed:', err.message);
+        return { status: 'FAILED', error: err.message };
       });
     }
 
@@ -206,7 +242,11 @@ async function createDocumentRequest(req, res) {
     });
 
     return res.status(201).json({
-      message: 'Document upload request successfully sent to candidate.',
+      message: emailOutcome.status === 'SENT'
+        ? 'Document request created and e-mailed to the candidate.'
+        : 'Document request created. It is visible in the candidate\'s portal, but the e-mail was not sent.',
+      emailStatus: emailOutcome.status,
+      emailError: emailOutcome.error || null,
       documentRequest: request
     });
   } catch (error) {
@@ -262,7 +302,7 @@ async function getAllDocumentRequests(req, res) {
       orderBy: { createdAt: 'desc' }
     });
 
-    return res.json(requests);
+    return res.json(requests.map(withoutFilePaths));
   } catch (error) {
     console.error('Fetch document requests error:', error);
     return res.status(500).json({ error: 'Failed to fetch document requests.' });
@@ -321,7 +361,7 @@ async function getMyDocumentRequests(req, res) {
 
     // Only return document requests that actually have items requested by HR
     const activeRequests = requests.filter(r => Array.isArray(r.items) && r.items.length > 0);
-    return res.json(activeRequests);
+    return res.json(activeRequests.map(withoutFilePaths));
   } catch (error) {
     console.error('Get my document requests error:', error);
     return res.status(500).json({ error: 'Failed to retrieve requested documents.' });
@@ -362,7 +402,7 @@ async function getDocumentRequestById(req, res) {
       return res.status(404).json({ error: 'Document request not found.' });
     }
 
-    return res.json(request);
+    return res.json(withoutFilePaths(request));
   } catch (error) {
     return res.status(500).json({ error: 'Failed to load document request.' });
   }
@@ -401,6 +441,10 @@ async function uploadCandidateDocumentItem(req, res) {
     }
     if (item.status === 'VERIFIED') {
       return res.status(409).json({ error: 'This document has already been verified.' });
+    }
+    // Once a file is uploaded it waits for HR; a new upload is only possible after HR rejects it.
+    if (item.status === 'UPLOADED') {
+      return res.status(409).json({ error: 'This document is already uploaded and waiting for HR review.' });
     }
     if (item._count.documents >= MAX_VERSIONS_PER_ITEM) {
       return res.status(400).json({ error: 'Maximum number of uploads reached for this document.' });
@@ -473,8 +517,8 @@ async function submitAllDocuments(req, res) {
       return res.status(409).json({ error: 'These documents have already been submitted.' });
     }
 
-    // Check mandatory documents
-    const missingMandatory = request.items.filter(item => item.isMandatory && item.documents.length === 0);
+    // Mandatory documents need a file that HR has not rejected (a rejected one has to be replaced first).
+    const missingMandatory = request.items.filter(item => item.isMandatory && (item.documents.length === 0 || item.status === 'REJECTED'));
     if (missingMandatory.length > 0) {
       const missingNames = missingMandatory.map(m => m.documentName).join(', ');
       return res.status(400).json({
@@ -731,7 +775,9 @@ async function downloadAllDocumentsZip(req, res) {
       where: { id: requestId },
       include: {
         candidate: true,
+        application: { select: { applicationNumber: true } },
         items: {
+          orderBy: { createdAt: 'asc' },
           include: { documents: { orderBy: { uploadDate: 'desc' } } }
         }
       }
@@ -741,37 +787,77 @@ async function downloadAllDocumentsZip(req, res) {
       return res.status(404).json({ error: 'Document request not found.' });
     }
 
-    const candidateName = (request.candidate?.name || 'Candidate').replace(/[^a-zA-Z0-9]/g, '_');
-    const zipFilename = `Documents_${candidateName}_${new Date().toISOString().slice(0, 10)}.zip`;
+    // Latest upload of every item that has one, and that is still on disk.
+    const entries = [];
+    const missing = [];
+    request.items.forEach((item) => {
+      const latest = item.documents[0];
+      if (!latest) return;
+      if (!storageService.fileExists(latest.filePath)) {
+        missing.push(item.documentName);
+        return;
+      }
+      entries.push({ item, latest });
+    });
+
+    if (entries.length === 0) {
+      return res.status(404).json({
+        error: missing.length
+          ? 'The uploaded files could not be found on the server. Ask the candidate to upload them again.'
+          : 'The candidate has not uploaded any documents yet.'
+      });
+    }
+
+    // archiver 8 is an ES module with named exports (it is no longer a callable function).
+    const { ZipArchive } = await import('archiver');
+
+    const candidateName = (request.candidate?.name || 'Candidate').replace(/[^a-zA-Z0-9]+/g, '_').replace(/^_+|_+$/g, '') || 'Candidate';
+    const reference = (request.application?.applicationNumber || '').replace(/[^a-zA-Z0-9-]/g, '');
+    const zipFilename = `Documents_${candidateName}${reference ? `_${reference}` : ''}_${new Date().toISOString().slice(0, 10)}.zip`;
 
     res.setHeader('Content-Type', 'application/zip');
     res.setHeader('Content-Disposition', `attachment; filename="${zipFilename}"`);
+    res.setHeader('X-Content-Type-Options', 'nosniff');
 
-    const archive = archiver('zip', { zlib: { level: 9 } });
-
+    const archive = new ZipArchive({ zlib: { level: 6 } });
+    archive.on('warning', (err) => console.warn('Archive warning:', err.message));
     archive.on('error', (err) => {
       console.error('Archive error:', err);
-      if (!res.headersSent) res.status(500).send({ error: 'Failed to generate ZIP archive.' });
+      if (!res.headersSent) res.status(500).json({ error: 'Failed to generate ZIP archive.' });
+      else res.destroy(err);
     });
-
     archive.pipe(res);
 
-    for (const item of request.items) {
-      const latestDoc = item.documents[0];
-      if (latestDoc) {
-        if (storageService.fileExists(latestDoc.filePath)) {
-          const filePath = storageService.getFileLocation(latestDoc.filePath);
-          const ext = path.extname(latestDoc.fileName) || '.pdf';
-          const cleanItemName = item.documentName.replace(/[^a-zA-Z0-9_-]/g, '_');
-          archive.file(filePath, { name: `${cleanItemName}${ext}` });
-        }
-      }
+    // 01_Name.pdf, 02_Name.pdf ... so two items can never overwrite each other.
+    entries.forEach(({ item, latest }, index) => {
+      const ext = path.extname(latest.fileName) || '.pdf';
+      const cleanName = item.documentName.replace(/[^a-zA-Z0-9_-]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 80) || 'Document';
+      archive.file(storageService.getFileLocation(latest.filePath), {
+        name: `${String(index + 1).padStart(2, '0')}_${cleanName}${ext}`
+      });
+    });
+
+    if (missing.length) {
+      archive.append(
+        `These documents were uploaded but could not be found on the server:\r\n- ${missing.join('\r\n- ')}\r\n`,
+        { name: 'MISSING_FILES.txt' }
+      );
     }
+
+    await logAuditAction({
+      action: 'DOCUMENT_ZIP_DOWNLOADED',
+      userId: req.user.id,
+      targetType: 'DocumentRequest',
+      targetId: request.id,
+      details: { files: entries.length, missing: missing.length },
+      req
+    });
 
     await archive.finalize();
   } catch (error) {
     console.error('Download ZIP error:', error);
-    return res.status(500).json({ error: 'Failed to generate ZIP archive.' });
+    if (!res.headersSent) return res.status(500).json({ error: 'Failed to generate ZIP archive.' });
+    return res.destroy(error);
   }
 }
 

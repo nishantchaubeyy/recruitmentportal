@@ -59,3 +59,25 @@ This document summarizes the 21 logic and wiring issues identified during the sy
 - Upgrade note: this round adds the `EmailLog` table. Run `npm run db:setup` (or apply `prisma/migrations/20261029000000_email_log`) before deploying.
 - `npm test` in `backend/` runs the whole suite.
 
+---
+
+## Document requests, file access and CSV export
+
+- **Request Documents from the application page**: once an application is Shortlisted, Interview Scheduled, Waitlisted or Selected, the review page shows a *Request Documents* button (green, "from Selected Candidate", once selected). The panel opens in place with the candidate's name, e-mail, mobile, application number, post and school filled in, a checklist built from what the candidate actually has (10th/12th, graduation or post-graduation with the degree name, Ph.D. proof, experience and relieving letters, salary slips only for a current job, PAN, Aadhar, photograph, plus bank and address proof once selected), a default deadline and a message written for the stage. Each document can be set to Mandatory or Optional, removed, or added from the standard list or typed in. The Document Verification page uses the same panel with a candidate picker.
+- **Result is honest**: the response says whether the e-mail was sent; with no mail provider the request still appears in the candidate's portal and HR is told the e-mail was not sent. Requests are refused for applications that are not yet shortlisted.
+- **Viewing uploaded files** no longer fails with "access token required": files are fetched with the login header and opened from the page instead of plain links.
+- **Download all as ZIP** works again (the `archiver` v8 upgrade had removed the function the code called). Entries are numbered so documents with similar names cannot overwrite each other, and the download says clearly when nothing has been uploaded.
+- **Candidate upload page**: the upload button disappears once a file is uploaded and returns only if HR rejects the file; submitted or verified requests cannot be changed; a rejected mandatory document must be replaced before the candidate can submit (checked on the server too). Optional documents are labelled and do not block submission. Internal storage paths are no longer sent to browsers.
+- **Export CSV**: on Applications (every application matching the current filters, across all pages) and on Document Verification (one row per requested document). Cells that start with = + - @ are neutralised for Excel.
+- **Filters**: the Applications screen's school, position, candidate name, application ID and search filters were sent under names the API did not read, so they did nothing; the API now accepts them. Admin lists asked for 200 rows but the API capped them at 100; they now page through everything.
+- **Invented values removed**: fake city/state/post fallbacks ("Pune", "Maharashtra", "Faculty Position", "Application Submitted", "Visiting Faculty") and the unused hard-coded university structure file.
+
+---
+
+## Application numbers and the application form PDF
+
+- **Numbering**: new applications are numbered `DYPIU-YYYY-000001`. Numbers already issued as `APP-YYYY-…` are left untouched, and the sequence continues from the highest number of either format, so nothing is repeated. No database change is needed (the column is free text).
+- **Application form PDF** (the attachment e-mailed to candidates and panel members) is now a single A4 page: three label/value pairs per row, a combined title bar showing the application number and submission date, and tighter spacing. If an application is unusually long the layout shrinks step by step to stay on one page; only an extreme case (dozens of rows) spills onto a second page. It no longer prints invented values (default nationality, "Full Time", "Faculty Position") and the page number is shown only when there is more than one page.
+- Display fallbacks that invented an application number (`APP-2026-000001`, `DYPIU-2026-000001`) were removed from the screens; the mock data uses the new format.
+- Tests: `backend/test/pdf.test.js` (one page for typical, heavy and fresher applications) and the numbering assertion in `security.test.js`.
+

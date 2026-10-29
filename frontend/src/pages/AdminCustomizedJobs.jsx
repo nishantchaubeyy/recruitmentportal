@@ -250,8 +250,8 @@ function AdminCustomizedJobs() {
                     </td>
 
                     <td style={{ padding: '14px 16px', color: '#334155', maxWidth: '220px' }}>
-                      <div>{job.department || (job.school && job.school.name) || 'DYPIU Campus'}</div>
-                      <div style={{ fontSize: '0.74rem', color: '#64748B', marginTop: '2px' }}>{job.location || 'Pune'}</div>
+                      <div>{job.department || (job.school && job.school.name) || '—'}</div>
+                      <div style={{ fontSize: '0.74rem', color: '#64748B', marginTop: '2px' }}>{job.location || '—'}</div>
                     </td>
 
                     <td style={{ padding: '14px 16px', textAlign: 'center' }}>

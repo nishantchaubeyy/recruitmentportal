@@ -47,6 +47,9 @@ const prismaStub = {
       const a = db.applications.get(where.id);
       return a && include?.job ? { ...a, job: db.jobs.get(a.jobId) || null } : a || null;
     },
+    findMany: async ({ where }) => [...db.applications.values()]
+      .filter((a) => (where?.OR || []).some((c) => a.applicationNumber?.startsWith(c.applicationNumber.startsWith)))
+      .sort((a, b) => b.applicationNumber.localeCompare(a.applicationNumber)),
     findFirst: async ({ where } = {}) => {
       const all = [...db.applications.values()];
       if (where?.applicantId) {
@@ -452,7 +455,9 @@ test('submission validates the form, assigns a sequential number and cannot be r
     }
   });
   assert.equal(ok.status, 200, JSON.stringify(ok.json));
-  assert.match(ok.json.applicationNumber, /^APP-\d{4}-\d{6}$/);
+  assert.match(ok.json.applicationNumber, /^DYPIU-\d{4}-\d{6}$/);
+  // The sequence continues from the legacy APP- numbers instead of restarting.
+  assert.equal(ok.json.applicationNumber, `DYPIU-${new Date().getFullYear()}-000002`);
   assert.equal(db.applications.get(draftId).status, 'SUBMITTED');
 
   const repeat = await call('POST', `/api/applications/${draftId}/submit`, { token, body: { declaration: true } });

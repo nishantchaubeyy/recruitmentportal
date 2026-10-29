@@ -183,7 +183,7 @@ model VacancyInterest {
 
 model Application {
   id                String        @id @default(uuid())
-  applicationNumber String        @unique // APP-YYYY-XXXXXX format
+  applicationNumber String        @unique // DYPIU-YYYY-XXXXXX format (older rows may still be APP-YYYY-XXXXXX)
   applicantId       String
   applicant         Applicant     @relation(fields: [applicantId], references: [id], onDelete: Cascade)
   jobId             String
