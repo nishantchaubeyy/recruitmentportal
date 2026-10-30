@@ -105,3 +105,11 @@ This document summarizes the 21 logic and wiring issues identified during the sy
 - **Review page**: no longer claims "CV / Resume attached in candidate submission" when nothing is on file; it says so and warns when no file is filed as the resume.
 - Applications that were already submitted without a stored file cannot be recovered; their candidates need to send the CV again.
 
+---
+
+## Vacancy form: dynamic School / Department / Position
+
+- **Custom vacancies** now use the same lists as Teaching and Non-Teaching instead of three blank text boxes: *School / Faculty / Center* lists every school and division from the database, *Department / Specialization* then lists that school's departments, and *Position / Role Title* lists that department's roles. Each has an **Other** choice to type something that is not on the list yet (a Custom vacancy is still stored as text, so it does not appear under a school's Teaching / Non-Teaching listings).
+- **Required fields are enforced**: School / Faculty / Center (Custom) and School / Institute plus Department (Teaching / Non-Teaching) were marked with * but never checked, and a missing school was silently saved as "DYPIU Campus". The form now asks for them and the server refuses a vacancy without one.
+- Editing an older Custom vacancy shows how its department was saved ("Currently saved as: …") and keeps it valid without re-entering the school.
+

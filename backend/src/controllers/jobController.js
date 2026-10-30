@@ -380,6 +380,16 @@ async function createJob(req, res) {
   if (parsed.error) return res.status(400).json({ error: parsed.error });
   const input = parsed.data;
 
+  // A vacancy must say which school / faculty / centre it belongs to (no silent "DYPIU Campus" default).
+  const where = input.type === 'CUSTOM'
+    ? (input.department || cleanString(req.body.schoolName, 200))
+    : (input.schoolId || input.department);
+  if (!where) {
+    return res.status(400).json({ error: input.type === 'CUSTOM'
+      ? 'Enter the School / Faculty / Center this role belongs to.'
+      : 'Select the School / Institute for this vacancy.' });
+  }
+
   try {
     // Resolve text department string if school/department IDs are provided
     let deptName = input.department || '';
@@ -404,7 +414,7 @@ async function createJob(req, res) {
             schoolId: input.type === 'CUSTOM' ? null : (input.schoolId || null),
             departmentId: input.type === 'CUSTOM' ? null : (input.departmentId || null),
             positionId: input.type === 'CUSTOM' ? null : (input.positionId || null),
-            department: input.type === 'CUSTOM' ? (input.department || input.schoolName || 'DYPIU Campus') : (deptName || 'DYPIU Campus'),
+            department: input.type === 'CUSTOM' ? (input.department || cleanString(req.body.schoolName, 200)) : deptName,
             employmentType: input.employmentType || 'Full Time',
             numPositions: input.numPositions || 1,
             qualification: input.qualification,

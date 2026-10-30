@@ -38,6 +38,8 @@ function compressPosterImage(file) {
   });
 }
 
+const linkButtonStyle = { background: 'none', border: 'none', padding: 0, marginTop: '6px', color: '#721b28', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer', textAlign: 'left', letterSpacing: 'normal', textTransform: 'none' };
+
 function AdminCreateJob() {
   const { id } = useParams(); // If id exists, it's Edit mode
   const isEditMode = Boolean(id);
@@ -76,6 +78,12 @@ function AdminCreateJob() {
   const [schools, setSchools] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [positions, setPositions] = useState([]);
+
+  // Custom vacancies pick from the same lists, with "Other" to type something that is not on them yet.
+  const OTHER = '__other__';
+  const [customSchoolOther, setCustomSchoolOther] = useState(false);
+  const [customDeptOther, setCustomDeptOther] = useState(false);
+  const [customPositionOther, setCustomPositionOther] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -180,6 +188,9 @@ function AdminCreateJob() {
 
   const handleTypeChange = (e) => {
     const newType = e.target.value;
+    setCustomSchoolOther(false);
+    setCustomDeptOther(false);
+    setCustomPositionOther(false);
     setFormData((prev) => ({
       ...prev,
       type: newType,
@@ -193,6 +204,46 @@ function AdminCreateJob() {
       position: '',
       department: ''
     }));
+  };
+
+  // ---- Custom vacancy: School -> Department -> Position, each list depends on the one before ----
+  const handleCustomSchoolChange = (e) => {
+    const value = e.target.value;
+    setCustomDeptOther(false);
+    setCustomPositionOther(false);
+    if (value === OTHER) {
+      setCustomSchoolOther(true);
+      setFormData((prev) => ({ ...prev, schoolId: '', departmentId: '', positionId: '', schoolName: '', department: '', position: '' }));
+      return;
+    }
+    setCustomSchoolOther(false);
+    const school = schools.find((s) => s.id === value);
+    setFormData((prev) => ({ ...prev, schoolId: value, departmentId: '', positionId: '', schoolName: school ? school.name : '', department: '', position: '' }));
+  };
+
+  const handleCustomDepartmentChange = (e) => {
+    const value = e.target.value;
+    setCustomPositionOther(false);
+    if (value === OTHER) {
+      setCustomDeptOther(true);
+      setFormData((prev) => ({ ...prev, departmentId: '', positionId: '', department: '', position: '' }));
+      return;
+    }
+    setCustomDeptOther(false);
+    const dept = departments.find((d) => d.id === value);
+    setFormData((prev) => ({ ...prev, departmentId: value, positionId: '', department: dept ? dept.name : '', position: '' }));
+  };
+
+  const handleCustomPositionChange = (e) => {
+    const value = e.target.value;
+    if (value === OTHER) {
+      setCustomPositionOther(true);
+      setFormData((prev) => ({ ...prev, positionId: '', position: '' }));
+      return;
+    }
+    setCustomPositionOther(false);
+    const pos = positions.find((p) => p.id === value);
+    setFormData((prev) => ({ ...prev, positionId: value, position: pos ? pos.title : '' }));
   };
 
   const handleSchoolChange = (e) => {
@@ -259,13 +310,32 @@ function AdminCreateJob() {
       if (schPart && deptPart && !deptPart.toLowerCase().includes(schPart.toLowerCase())) {
         payload.department = `${schPart} - ${deptPart}`;
       } else {
-        payload.department = deptPart || schPart || 'DYPIU Campus';
+        payload.department = deptPart || schPart;
       }
       payload.schoolName = schPart;
       payload.customCategory = formData.customCategory || formData.customLabel || '';
       payload.customLabel = formData.customCategory || formData.customLabel || '';
       if (!payload.employmentType) {
         payload.employmentType = 'Contract / Visiting';
+      }
+    }
+
+    if (payload.type === 'CUSTOM') {
+      if (!(formData.schoolName || '').trim() && !(formData.department || '').trim()) {
+        setErrorMsg('Choose or type the School / Faculty / Center this role belongs to.');
+        setSubmitting(false);
+        return;
+      }
+    } else {
+      if (!formData.schoolId) {
+        setErrorMsg('Select the School / Institute for this vacancy.');
+        setSubmitting(false);
+        return;
+      }
+      if (departments.length > 0 && !formData.departmentId) {
+        setErrorMsg('Select the Department for this vacancy.');
+        setSubmitting(false);
+        return;
       }
     }
 
@@ -392,40 +462,80 @@ function AdminCreateJob() {
                   </div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 1fr', gap: '16px', marginBottom: '16px' }}>
-                  <div style={formGroupStyle}>
-                    <label style={labelStyle}>Position / Role Title *</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. Visiting Professor - Artificial Intelligence"
-                      style={inputStyle}
-                      value={formData.position}
-                      onChange={(e) => setFormData({ ...formData, position: e.target.value })}
-                    />
-                  </div>
-
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px', marginBottom: '16px' }}>
+                  {/* 1. School / Faculty / Center: every school and division, or type a new one */}
                   <div style={formGroupStyle}>
                     <label style={labelStyle}>School / Faculty / Center *</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. School of Digital Sciences"
-                      style={inputStyle}
-                      value={formData.schoolName || ''}
-                      onChange={(e) => setFormData({ ...formData, schoolName: e.target.value })}
-                    />
+                    <select style={selectStyle} value={customSchoolOther ? OTHER : formData.schoolId} onChange={handleCustomSchoolChange}>
+                      <option value="">-- Select School / Faculty / Center --</option>
+                      {schools.map((s) => (
+                        <option key={s.id} value={s.id}>{s.name}</option>
+                      ))}
+                      <option value={OTHER}>Other — type a new name…</option>
+                    </select>
+                    {customSchoolOther && (
+                      <input
+                        type="text"
+                        placeholder="e.g. School of Digital Sciences"
+                        style={{ ...inputStyle, marginTop: '8px' }}
+                        value={formData.schoolName || ''}
+                        onChange={(e) => setFormData({ ...formData, schoolName: e.target.value })}
+                      />
+                    )}
+                    {isEditMode && !formData.schoolName && formData.department && (
+                      <small style={{ color: '#64748b', marginTop: '4px' }}>Currently saved as: {formData.department}</small>
+                    )}
                   </div>
 
+                  {/* 2. Department / Specialization: that school's departments, or type one */}
                   <div style={formGroupStyle}>
                     <label style={labelStyle}>Department / Specialization</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Machine Learning & Robotics"
-                      style={inputStyle}
-                      value={formData.department}
-                      onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                    />
+                    {formData.schoolId && departments.length > 0 && !customDeptOther ? (
+                      <select style={selectStyle} value={formData.departmentId} onChange={handleCustomDepartmentChange}>
+                        <option value="">-- Select Department --</option>
+                        {departments.map((d) => (
+                          <option key={d.id} value={d.id}>{d.name}</option>
+                        ))}
+                        <option value={OTHER}>Other — type a specialization…</option>
+                      </select>
+                    ) : (
+                      <input
+                        type="text"
+                        placeholder="e.g. Machine Learning & Robotics"
+                        style={inputStyle}
+                        value={formData.department}
+                        onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+                      />
+                    )}
+                    {customDeptOther && departments.length > 0 && (
+                      <button type="button" onClick={() => { setCustomDeptOther(false); setFormData((prev) => ({ ...prev, department: '' })); }} style={linkButtonStyle}>← choose from the list</button>
+                    )}
+                  </div>
+
+                  {/* 3. Position / Role: that department's roles, or type a new title */}
+                  <div style={formGroupStyle}>
+                    <label style={labelStyle}>Position / Role Title *</label>
+                    {formData.departmentId && positions.length > 0 && !customPositionOther ? (
+                      <select style={selectStyle} value={formData.positionId} onChange={handleCustomPositionChange}>
+                        <option value="">-- Select Role --</option>
+                        {positions.map((p) => (
+                          <option key={p.id} value={p.id}>{p.title}</option>
+                        ))}
+                        <option value={OTHER}>Other — type a new role title…</option>
+                      </select>
+                    ) : (
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g. Visiting Professor - Artificial Intelligence"
+                        style={inputStyle}
+                        value={formData.position}
+                        onChange={(e) => setFormData({ ...formData, position: e.target.value })}
+                      />
+                    )}
+                    {customPositionOther && positions.length > 0 && (
+                      <button type="button" onClick={() => { setCustomPositionOther(false); setFormData((prev) => ({ ...prev, position: '' })); }} style={linkButtonStyle}>← choose from the list</button>
+                    )}
                   </div>
                 </div>
 
