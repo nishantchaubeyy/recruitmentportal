@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { apiRequest } from '../utils/api';
+import { downloadCsv, csvDate } from '../utils/csv';
+import { IconDownload } from '../components/icons/AdminIcons';
 
 function AdminInterestedApplicants() {
   const [interests, setInterests] = useState([]);
@@ -50,8 +52,68 @@ function AdminInterestedApplicants() {
     }
   };
 
+  const handleDownloadCsv = () => {
+    if (interests.length === 0) return;
+    downloadCsv(
+      `interested-applicants-${new Date().toISOString().slice(0, 10)}.csv`,
+      [
+        { header: 'Candidate Name', value: (r) => r.name },
+        { header: 'Email', value: (r) => r.email },
+        { header: 'Mobile', value: (r) => r.mobile },
+        { header: 'Interested Position', value: (r) => r.interestedPosition },
+        { header: 'School / Division', value: (r) => r.school?.name || 'General / Unspecified' },
+        { header: 'Department', value: (r) => r.department?.name || '—' },
+        { header: 'Category', value: (r) => r.category },
+        { header: 'Candidate Notes / Remarks', value: (r) => r.message || '' },
+        { header: 'Notification Status', value: (r) => r.status === 'NOTIFIED' ? 'Notified' : 'Pending Notification' },
+        { header: 'Notified Date', value: (r) => csvDate(r.notifiedAt) },
+        { header: 'Registered Date', value: (r) => csvDate(r.createdAt) }
+      ],
+      interests
+    );
+    setNotificationMsg(`Exported ${interests.length} interested candidate record${interests.length === 1 ? '' : 's'} to CSV.`);
+    setTimeout(() => setNotificationMsg(''), 5000);
+  };
+
   return (
     <div style={{ padding: '24px 30px' }}>
+      {/* Top Header Row with Title and Download CSV button */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px', marginBottom: '20px' }}>
+        <div>
+          <h2 style={{ color: '#0F172A', margin: 0, fontWeight: 800, fontSize: '1.35rem', letterSpacing: '-0.3px' }}>
+            Interested Applicants Talent Pool
+          </h2>
+          <p style={{ color: '#64748B', margin: '3px 0 0 0', fontSize: '0.84rem' }}>
+            Candidate registrations & expressions of interest awaiting matching openings.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={handleDownloadCsv}
+          disabled={interests.length === 0}
+          title={interests.length === 0 ? 'No records to download' : 'Download interested candidates as a CSV file'}
+          style={{
+            backgroundColor: '#ffffff',
+            color: '#0F172A',
+            border: '1.5px solid #CBD5E1',
+            padding: '9px 18px',
+            borderRadius: '8px',
+            fontWeight: 700,
+            fontSize: '0.86rem',
+            cursor: interests.length === 0 ? 'not-allowed' : 'pointer',
+            opacity: interests.length === 0 ? 0.55 : 1,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '8px',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+            transition: 'all 0.15s ease'
+          }}
+        >
+          <IconDownload size={16} color="#721B28" />
+          <span>Download CSV</span>
+        </button>
+      </div>
+
       {/* Action Notification Banner */}
       {notificationMsg && (
         <div style={{ backgroundColor: '#fef2f2', color: '#721b28', border: '1px solid #fecaca', padding: '14px 18px', borderRadius: '10px', marginBottom: '20px', fontWeight: 600 }}>
@@ -88,68 +150,113 @@ function AdminInterestedApplicants() {
         </div>
       </div>
 
-      {/* Filter Control Bar */}
+      {/* Filter Control Bar with Quick Download CSV Button */}
       <div style={{
         backgroundColor: '#ffffff',
         border: '1px solid #e2e8f0',
         borderRadius: '12px',
         padding: '18px 20px',
-        marginBottom: '24px',
+        marginBottom: '20px',
         display: 'flex',
         gap: '16px',
         flexWrap: 'wrap',
-        alignItems: 'center'
+        alignItems: 'flex-end',
+        justifyContent: 'space-between'
       }}>
-        <div style={{ flex: '1 1 180px' }}>
-          <label style={filterLabelStyle}>VACANCY CATEGORY</label>
-          <select
-            value={categoryFilter}
-            onChange={(e) => setCategoryFilter(e.target.value)}
-            style={selectStyle}
-          >
-            <option value="">All Categories</option>
-            <option value="TEACHING">Teaching</option>
-            <option value="NON_TEACHING">Non-Teaching</option>
-          </select>
+        <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', flex: '1 1 720px', alignItems: 'flex-end' }}>
+          <div style={{ flex: '1 1 180px' }}>
+            <label style={filterLabelStyle}>VACANCY CATEGORY</label>
+            <select
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+              style={selectStyle}
+            >
+              <option value="">All Categories</option>
+              <option value="TEACHING">Teaching</option>
+              <option value="NON_TEACHING">Non-Teaching</option>
+            </select>
+          </div>
+
+          <div style={{ flex: '1 1 200px' }}>
+            <label style={filterLabelStyle}>SCHOOL / DIVISION</label>
+            <select
+              value={schoolFilter}
+              onChange={(e) => setSchoolFilter(e.target.value)}
+              style={selectStyle}
+            >
+              <option value="">All Schools / Divisions</option>
+              {schools.map((s) => (
+                <option key={s.id} value={s.id}>{s.name}</option>
+              ))}
+            </select>
+          </div>
+
+          <div style={{ flex: '1 1 180px' }}>
+            <label style={filterLabelStyle}>NOTIFICATION STATUS</label>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              style={selectStyle}
+            >
+              <option value="">All Statuses</option>
+              <option value="PENDING">Not Notified (Pending)</option>
+              <option value="NOTIFIED">Notified</option>
+            </select>
+          </div>
+
+          <div style={{ flex: '1 1 240px' }}>
+            <label style={filterLabelStyle}>SEARCH CANDIDATE / POSITION</label>
+            <input
+              type="text"
+              placeholder="Search name, email, mobile, position..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              style={inputSearchStyle}
+            />
+          </div>
         </div>
 
-        <div style={{ flex: '1 1 200px' }}>
-          <label style={filterLabelStyle}>SCHOOL / DIVISION</label>
-          <select
-            value={schoolFilter}
-            onChange={(e) => setSchoolFilter(e.target.value)}
-            style={selectStyle}
+        <div>
+          <button
+            type="button"
+            onClick={handleDownloadCsv}
+            disabled={interests.length === 0}
+            title={interests.length === 0 ? 'No records to download' : 'Download filtered records as CSV'}
+            style={{
+              backgroundColor: '#ffffff',
+              color: '#0F172A',
+              border: '1.5px solid #CBD5E1',
+              padding: '9px 18px',
+              borderRadius: '8px',
+              fontWeight: 700,
+              fontSize: '0.86rem',
+              cursor: interests.length === 0 ? 'not-allowed' : 'pointer',
+              opacity: interests.length === 0 ? 0.55 : 1,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              height: '38px',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+              transition: 'all 0.15s ease',
+              whiteSpace: 'nowrap'
+            }}
           >
-            <option value="">All Schools / Divisions</option>
-            {schools.map((s) => (
-              <option key={s.id} value={s.id}>{s.name}</option>
-            ))}
-          </select>
+            <IconDownload size={16} color="#721B28" />
+            <span>Download CSV</span>
+          </button>
         </div>
+      </div>
 
-        <div style={{ flex: '1 1 180px' }}>
-          <label style={filterLabelStyle}>NOTIFICATION STATUS</label>
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            style={selectStyle}
-          >
-            <option value="">All Statuses</option>
-            <option value="PENDING">Not Notified (Pending)</option>
-            <option value="NOTIFIED">Notified</option>
-          </select>
-        </div>
-
-        <div style={{ flex: '1 1 240px' }}>
-          <label style={filterLabelStyle}>SEARCH CANDIDATE / POSITION</label>
-          <input
-            type="text"
-            placeholder="Search name, email, mobile, position..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            style={inputSearchStyle}
-          />
-        </div>
+      {/* Table Header Strip */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', padding: '0 4px' }}>
+        <span style={{ fontSize: '0.84rem', fontWeight: 700, color: '#475569' }}>
+          Registered Candidates ({interests.length})
+        </span>
+        {interests.length > 0 && (
+          <span style={{ fontSize: '0.8rem', color: '#64748B' }}>
+            Click <strong>Download CSV</strong> to save all {interests.length} record{interests.length === 1 ? '' : 's'} as an Excel-compatible spreadsheet.
+          </span>
+        )}
       </div>
 
       {/* Main Table */}
