@@ -49,13 +49,17 @@ async function normaliseJobInput(input, { partial }) {
     position: 200, department: 200, employmentType: 50, qualification: 2000, experience: 1000,
     skills: 2000, description: 10000, salaryScale: 200, location: 200,
     requiredDocuments: 2000, eligibilityCriteria: 4000,
-    customCategory: 200, customLabel: 200, schoolName: 200
+    customCategory: 200, customLabel: 200
   };
   for (const [key, max] of Object.entries(strings)) {
     if (input[key] === undefined) continue;
     if (typeof input[key] !== 'string') return { error: `"${key}" must be text.` };
     data[key] = cleanString(input[key], max);
   }
+
+  // `schoolName` is only a form helper (used by createJob to build the department text); it is not a column,
+  // so it is validated here but never put into `data` (Prisma rejects unknown fields).
+  if (input.schoolName !== undefined && typeof input.schoolName !== 'string') return { error: '"schoolName" must be text.' };
 
   if (input.type !== undefined) {
     if (!['TEACHING', 'NON_TEACHING', 'CUSTOM'].includes(input.type)) return { error: 'Vacancy type must be TEACHING, NON_TEACHING, or CUSTOM.' };
@@ -794,6 +798,8 @@ async function getAcademicStructure(req, res) {
 }
 
 module.exports = {
+  // exported for tests
+  _normaliseJobInput: normaliseJobInput,
   getPublicVacancies,
   getPublicVacancyById,
   getAllJobs,
