@@ -77,43 +77,6 @@ function AdminInterestedApplicants() {
 
   return (
     <div style={{ padding: '24px 30px' }}>
-      {/* Top Header Row with Title and Download CSV button */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px', marginBottom: '20px' }}>
-        <div>
-          <h2 style={{ color: '#0F172A', margin: 0, fontWeight: 800, fontSize: '1.35rem', letterSpacing: '-0.3px' }}>
-            Interested Applicants Talent Pool
-          </h2>
-          <p style={{ color: '#64748B', margin: '3px 0 0 0', fontSize: '0.84rem' }}>
-            Candidate registrations & expressions of interest awaiting matching openings.
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={handleDownloadCsv}
-          disabled={interests.length === 0}
-          title={interests.length === 0 ? 'No records to download' : 'Download interested candidates as a CSV file'}
-          style={{
-            backgroundColor: '#ffffff',
-            color: '#0F172A',
-            border: '1.5px solid #CBD5E1',
-            padding: '9px 18px',
-            borderRadius: '8px',
-            fontWeight: 700,
-            fontSize: '0.86rem',
-            cursor: interests.length === 0 ? 'not-allowed' : 'pointer',
-            opacity: interests.length === 0 ? 0.55 : 1,
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '8px',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
-            transition: 'all 0.15s ease'
-          }}
-        >
-          <IconDownload size={16} color="#721B28" />
-          <span>Download CSV</span>
-        </button>
-      </div>
-
       {/* Action Notification Banner */}
       {notificationMsg && (
         <div style={{ backgroundColor: '#fef2f2', color: '#721b28', border: '1px solid #fecaca', padding: '14px 18px', borderRadius: '10px', marginBottom: '20px', fontWeight: 600 }}>
